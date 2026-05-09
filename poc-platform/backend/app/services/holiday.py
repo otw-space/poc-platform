@@ -1,5 +1,4 @@
 from datetime import date, timedelta
-from chinese_calendar import is_workday
 
 
 def calculate_workdays(start: date, end: date) -> int:
@@ -9,7 +8,17 @@ def calculate_workdays(start: date, end: date) -> int:
     current = start
     count = 0
     while current <= end:
-        if is_workday(current):
-            count += 1
+        if current.weekday() < 5:  # Mon-Fri
+            if not _is_chinese_holiday(current):
+                count += 1
         current += timedelta(days=1)
     return count
+
+
+def _is_chinese_holiday(d: date) -> bool:
+    """Check if date is a Chinese public holiday. Falls back gracefully for years without data."""
+    try:
+        from chinese_calendar import is_holiday
+        return is_holiday(d)
+    except NotImplementedError:
+        return False
