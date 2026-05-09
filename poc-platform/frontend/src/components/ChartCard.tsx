@@ -7,7 +7,8 @@ import type { ChartConfig } from '../api/dashboards';
 
 interface ChartCardProps {
   config: ChartConfig;
-  onEdit?: (id: string) => void;
+  dashboardId?: string;
+  onEdit?: (chartId: string, dashboardId?: string) => void;
   onDelete?: (id: string) => void;
 }
 
@@ -35,7 +36,7 @@ const CORNER_CURSORS: Record<Corner, string> = {
   tl: 'nwse-resize', tr: 'nesw-resize', bl: 'nesw-resize', br: 'nwse-resize',
 };
 
-export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) {
+export default function ChartCard({ config, dashboardId, onEdit, onDelete }: ChartCardProps) {
   const [data, setData] = useState<{ x: string; y: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -103,7 +104,7 @@ export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) 
   }, [config.id]);
 
   const doRefresh = () => { setMenuOpen(false); fetchData(); message.success('已刷新'); };
-  const doEdit = () => { setMenuOpen(false); onEdit?.(config.id); };
+  const doEdit = () => { setMenuOpen(false); onEdit?.(config.id, dashboardId); };
   const doDelete = () => { setMenuOpen(false); onDelete?.(config.id); };
 
   const renderChart = () => {

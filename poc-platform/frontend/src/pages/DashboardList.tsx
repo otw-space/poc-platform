@@ -19,8 +19,10 @@ export default function DashboardList() {
 
   useEffect(() => { fetch(); }, []);
 
-  const handleEditChart = (chartId: string) => {
-    message.info('编辑功能：可在图表配置中修改');
+  const handleEditChart = (chartId: string, dashboardId?: string) => {
+    if (dashboardId) {
+      navigate(`/dashboards/new?edit=${dashboardId}`);
+    }
   };
 
   const handleDeleteChart = async (dashboardId: string, chartId: string) => {
@@ -68,6 +70,7 @@ export default function DashboardList() {
               <ChartCard
                 key={chart.id}
                 config={chart}
+                dashboardId={dashboard.id}
                 onEdit={handleEditChart}
                 onDelete={(chartId) => handleDeleteChart(dashboard.id, chartId)}
               />

@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, Form, Input, Select, Button, Switch, Space, message, Row, Col, Divider } from 'antd';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Card, Form, Input, Select, Button, Switch, Space, message, Row, Col, Divider, Spin } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
-import { createDashboard, type ChartConfig } from '../api/dashboards';
+import { createDashboard, updateDashboard, getDashboard, type ChartConfig } from '../api/dashboards';
 
 const CHART_TYPES = [
   { label: '柱状图', value: 'column' },
@@ -32,11 +32,30 @@ function generateId() {
 }
 
 export default function DashboardBuilder() {
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('edit');
+  const isEdit = !!editId;
+
   const [name, setName] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [charts, setCharts] = useState<ChartConfig[]>([]);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (editId) {
+      setLoading(true);
+      getDashboard(editId)
+        .then((r) => {
+          setName(r.data.name);
+          setIsPublic(r.data.is_public);
+          setCharts(r.data.config?.charts || []);
+        })
+        .catch(() => message.error('加载仪表盘失败'))
+        .finally(() => setLoading(false));
+    }
+  }, [editId]);
 
   const addChart = () => {
     setCharts((prev) => [
@@ -54,23 +73,27 @@ export default function DashboardBuilder() {
   };
 
   const handleSave = async () => {
-    if (!name.trim()) {
-      message.error('请输入仪表盘名称');
-      return;
-    }
-    if (charts.length === 0) {
-      message.error('请至少添加一个图表');
-      return;
-    }
+    if (!name.trim()) { message.error('请输入仪表盘名称'); return; }
+    if (charts.length === 0) { message.error('请至少添加一个图表'); return; }
     setSaving(true);
     try {
-      const res = await createDashboard({
-        name,
-        is_public: isPublic,
-        config: { filters: [], charts },
-      });
-      message.success('保存成功');
-      navigate(`/dashboards/${res.data.id}`);
+      if (isEdit) {
+        await updateDashboard(editId!, {
+          name,
+          is_public: isPublic,
+          config: { filters: [], charts },
+        });
+        message.success('更新成功');
+        navigate(`/dashboards/${editId}`);
+      } else {
+        const res = await createDashboard({
+          name,
+          is_public: isPublic,
+          config: { filters: [], charts },
+        });
+        message.success('保存成功');
+        navigate(`/dashboards/${res.data.id}`);
+      }
     } catch {
       message.error('保存失败');
     } finally {
@@ -78,8 +101,10 @@ export default function DashboardBuilder() {
     }
   };
 
+  if (loading) return <Spin style={{ display: 'block', margin: '100px auto' }} />;
+
   return (
-    <Card title="新建仪表盘" style={{ maxWidth: 900, margin: '0 auto' }}>
+    <Card title={isEdit ? '编辑仪表盘' : '新建仪表盘'} style={{ maxWidth: 900, margin: '0 auto' }}>
       <Space style={{ marginBottom: 24 }}>
         <Input placeholder="仪表盘名称" value={name} onChange={(e) => setName(e.target.value)} style={{ width: 240 }} />
         <Space>
