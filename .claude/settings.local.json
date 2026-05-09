@@ -9,7 +9,29 @@
       "Bash(npm cache *)",
       "Bash(sudo chown -R 501:20 \"/Users/lhl/.npm\")",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git rm *)",
+      "Bash(git -C /Users/lhl/cc add .gitignore)",
+      "Bash(git -C /Users/lhl/cc add poc-platform/backend/requirements.txt poc-platform/backend/app/__init__.py poc-platform/frontend/package.json poc-platform/frontend/package-lock.json poc-platform/frontend/index.html poc-platform/frontend/vite.config.ts poc-platform/frontend/tsconfig.json poc-platform/frontend/tsconfig.node.json docs/)",
+      "Bash(git -C /Users/lhl/cc commit -m \"feat: scaffold backend and frontend projects\")",
+      "Bash(python -c \"from app.config import DATABASE_URL; print\\('config OK:', DATABASE_URL\\)\")",
+      "Bash(python -c \"from app.models import User, PocOption, PocProject, Dashboard; print\\('models OK'\\)\")",
+      "Bash(python -c \"from app.schemas.user import UserCreate, Token; print\\('schemas OK'\\)\")",
+      "Bash(python -c \"from app.services.holiday import calculate_workdays; from datetime import date; print\\('holiday OK:', calculate_workdays\\(date\\(2026,5,4\\), date\\(2026,5,8\\)\\)\\)\")",
+      "Bash(python3 -c \"from app.config import DATABASE_URL; print\\('config OK:', DATABASE_URL\\)\")",
+      "Bash(python3 -c \"from app.models import User, PocOption, PocProject, Dashboard; print\\('models OK'\\)\")",
+      "Bash(python3 -c \"from app.schemas.user import UserCreate, Token; print\\('schemas OK'\\)\")",
+      "Bash(python3 -c \"from app.services.holiday import calculate_workdays; from datetime import date; print\\('holiday OK:', calculate_workdays\\(date\\(2026,5,4\\), date\\(2026,5,8\\)\\)\\)\")",
+      "Bash(pip3 list *)",
+      "Bash(python3 -c \"import sys; print\\(sys.path\\)\")",
+      "Bash(pip3 install *)",
+      "Bash(python3 -c \"from app.config import DATABASE_URL; from app.models import User, PocOption, PocProject, Dashboard; from app.schemas.user import UserCreate, Token; from app.services.holiday import calculate_workdays; from datetime import date; print\\('ALL OK - workdays:', calculate_workdays\\(date\\(2026,5,4\\), date\\(2026,5,8\\)\\)\\)\")",
+      "Bash(python3 -c \"from app.services.holiday import calculate_workdays; from datetime import date; print\\('workdays 2026-05-04 to 2026-05-08:', calculate_workdays\\(date\\(2026,5,4\\), date\\(2026,5,8\\)\\)\\)\")",
+      "Bash(git -C /Users/lhl/cc add poc-platform/backend/app/services/holiday.py)",
+      "Bash(git -C /Users/lhl/cc commit -m \"fix: handle chinese_calendar year range limitation gracefully\")",
+      "Bash(python3 *)",
+      "Bash(git -C /Users/lhl/cc add -A)",
+      "Bash(git -C /Users/lhl/cc commit -m \"feat: add auth, middleware, all routers, seed data, and main entry point\")"
     ]
   }
 }
