@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Row, Col, Button, Space, Popconfirm, message, Empty, Tag, Spin } from 'antd';
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
-import { getDashboards, deleteDashboard, updateDashboard, type Dashboard } from '../api/dashboards';
+import { Row, Col, Button, Space, message, Empty, Tag, Spin } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
+import { getDashboards, updateDashboard, type Dashboard } from '../api/dashboards';
 import ChartCard from '../components/ChartCard';
 
 export default function DashboardList() {
@@ -18,12 +18,6 @@ export default function DashboardList() {
   };
 
   useEffect(() => { fetch(); }, []);
-
-  const handleDeleteDashboard = async (id: string) => {
-    await deleteDashboard(id);
-    message.success('删除成功');
-    fetch();
-  };
 
   const handleEditChart = (chartId: string) => {
     message.info('编辑功能：可在图表配置中修改');
@@ -63,16 +57,10 @@ export default function DashboardList() {
 
       {dashboards.map((dashboard) => (
         <div key={dashboard.id} style={{ marginBottom: 32 }}>
-          <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ marginBottom: 12 }}>
             <Space>
               <h3 style={{ margin: 0 }}>{dashboard.name}</h3>
               {dashboard.is_public && <Tag color="blue">公开</Tag>}
-            </Space>
-            <Space>
-              <a onClick={() => navigate(`/dashboards/${dashboard.id}`)}>全屏查看</a>
-              <Popconfirm title="确认删除？" onConfirm={() => handleDeleteDashboard(dashboard.id)}>
-                <a style={{ color: '#ff4d4f' }}><DeleteOutlined /> 删除</a>
-              </Popconfirm>
             </Space>
           </div>
           <Row gutter={[16, 16]}>
