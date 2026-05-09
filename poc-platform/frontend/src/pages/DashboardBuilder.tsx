@@ -64,13 +64,13 @@ export default function DashboardBuilder() {
     }
     setSaving(true);
     try {
-      await createDashboard({
+      const res = await createDashboard({
         name,
         is_public: isPublic,
         config: { filters: [], charts },
       });
       message.success('保存成功');
-      navigate('/dashboards');
+      navigate(`/dashboards/${res.data.id}`);
     } catch {
       message.error('保存失败');
     } finally {

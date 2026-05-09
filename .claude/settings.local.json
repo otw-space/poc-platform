@@ -37,7 +37,9 @@
       "Bash(npx tsc *)",
       "Bash(./node_modules/.bin/tsc *)",
       "Bash(/Users/lhl/cc/poc-platform/frontend/node_modules/.bin/tsc *)",
-      "Bash(/Users/lhl/cc/poc-platform/frontend/node_modules/.bin/vite build *)"
+      "Bash(/Users/lhl/cc/poc-platform/frontend/node_modules/.bin/vite build *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8000/)",
+      "Bash(pkill -f \"uvicorn app.main\")"
     ]
   }
 }

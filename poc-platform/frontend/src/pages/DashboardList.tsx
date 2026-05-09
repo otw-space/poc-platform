@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Table, Button, Space, Popconfirm, message, Tag } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { Row, Col, Button, Space, Popconfirm, message, Empty, Tag, Spin } from 'antd';
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { getDashboards, deleteDashboard, type Dashboard } from '../api/dashboards';
-import dayjs from 'dayjs';
+import ChartCard from '../components/ChartCard';
 
 export default function DashboardList() {
   const [dashboards, setDashboards] = useState<Dashboard[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   const fetch = () => {
@@ -25,39 +25,50 @@ export default function DashboardList() {
     fetch();
   };
 
-  const columns = [
-    { title: '名称', dataIndex: 'name', key: 'name' },
-    {
-      title: '可见性', dataIndex: 'is_public', key: 'is_public',
-      render: (v: boolean) => v ? <Tag color="blue">公开</Tag> : <Tag>私有</Tag>,
-    },
-    {
-      title: '图表数', key: 'chart_count',
-      render: (_: any, r: Dashboard) => r.config?.charts?.length || 0,
-    },
-    {
-      title: '更新时间', dataIndex: 'updated_at', key: 'updated_at',
-      render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm'),
-    },
-    {
-      title: '操作', key: 'actions',
-      render: (_: any, r: Dashboard) => (
-        <Space>
-          <a onClick={() => navigate(`/dashboards/${r.id}`)}>查看</a>
-          <Popconfirm title="确认删除？" onConfirm={() => handleDelete(r.id)}>
-            <a style={{ color: '#ff4d4f' }}>删除</a>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+  if (loading) return <Spin style={{ display: 'block', margin: '100px auto' }} />;
+
+  if (dashboards.length === 0) {
+    return (
+      <Empty description="暂无仪表盘">
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/dashboards/new')}>
+          新建仪表盘
+        </Button>
+      </Empty>
+    );
+  }
 
   return (
-    <Card
-      title="数据仪表盘"
-      extra={<Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/dashboards/new')}>新建仪表盘</Button>}
-    >
-      <Table rowKey="id" columns={columns} dataSource={dashboards} loading={loading} />
-    </Card>
+    <div>
+      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 style={{ margin: 0 }}>数据仪表盘</h2>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/dashboards/new')}>
+          新建仪表盘
+        </Button>
+      </div>
+
+      {dashboards.map((dashboard) => (
+        <div key={dashboard.id} style={{ marginBottom: 32 }}>
+          <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Space>
+              <h3 style={{ margin: 0 }}>{dashboard.name}</h3>
+              {dashboard.is_public && <Tag color="blue">公开</Tag>}
+            </Space>
+            <Space>
+              <a onClick={() => navigate(`/dashboards/${dashboard.id}`)}>全屏查看</a>
+              <Popconfirm title="确认删除？" onConfirm={() => handleDelete(dashboard.id)}>
+                <a style={{ color: '#ff4d4f' }}><DeleteOutlined /> 删除</a>
+              </Popconfirm>
+            </Space>
+          </div>
+          <Row gutter={[16, 16]}>
+            {(dashboard.config?.charts || []).map((chart) => (
+              <Col key={chart.id} span={chart.w || 12}>
+                <ChartCard config={chart} />
+              </Col>
+            ))}
+          </Row>
+        </div>
+      ))}
+    </div>
   );
 }
