@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Card, Spin, Empty, Dropdown, message } from 'antd';
-import type { MenuProps } from 'antd';
+import { Card, Spin, Empty, Popover, Button, Space, message } from 'antd';
 import { MoreOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
 import { Column, Bar, Pie, Line, DualAxes } from '@ant-design/charts';
 import { queryProjectData } from '../api/projects';
@@ -56,6 +55,7 @@ const CORNER_STYLES = (corner: Corner): React.CSSProperties => ({
 export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) {
   const [data, setData] = useState<{ x: string; y: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [open, setOpen] = useState(false);
   const initial = getInitialSize(config.id, config.h || 400);
   const [size, setSize] = useState(initial);
   const sizeRef = useRef(size);
@@ -114,29 +114,38 @@ export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) 
     document.addEventListener('mouseup', onMouseUp);
   }, [config.id]);
 
-  const menuItems: MenuProps = {
-    items: [
-      {
-        key: 'refresh',
-        icon: <ReloadOutlined />,
-        label: '刷新数据',
-        onClick: () => { fetchData(); message.success('已刷新'); },
-      },
-      {
-        key: 'edit',
-        icon: <EditOutlined />,
-        label: '编辑',
-        onClick: () => onEdit?.(config.id),
-      },
-      {
-        key: 'delete',
-        icon: <DeleteOutlined />,
-        label: '删除',
-        danger: true,
-        onClick: () => onDelete?.(config.id),
-      },
-    ],
+  const handleRefresh = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpen(false);
+    fetchData();
+    message.success('已刷新');
   };
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpen(false);
+    onEdit?.(config.id);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setOpen(false);
+    onDelete?.(config.id);
+  };
+
+  const overlay = (
+    <Space direction="vertical" style={{ padding: '4px 0' }}>
+      <Button type="text" icon={<ReloadOutlined />} onClick={handleRefresh} block style={{ textAlign: 'left' }}>
+        刷新数据
+      </Button>
+      <Button type="text" icon={<EditOutlined />} onClick={handleEdit} block style={{ textAlign: 'left' }}>
+        编辑
+      </Button>
+      <Button type="text" danger icon={<DeleteOutlined />} onClick={handleDelete} block style={{ textAlign: 'left' }}>
+        删除
+      </Button>
+    </Space>
+  );
 
   const renderChart = () => {
     if (loading) return <Spin style={{ display: 'block', margin: '60px auto' }} />;
@@ -186,12 +195,16 @@ export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) 
       <Card
         title={config.title || '未命名图表'}
         extra={
-          <Dropdown menu={menuItems} trigger={['click']}>
-            <MoreOutlined
-              style={{ fontSize: 18, cursor: 'pointer', padding: 4 }}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </Dropdown>
+          <Popover
+            content={overlay}
+            trigger="click"
+            open={open}
+            onOpenChange={setOpen}
+            placement="bottomRight"
+            overlayInnerStyle={{ padding: 4 }}
+          >
+            <MoreOutlined style={{ fontSize: 18, cursor: 'pointer', padding: 4 }} />
+          </Popover>
         }
         style={{ height: '100%' }}
       >
