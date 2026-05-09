@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Space, message, Empty, Tag, Spin } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
-import { getDashboards, updateDashboard, type Dashboard } from '../api/dashboards';
+import { getDashboards, updateDashboard, deleteDashboard, type Dashboard } from '../api/dashboards';
 import ChartCard from '../components/ChartCard';
 
 export default function DashboardList() {
@@ -33,13 +33,23 @@ export default function DashboardList() {
     const dashboard = current.find((d) => d.id === dashboardId);
     if (!dashboard) return;
     const charts = (dashboard.config?.charts || []).filter((c) => c.id !== chartId);
-    const newConfig = { ...dashboard.config, charts };
 
-    // Optimistic update: remove chart from local state immediately
+    if (charts.length === 0) {
+      // Last chart removed — delete the whole dashboard
+      setDashboards((prev) => prev.filter((d) => d.id !== dashboardId));
+      try {
+        await deleteDashboard(dashboardId);
+        message.success('仪表盘已删除');
+      } catch {
+        message.error('删除失败');
+        fetch();
+      }
+      return;
+    }
+
+    const newConfig = { ...dashboard.config, charts };
     setDashboards((prev) =>
-      prev.map((d) =>
-        d.id === dashboardId ? { ...d, config: newConfig } : d
-      )
+      prev.map((d) => (d.id === dashboardId ? { ...d, config: newConfig } : d))
     );
 
     try {
@@ -47,13 +57,15 @@ export default function DashboardList() {
       message.success('图表已删除');
     } catch {
       message.error('删除失败');
-      fetch(); // reload on error to restore correct state
+      fetch();
     }
   };
 
   if (loading) return <Spin style={{ display: 'block', margin: '100px auto' }} />;
 
-  if (dashboards.length === 0) {
+  const nonEmptyDashboards = dashboards.filter((d) => (d.config?.charts || []).length > 0);
+
+  if (nonEmptyDashboards.length === 0) {
     return (
       <Empty description="暂无仪表盘">
         <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/dashboards/new')}>
@@ -72,7 +84,7 @@ export default function DashboardList() {
         </Button>
       </div>
 
-      {dashboards.map((dashboard) => (
+      {nonEmptyDashboards.map((dashboard) => (
         <div key={dashboard.id} style={{ marginBottom: 32 }}>
           <div style={{ marginBottom: 12 }}>
             <Space>

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Space, Spin, Tag, message } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
-import { getDashboard, updateDashboard, type Dashboard } from '../api/dashboards';
+import { getDashboard, updateDashboard, deleteDashboard, type Dashboard } from '../api/dashboards';
 import ChartCard from '../components/ChartCard';
 
 export default function DashboardView() {
@@ -29,8 +29,19 @@ export default function DashboardView() {
     const current = dashboardRef.current;
     if (!current) return;
     const charts = (current.config?.charts || []).filter((c) => c.id !== chartId);
-    const newConfig = { ...current.config, charts };
 
+    if (charts.length === 0) {
+      try {
+        await deleteDashboard(current.id);
+        message.success('仪表盘已删除');
+        navigate('/dashboards');
+      } catch {
+        message.error('删除失败');
+      }
+      return;
+    }
+
+    const newConfig = { ...current.config, charts };
     setDashboard({ ...current, config: newConfig });
 
     try {
