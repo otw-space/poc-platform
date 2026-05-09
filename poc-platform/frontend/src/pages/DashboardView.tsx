@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Row, Col, Button, Space, Spin, Tag } from 'antd';
+import { Row, Col, Button, Space, Spin, Tag, message } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
-import { getDashboard, type Dashboard } from '../api/dashboards';
+import { getDashboard, updateDashboard, type Dashboard } from '../api/dashboards';
 import ChartCard from '../components/ChartCard';
 
 export default function DashboardView() {
@@ -10,9 +10,26 @@ export default function DashboardView() {
   const navigate = useNavigate();
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
 
-  useEffect(() => {
+  const fetch = () => {
     getDashboard(id!).then((r) => setDashboard(r.data));
-  }, [id]);
+  };
+
+  useEffect(() => { fetch(); }, [id]);
+
+  const handleEditChart = (chartId: string) => {
+    // TODO: inline chart editing in future iteration
+    message.info('编辑功能：可在图表配置中修改');
+  };
+
+  const handleDeleteChart = async (chartId: string) => {
+    if (!dashboard) return;
+    const charts = (dashboard.config?.charts || []).filter((c) => c.id !== chartId);
+    await updateDashboard(dashboard.id, {
+      config: { ...dashboard.config, charts },
+    });
+    message.success('图表已删除');
+    fetch();
+  };
 
   if (!dashboard) return <Spin style={{ display: 'block', margin: '100px auto' }} />;
 
@@ -31,7 +48,11 @@ export default function DashboardView() {
       <Row gutter={[16, 16]}>
         {charts.map((chart) => (
           <Col key={chart.id} span={chart.w || 12}>
-            <ChartCard config={chart} />
+            <ChartCard
+              config={chart}
+              onEdit={handleEditChart}
+              onDelete={handleDeleteChart}
+            />
           </Col>
         ))}
       </Row>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Row, Col, Button, Space, Popconfirm, message, Empty, Tag, Spin } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
-import { getDashboards, deleteDashboard, type Dashboard } from '../api/dashboards';
+import { getDashboards, deleteDashboard, updateDashboard, type Dashboard } from '../api/dashboards';
 import ChartCard from '../components/ChartCard';
 
 export default function DashboardList() {
@@ -19,9 +19,24 @@ export default function DashboardList() {
 
   useEffect(() => { fetch(); }, []);
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteDashboard = async (id: string) => {
     await deleteDashboard(id);
     message.success('删除成功');
+    fetch();
+  };
+
+  const handleEditChart = (chartId: string) => {
+    message.info('编辑功能：可在图表配置中修改');
+  };
+
+  const handleDeleteChart = async (dashboardId: string, chartId: string) => {
+    const dashboard = dashboards.find((d) => d.id === dashboardId);
+    if (!dashboard) return;
+    const charts = (dashboard.config?.charts || []).filter((c) => c.id !== chartId);
+    await updateDashboard(dashboardId, {
+      config: { ...dashboard.config, charts },
+    });
+    message.success('图表已删除');
     fetch();
   };
 
@@ -55,7 +70,7 @@ export default function DashboardList() {
             </Space>
             <Space>
               <a onClick={() => navigate(`/dashboards/${dashboard.id}`)}>全屏查看</a>
-              <Popconfirm title="确认删除？" onConfirm={() => handleDelete(dashboard.id)}>
+              <Popconfirm title="确认删除？" onConfirm={() => handleDeleteDashboard(dashboard.id)}>
                 <a style={{ color: '#ff4d4f' }}><DeleteOutlined /> 删除</a>
               </Popconfirm>
             </Space>
@@ -63,7 +78,11 @@ export default function DashboardList() {
           <Row gutter={[16, 16]}>
             {(dashboard.config?.charts || []).map((chart) => (
               <Col key={chart.id} span={chart.w || 12}>
-                <ChartCard config={chart} />
+                <ChartCard
+                  config={chart}
+                  onEdit={handleEditChart}
+                  onDelete={(chartId) => handleDeleteChart(dashboard.id, chartId)}
+                />
               </Col>
             ))}
           </Row>
