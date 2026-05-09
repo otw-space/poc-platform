@@ -31,7 +31,13 @@
       "Bash(git -C /Users/lhl/cc commit -m \"fix: handle chinese_calendar year range limitation gracefully\")",
       "Bash(python3 *)",
       "Bash(git -C /Users/lhl/cc add -A)",
-      "Bash(git -C /Users/lhl/cc commit -m \"feat: add auth, middleware, all routers, seed data, and main entry point\")"
+      "Bash(git -C /Users/lhl/cc commit -m \"feat: add auth, middleware, all routers, seed data, and main entry point\")",
+      "Bash(curl -s http://localhost:8000/api/auth/login -X POST -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":\"admin123\"}')",
+      "Bash(kill %1)",
+      "Bash(npx tsc *)",
+      "Bash(./node_modules/.bin/tsc *)",
+      "Bash(/Users/lhl/cc/poc-platform/frontend/node_modules/.bin/tsc *)",
+      "Bash(/Users/lhl/cc/poc-platform/frontend/node_modules/.bin/vite build *)"
     ]
   }
 }
