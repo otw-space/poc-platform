@@ -1,0 +1,99 @@
+<h2>项目管理页面设计</h2>
+<p class="subtitle">列表页 + 表单页 + 详情页</p>
+
+<div class="section">
+  <h3>项目列表页</h3>
+  <div class="mockup">
+    <div class="mockup-header">筛选栏</div>
+    <div class="mockup-body" style="padding:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <input class="mock-input" placeholder="项目名称搜索" style="width:180px;">
+      <input class="mock-input" placeholder="区域" style="width:120px;">
+      <input class="mock-input" placeholder="城市" style="width:120px;">
+      <input class="mock-input" placeholder="状态" style="width:120px;">
+      <input class="mock-input" placeholder="PoC类型" style="width:120px;">
+      <input class="mock-input" placeholder="销售" style="width:120px;">
+      <button class="mock-button" style="background:var(--accent);">查询</button>
+      <button class="mock-button">重置</button>
+      <button class="mock-button" style="background:#22c55e;margin-left:auto;">+ 新建项目</button>
+    </div>
+    <div class="mockup-header" style="margin-top:8px;">数据表格</div>
+    <div class="mockup-body" style="padding:0;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <tr style="background:var(--surface-secondary);">
+          <th style="padding:10px;text-align:left;">项目名称</th>
+          <th style="padding:10px;text-align:left;">区域</th>
+          <th style="padding:10px;text-align:left;">城市</th>
+          <th style="padding:10px;text-align:left;">销售</th>
+          <th style="padding:10px;text-align:left;">PM</th>
+          <th style="padding:10px;text-align:left;">开始</th>
+          <th style="padding:10px;text-align:left;">完成</th>
+          <th style="padding:10px;text-align:left;">工期</th>
+          <th style="padding:10px;text-align:left;">类型</th>
+          <th style="padding:10px;text-align:left;">状态</th>
+          <th style="padding:10px;text-align:left;">操作</th>
+        </tr>
+        <tr><td style="padding:10px;">XX银行POC</td><td>华东</td><td>上海</td><td>张三</td><td>李四</td><td>2026-03-01</td><td>2026-04-15</td><td>32天</td><td><span style="background:#dbeafe;padding:2px 8px;border-radius:4px;">实施型</span></td><td><span style="background:#fef3c7;padding:2px 8px;border-radius:4px;">进行中</span></td><td style="font-size:12px;color:var(--accent);">查看 编辑 删除</td></tr>
+        <tr><td style="padding:10px;">YY集团试用</td><td>华北</td><td>北京</td><td>王五</td><td>赵六</td><td>2026-02-15</td><td>2026-03-28</td><td>29天</td><td><span style="background:#ede9fe;padding:2px 8px;border-radius:4px;">试用型</span></td><td><span style="background:#dcfce7;padding:2px 8px;border-radius:4px;">已完成</span></td><td style="font-size:12px;color:var(--accent);">查看 编辑 删除</td></tr>
+      </table>
+    </div>
+    <div class="mockup-header" style="margin-top:8px;display:flex;justify-content:space-between;">分页<span>共 2 条 &nbsp; 第 1/1 页</span></div>
+  </div>
+</div>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">新建/编辑项目表单</div>
+    <div class="mockup-body" style="padding:16px;font-size:13px;line-height:2.4;">
+      <div><label class="label">项目名称</label> <input class="mock-input" style="width:100%;"></div>
+      <div style="display:flex;gap:8px;">
+        <div style="flex:1;"><label class="label">区域</label> <input class="mock-input" style="width:100%;"></div>
+        <div style="flex:1;"><label class="label">城市</label> <input class="mock-input" style="width:100%;"></div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <div style="flex:1;"><label class="label">销售</label> <input class="mock-input" style="width:100%;"></div>
+        <div style="flex:1;"><label class="label">项目经理</label> <input class="mock-input" style="width:100%;"></div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <div style="flex:1;"><label class="label">开始日期</label> <input class="mock-input" style="width:100%;" placeholder="YYYY-MM-DD"></div>
+        <div style="flex:1;"><label class="label">完成日期</label> <input class="mock-input" style="width:100%;" placeholder="YYYY-MM-DD"></div>
+      </div>
+      <div><label class="label">工期（自动计算）</label> <input class="mock-input" style="width:50%;" value="" readonly></div>
+      <div style="display:flex;gap:8px;">
+        <div style="flex:1;"><label class="label">PoC类型</label> <select class="mock-input" style="width:100%;"><option>实施型</option><option>试用型</option></select></div>
+        <div style="flex:1;"><label class="label">实施方式</label> <select class="mock-input" style="width:100%;"><option>SaaS</option><option>本地化部署</option><option>便携设备</option></select></div>
+        <div style="flex:1;"><label class="label">状态</label> <select class="mock-input" style="width:100%;"><option>未开始</option><option>准备中</option><option>进行中</option><option>已完成</option><option>搁置</option></select></div>
+      </div>
+      <div><label class="label">PoC结果</label> <textarea class="mock-input" style="width:100%;min-height:80px;"></textarea></div>
+      <div style="margin-top:16px;display:flex;gap:8px;">
+        <button class="mock-button" style="background:var(--accent);">保存</button>
+        <button class="mock-button">取消</button>
+      </div>
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">项目详情页</div>
+    <div class="mockup-body" style="padding:16px;font-size:13px;line-height:2;">
+      <h3 style="margin:0 0 12px;">XX银行POC <span style="font-size:12px;background:#fef3c7;padding:2px 8px;border-radius:4px;">进行中</span></h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><span class="label">区域</span> 华东</div>
+        <div><span class="label">城市</span> 上海</div>
+        <div><span class="label">销售</span> 张三</div>
+        <div><span class="label">项目经理</span> 李四</div>
+        <div><span class="label">开始日期</span> 2026-03-01</div>
+        <div><span class="label">完成日期</span> 2026-04-15</div>
+        <div><span class="label">工期</span> 32 工作日</div>
+        <div><span class="label">PoC类型</span> 实施型</div>
+        <div><span class="label">实施方式</span> SaaS</div>
+        <div><span class="label">创建者</span> admin</div>
+      </div>
+      <div style="margin-top:16px;">
+        <span class="label">PoC结果</span>
+        <p style="margin:4px 0;">系统功能满足客户需求，性能指标达标，客户确认后续合作意向。</p>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:8px;">
+        <button class="mock-button">编辑</button>
+        <button class="mock-button">删除</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,100 @@
+<h2>系统架构设计</h2>
+<p class="subtitle">FastAPI + React SPA + SQLite 一体化部署</p>
+
+<div class="section">
+  <h3>部署架构</h3>
+  <div class="mockup">
+    <div class="mockup-body" style="padding:24px;font-family:monospace;font-size:13px;line-height:1.8;">
+      <div style="text-align:center;border:2px solid var(--accent);border-radius:8px;padding:16px;margin-bottom:16px;background:rgba(59,130,246,0.05);">
+        <strong>FastAPI 服务器 (Uvicorn)</strong><br>
+        <span style="color:var(--text-secondary);">:8000</span>
+      </div>
+      <div style="display:flex;gap:16px;margin-bottom:16px;">
+        <div style="flex:1;border:2px solid var(--accent);border-radius:8px;padding:12px;text-align:center;">
+          <strong>/api/*</strong><br>
+          <span style="color:var(--text-secondary);font-size:12px;">REST API 路由</span><br>
+          <span style="color:var(--text-secondary);font-size:12px;">JWT 鉴权</span>
+        </div>
+        <div style="flex:1;border:2px solid var(--border);border-radius:8px;padding:12px;text-align:center;">
+          <strong>/*</strong><br>
+          <span style="color:var(--text-secondary);font-size:12px;">React SPA 静态文件</span>
+        </div>
+      </div>
+      <div style="text-align:center;border:2px solid var(--border);border-radius:8px;padding:12px;background:rgba(59,130,246,0.03);">
+        <strong>SQLite 数据库</strong><br>
+        <span style="color:var(--text-secondary);font-size:12px;">poc.db（单文件，可通过环境变量切换 PostgreSQL）</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>前端路由结构</h3>
+  <div class="mockup">
+    <div class="mockup-body" style="font-size:14px;line-height:2;padding:16px;">
+      <div style="display:flex;align-items:center;gap:12px;padding:8px;border-left:3px solid var(--accent);">
+        <strong>/login</strong> — 登录页
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:8px;border-left:3px solid var(--accent);">
+        <strong>/projects</strong> — 项目列表（表格 + 筛选搜索）
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:8px;border-left:3px solid var(--accent);">
+        <strong>/projects/new</strong> — 新建/编辑项目
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:8px;border-left:3px solid var(--accent);">
+        <strong>/projects/:id</strong> — 项目详情
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:8px;border-left:3px solid var(--accent);">
+        <strong>/dashboards</strong> — 仪表盘列表
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:8px;border-left:3px solid var(--accent);">
+        <strong>/dashboards/:id</strong> — 查看仪表盘
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:8px;border-left:3px solid var(--accent);">
+        <strong>/settings</strong> — 系统设置（下拉选项管理、用户管理）
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>后端 API 模块</h3>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:180px;padding:16px;background:rgba(59,130,246,0.05);border-radius:8px;">
+      <strong>auth</strong><br>
+      <span style="font-size:12px;color:var(--text-secondary);">/api/auth/login<br>/api/auth/me</span>
+    </div>
+    <div style="flex:1;min-width:180px;padding:16px;background:rgba(59,130,246,0.05);border-radius:8px;">
+      <strong>projects</strong><br>
+      <span style="font-size:12px;color:var(--text-secondary);">/api/projects<br>CRUD + 批量操作</span>
+    </div>
+    <div style="flex:1;min-width:180px;padding:16px;background:rgba(59,130,246,0.05);border-radius:8px;">
+      <strong>options</strong><br>
+      <span style="font-size:12px;color:var(--text-secondary);">/api/options<br>下拉选项管理</span>
+    </div>
+    <div style="flex:1;min-width:180px;padding:16px;background:rgba(59,130,246,0.05);border-radius:8px;">
+      <strong>dashboards</strong><br>
+      <span style="font-size:12px;color:var(--text-secondary);">/api/dashboards<br>仪表盘 CRUD + 数据查询</span>
+    </div>
+    <div style="flex:1;min-width:180px;padding:16px;background:rgba(59,130,246,0.05);border-radius:8px;">
+      <strong>users</strong><br>
+      <span style="font-size:12px;color:var(--text-secondary);">/api/users<br>用户管理（admin）</span>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>工期计算逻辑</h3>
+  <div class="mockup">
+    <div class="mockup-body" style="padding:16px;font-size:14px;line-height:1.8;">
+      <p>后端 <code>POST/PUT /api/projects</code> 时自动计算 <code>duration_days</code>：</p>
+      <ol>
+        <li>获取 start_date 到 end_date 之间的所有日期</li>
+        <li>排除周六、周日</li>
+        <li>排除内置的中国法定节假日（通过 <code>chinese-holidays</code> Python 包）</li>
+        <li>返回剩余工作日天数写入 duration_days</li>
+      </ol>
+      <p style="color:var(--text-secondary);">每次更新日期时自动重新计算，无需手动维护</p>
+    </div>
+  </div>
+</div>

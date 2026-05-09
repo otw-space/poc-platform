@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/Users/lhl/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/skills/brainstorming/scripts/start-server.sh *)",
+      "Bash(git init *)",
+      "Bash(git config *)",
+      "Bash(pip install *)",
+      "Bash(npm install *)",
+      "Bash(npm cache *)",
+      "Bash(sudo chown -R 501:20 \"/Users/lhl/.npm\")",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}

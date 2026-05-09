@@ -1,0 +1,76 @@
+<h2>PoC 管理平台 — 数据模型设计</h2>
+<p class="subtitle">核心实体关系与字段定义</p>
+
+<div class="section">
+  <h3>1. 项目表 (poc_projects)</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:14px;">
+    <tr style="background:var(--surface-secondary);">
+      <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);">字段</th>
+      <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);">类型</th>
+      <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);">说明</th>
+    </tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">id</td><td style="padding:8px;border-bottom:1px solid var(--border);">UUID</td><td style="padding:8px;border-bottom:1px solid var(--border);">主键</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">name</td><td style="padding:8px;border-bottom:1px solid var(--border);">String</td><td style="padding:8px;border-bottom:1px solid var(--border);">项目名称</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">region</td><td style="padding:8px;border-bottom:1px solid var(--border);">String</td><td style="padding:8px;border-bottom:1px solid var(--border);">区域</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">city</td><td style="padding:8px;border-bottom:1px solid var(--border);">String</td><td style="padding:8px;border-bottom:1px solid var(--border);">城市</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">sales</td><td style="padding:8px;border-bottom:1px solid var(--border);">String</td><td style="padding:8px;border-bottom:1px solid var(--border);">销售</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">pm</td><td style="padding:8px;border-bottom:1px solid var(--border);">String</td><td style="padding:8px;border-bottom:1px solid var(--border);">项目经理</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">start_date</td><td style="padding:8px;border-bottom:1px solid var(--border);">Date</td><td style="padding:8px;border-bottom:1px solid var(--border);">开始日期</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">end_date</td><td style="padding:8px;border-bottom:1px solid var(--border);">Date</td><td style="padding:8px;border-bottom:1px solid var(--border);">完成日期</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">duration_days</td><td style="padding:8px;border-bottom:1px solid var(--border);">Integer</td><td style="padding:8px;border-bottom:1px solid var(--border);">工期（工作日，自动计算）</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">poc_type</td><td style="padding:8px;border-bottom:1px solid var(--border);">FK → poc_options</td><td style="padding:8px;border-bottom:1px solid var(--border);">PoC类型</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">impl_method</td><td style="padding:8px;border-bottom:1px solid var(--border);">FK → poc_options</td><td style="padding:8px;border-bottom:1px solid var(--border);">实施方式</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">status</td><td style="padding:8px;border-bottom:1px solid var(--border);">FK → poc_options</td><td style="padding:8px;border-bottom:1px solid var(--border);">状态</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">result</td><td style="padding:8px;border-bottom:1px solid var(--border);">Text</td><td style="padding:8px;border-bottom:1px solid var(--border);">PoC结果</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">created_by</td><td style="padding:8px;border-bottom:1px solid var(--border);">FK → users</td><td style="padding:8px;border-bottom:1px solid var(--border);">创建者</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">created_at / updated_at</td><td style="padding:8px;border-bottom:1px solid var(--border);">DateTime</td><td style="padding:8px;border-bottom:1px solid var(--border);">时间戳</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h3>2. 选项字典表 (poc_options)</h3>
+  <p>统一管理所有下拉选项，支持用户自定义扩展</p>
+  <table style="width:100%;border-collapse:collapse;font-size:14px;">
+    <tr style="background:var(--surface-secondary);">
+      <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);">字段</th>
+      <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);">类型</th>
+      <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);">说明</th>
+    </tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">id</td><td style="padding:8px;border-bottom:1px solid var(--border);">UUID</td><td style="padding:8px;border-bottom:1px solid var(--border);">主键</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">category</td><td style="padding:8px;border-bottom:1px solid var(--border);">Enum</td><td style="padding:8px;border-bottom:1px solid var(--border);">poc_type / impl_method / status</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">label</td><td style="padding:8px;border-bottom:1px solid var(--border);">String</td><td style="padding:8px;border-bottom:1px solid var(--border);">显示名称</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">is_default</td><td style="padding:8px;border-bottom:1px solid var(--border);">Boolean</td><td style="padding:8px;border-bottom:1px solid var(--border);">是否系统默认（不可删除）</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">sort_order</td><td style="padding:8px;border-bottom:1px solid var(--border);">Integer</td><td style="padding:8px;border-bottom:1px solid var(--border);">排序</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h3>3. 仪表盘视图表 (dashboards)</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:14px;">
+    <tr style="background:var(--surface-secondary);">
+      <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);">字段</th>
+      <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);">类型</th>
+      <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);">说明</th>
+    </tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">id</td><td style="padding:8px;border-bottom:1px solid var(--border);">UUID</td><td style="padding:8px;border-bottom:1px solid var(--border);">主键</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">name</td><td style="padding:8px;border-bottom:1px solid var(--border);">String</td><td style="padding:8px;border-bottom:1px solid var(--border);">仪表盘名称</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">user_id</td><td style="padding:8px;border-bottom:1px solid var(--border);">FK → users</td><td style="padding:8px;border-bottom:1px solid var(--border);">所属用户</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">config</td><td style="padding:8px;border-bottom:1px solid var(--border);">JSON</td><td style="padding:8px;border-bottom:1px solid var(--border);">仪表盘配置（图表布局、筛选条件等）</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">is_public</td><td style="padding:8px;border-bottom:1px solid var(--border);">Boolean</td><td style="padding:8px;border-bottom:1px solid var(--border);">是否公开</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h3>4. 用户表 (users)</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:14px;">
+    <tr style="background:var(--surface-secondary);">
+      <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);">字段</th>
+      <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);">类型</th>
+      <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);">说明</th>
+    </tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">id</td><td style="padding:8px;border-bottom:1px solid var(--border);">UUID</td><td style="padding:8px;border-bottom:1px solid var(--border);">主键</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">username / password_hash</td><td style="padding:8px;border-bottom:1px solid var(--border);">String</td><td style="padding:8px;border-bottom:1px solid var(--border);">登录凭据</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">role</td><td style="padding:8px;border-bottom:1px solid var(--border);">Enum</td><td style="padding:8px;border-bottom:1px solid var(--border);">admin / user</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid var(--border);">display_name</td><td style="padding:8px;border-bottom:1px solid var(--border);">String</td><td style="padding:8px;border-bottom:1px solid var(--border);">显示名称</td></tr>
+  </table>
+</div>

@@ -1,0 +1,55 @@
+<h2>系统设置页设计</h2>
+<p class="subtitle">选项字典管理 + 用户管理</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">下拉选项管理（Tab 切换）</div>
+    <div class="mockup-body" style="padding:12px;font-size:13px;">
+      <div style="display:flex;gap:0;margin-bottom:12px;">
+        <div style="padding:6px 16px;background:var(--accent);color:#fff;border-radius:6px 6px 0 0;">PoC类型</div>
+        <div style="padding:6px 16px;color:var(--text-secondary);border-bottom:2px solid var(--border);">实施方式</div>
+        <div style="padding:6px 16px;color:var(--text-secondary);border-bottom:2px solid var(--border);">状态</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr style="background:var(--surface-secondary);">
+          <th style="padding:8px;text-align:left;">显示名称</th>
+          <th style="padding:8px;text-align:left;">系统默认</th>
+          <th style="padding:8px;text-align:left;">排序</th>
+          <th style="padding:8px;text-align:left;">操作</th>
+        </tr>
+        <tr><td style="padding:8px;">实施型</td><td>✓</td><td>1</td><td style="color:var(--text-secondary);">—</td></tr>
+        <tr><td style="padding:8px;">试用型</td><td>✓</td><td>2</td><td style="color:var(--text-secondary);">—</td></tr>
+        <tr><td style="padding:8px;background:rgba(59,130,246,0.04);">
+          <input class="mock-input" value="评估型" style="width:120px;">
+        </td><td style="background:rgba(59,130,246,0.04);">—</td><td style="background:rgba(59,130,246,0.04);">3</td>
+        <td style="background:rgba(59,130,246,0.04);">
+          <span style="color:var(--accent);">保存</span>
+          <span style="color:#ef4444;margin-left:8px;">取消</span>
+        </td></tr>
+      </table>
+      <button class="mock-button" style="margin-top:8px;font-size:12px;">+ 新增选项</button>
+      <p style="font-size:11px;color:var(--text-secondary);margin-top:8px;">系统默认选项不可删除，自定义选项删除前需确认未被项目引用</p>
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">用户管理（仅管理员可见）</div>
+    <div class="mockup-body" style="padding:12px;font-size:13px;">
+      <table style="width:100%;border-collapse:collapse;">
+        <tr style="background:var(--surface-secondary);">
+          <th style="padding:8px;text-align:left;">用户名</th>
+          <th style="padding:8px;text-align:left;">显示名</th>
+          <th style="padding:8px;text-align:left;">角色</th>
+          <th style="padding:8px;text-align:left;">操作</th>
+        </tr>
+        <tr><td style="padding:8px;">admin</td><td>管理员</td><td><span style="background:#dbeafe;padding:2px 8px;border-radius:4px;">admin</span></td>
+        <td style="font-size:12px;color:var(--accent);">重置密码</td></tr>
+        <tr><td style="padding:8px;">zhangsan</td><td>张三</td><td><span style="background:#f3f4f6;padding:2px 8px;border-radius:4px;">user</span></td>
+        <td style="font-size:12px;color:var(--accent);">编辑 重置密码 禁用</td></tr>
+      </table>
+      <button class="mock-button" style="margin-top:8px;font-size:12px;">+ 新建用户</button>
+      <p style="font-size:11px;color:var(--text-secondary);margin-top:8px;">
+        角色说明：<strong>admin</strong> — 管理用户和系统选项 &nbsp;|&nbsp; <strong>user</strong> — 管理项目和仪表盘
+      </p>
+    </div>
+  </div>
+</div>
