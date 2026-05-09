@@ -114,10 +114,12 @@ export default function ChartCard({ config, dashboardId, onEdit, onDelete }: Cha
     if (config.type === 'pie') {
       return (
         <Pie
-          data={data} angleField="y" colorField="x" radius={0.8} height={size.h} autoFit
-          label={{ type: 'outer' as const, content: '{name} {percentage}' }}
-          legend={{ position: 'bottom' as const }}
-          interactions={[{ type: 'element-active' }]}
+          data={data}
+          angleField="y"
+          colorField="x"
+          radius={0.8}
+          height={size.h}
+          autoFit
         />
       );
     }

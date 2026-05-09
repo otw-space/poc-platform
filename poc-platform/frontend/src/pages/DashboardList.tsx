@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Space, message, Empty, Tag, Spin } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
@@ -25,15 +25,30 @@ export default function DashboardList() {
     }
   };
 
+  const dashboardsRef = useRef(dashboards);
+  dashboardsRef.current = dashboards;
+
   const handleDeleteChart = async (dashboardId: string, chartId: string) => {
-    const dashboard = dashboards.find((d) => d.id === dashboardId);
+    const current = dashboardsRef.current;
+    const dashboard = current.find((d) => d.id === dashboardId);
     if (!dashboard) return;
     const charts = (dashboard.config?.charts || []).filter((c) => c.id !== chartId);
-    await updateDashboard(dashboardId, {
-      config: { ...dashboard.config, charts },
-    });
-    message.success('图表已删除');
-    fetch();
+    const newConfig = { ...dashboard.config, charts };
+
+    // Optimistic update: remove chart from local state immediately
+    setDashboards((prev) =>
+      prev.map((d) =>
+        d.id === dashboardId ? { ...d, config: newConfig } : d
+      )
+    );
+
+    try {
+      await updateDashboard(dashboardId, { config: newConfig });
+      message.success('图表已删除');
+    } catch {
+      message.error('删除失败');
+      fetch(); // reload on error to restore correct state
+    }
   };
 
   if (loading) return <Spin style={{ display: 'block', margin: '100px auto' }} />;

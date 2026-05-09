@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Space, Spin, Tag, message } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
@@ -22,14 +22,24 @@ export default function DashboardView() {
     }
   };
 
+  const dashboardRef = useRef(dashboard);
+  dashboardRef.current = dashboard;
+
   const handleDeleteChart = async (chartId: string) => {
-    if (!dashboard) return;
-    const charts = (dashboard.config?.charts || []).filter((c) => c.id !== chartId);
-    await updateDashboard(dashboard.id, {
-      config: { ...dashboard.config, charts },
-    });
-    message.success('图表已删除');
-    fetch();
+    const current = dashboardRef.current;
+    if (!current) return;
+    const charts = (current.config?.charts || []).filter((c) => c.id !== chartId);
+    const newConfig = { ...current.config, charts };
+
+    setDashboard({ ...current, config: newConfig });
+
+    try {
+      await updateDashboard(current.id, { config: newConfig });
+      message.success('图表已删除');
+    } catch {
+      message.error('删除失败');
+      fetch();
+    }
   };
 
   if (!dashboard) return <Spin style={{ display: 'block', margin: '100px auto' }} />;
