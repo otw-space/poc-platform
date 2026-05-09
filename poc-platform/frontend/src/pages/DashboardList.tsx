@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Row, Col, Button, Space, message, Empty, Tag, Spin } from 'antd';
+import { Button, Space, message, Empty, Tag, Spin } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { getDashboards, updateDashboard, type Dashboard } from '../api/dashboards';
 import ChartCard from '../components/ChartCard';
@@ -63,17 +63,16 @@ export default function DashboardList() {
               {dashboard.is_public && <Tag color="blue">公开</Tag>}
             </Space>
           </div>
-          <Row gutter={[16, 16]}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
             {(dashboard.config?.charts || []).map((chart) => (
-              <Col key={chart.id} span={chart.w || 12}>
-                <ChartCard
-                  config={chart}
-                  onEdit={handleEditChart}
-                  onDelete={(chartId) => handleDeleteChart(dashboard.id, chartId)}
-                />
-              </Col>
+              <ChartCard
+                key={chart.id}
+                config={chart}
+                onEdit={handleEditChart}
+                onDelete={(chartId) => handleDeleteChart(dashboard.id, chartId)}
+              />
             ))}
-          </Row>
+          </div>
         </div>
       ))}
     </div>

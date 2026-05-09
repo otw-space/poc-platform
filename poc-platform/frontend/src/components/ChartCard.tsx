@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, Spin, Empty, Dropdown, message } from 'antd';
+import type { MenuProps } from 'antd';
 import { MoreOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
 import { Column, Bar, Pie, Line, DualAxes } from '@ant-design/charts';
 import { queryProjectData } from '../api/projects';
@@ -12,6 +13,24 @@ interface ChartCardProps {
 }
 
 type Corner = 'tl' | 'tr' | 'bl' | 'br';
+
+const LS_KEY = 'chart_sizes';
+
+function loadSizes(): Record<string, { w: number; h: number }> {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; }
+}
+
+function saveSize(chartId: string, w: number, h: number) {
+  const sizes = loadSizes();
+  sizes[chartId] = { w, h };
+  localStorage.setItem(LS_KEY, JSON.stringify(sizes));
+}
+
+function getInitialSize(chartId: string, defaultH: number) {
+  const sizes = loadSizes();
+  const saved = sizes[chartId];
+  return saved ? saved : { w: 400, h: defaultH || 400 };
+}
 
 const CORNER_CURSORS: Record<Corner, string> = {
   tl: 'nwse-resize',
@@ -26,7 +45,8 @@ const CORNER_STYLES = (corner: Corner): React.CSSProperties => ({
   height: 16,
   cursor: CORNER_CURSORS[corner],
   background: 'linear-gradient(135deg, transparent 50%, #d9d9d9 50%)',
-  borderRadius: '0 0 6px 0',
+  borderRadius: '0 0 4px 0',
+  zIndex: 10,
   ...(corner === 'tl' ? { top: 0, left: 0, transform: 'rotate(180deg)' } : {}),
   ...(corner === 'tr' ? { top: 0, right: 0, transform: 'rotate(270deg)' } : {}),
   ...(corner === 'bl' ? { bottom: 0, left: 0, transform: 'rotate(90deg)' } : {}),
@@ -36,9 +56,11 @@ const CORNER_STYLES = (corner: Corner): React.CSSProperties => ({
 export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) {
   const [data, setData] = useState<{ x: string; y: number }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [size, setSize] = useState({ w: 300, h: config.h || 400 });
+  const initial = getInitialSize(config.id, config.h || 400);
+  const [size, setSize] = useState(initial);
   const sizeRef = useRef(size);
   sizeRef.current = size;
+  const rafRef = useRef<number>(0);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -62,45 +84,58 @@ export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) 
     const startH = sizeRef.current.h;
 
     const onMouseMove = (ev: MouseEvent) => {
-      const dx = ev.clientX - startX;
-      const dy = ev.clientY - startY;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
 
-      let newW = startW;
-      let newH = startH;
+        let newW = startW;
+        let newH = startH;
 
-      // Right-side corners: expand/shrink width rightward
-      if (corner === 'tr' || corner === 'br') newW = startW + dx;
-      // Left-side corners: expand/shrink width leftward
-      if (corner === 'tl' || corner === 'bl') newW = startW - dx;
-      // Bottom corners: expand/shrink height downward
-      if (corner === 'bl' || corner === 'br') newH = startH + dy;
-      // Top corners: expand/shrink height upward
-      if (corner === 'tl' || corner === 'tr') newH = startH - dy;
+        if (corner === 'tr' || corner === 'br') newW = startW + dx;
+        if (corner === 'tl' || corner === 'bl') newW = startW - dx;
+        if (corner === 'bl' || corner === 'br') newH = startH + dy;
+        if (corner === 'tl' || corner === 'tr') newH = startH - dy;
 
-      setSize({
-        w: Math.max(200, newW),
-        h: Math.max(200, newH),
+        const clampedW = Math.max(200, newW);
+        const clampedH = Math.max(200, newH);
+        setSize({ w: clampedW, h: clampedH });
       });
     };
+
     const onMouseUp = () => {
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      saveSize(config.id, sizeRef.current.w, sizeRef.current.h);
     };
+
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
-  }, []);
+  }, [config.id]);
 
-  const menuItems = {
+  const menuItems: MenuProps = {
     items: [
-      { key: 'refresh', icon: <ReloadOutlined />, label: '刷新数据' },
-      { key: 'edit', icon: <EditOutlined />, label: '编辑' },
-      { key: 'delete', icon: <DeleteOutlined />, label: '删除', danger: true },
+      {
+        key: 'refresh',
+        icon: <ReloadOutlined />,
+        label: '刷新数据',
+        onClick: () => { fetchData(); message.success('已刷新'); },
+      },
+      {
+        key: 'edit',
+        icon: <EditOutlined />,
+        label: '编辑',
+        onClick: () => onEdit?.(config.id),
+      },
+      {
+        key: 'delete',
+        icon: <DeleteOutlined />,
+        label: '删除',
+        danger: true,
+        onClick: () => onDelete?.(config.id),
+      },
     ],
-    onClick: ({ key }: { key: string }) => {
-      if (key === 'refresh') { fetchData(); message.success('已刷新'); return; }
-      if (key === 'edit') { onEdit?.(config.id); return; }
-      if (key === 'delete') { onDelete?.(config.id); return; }
-    },
   };
 
   const renderChart = () => {
@@ -114,12 +149,9 @@ export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) 
           angleField="y"
           colorField="x"
           radius={0.8}
-          height={size.h || 400}
+          height={size.h}
           autoFit
-          label={{
-            type: 'outer' as const,
-            content: '{name} {percentage}',
-          }}
+          label={{ type: 'outer' as const, content: '{name} {percentage}' }}
           legend={{ position: 'bottom' as const }}
           interactions={[{ type: 'element-active' }]}
         />
@@ -130,7 +162,7 @@ export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) 
       data,
       xField: 'x',
       yField: 'y',
-      height: size.h || 400,
+      height: size.h,
       autoFit: true,
       label: { style: { fill: '#666', fontSize: 12 } },
     };
@@ -149,30 +181,23 @@ export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) 
     }
   };
 
-  const corners: Corner[] = ['tl', 'tr', 'bl', 'br'];
-
   return (
-    <div
-      style={{
-        position: 'relative',
-        width: size.w,
-        height: 'auto',
-        minWidth: 200,
-        minHeight: 200,
-      }}
-    >
+    <div style={{ position: 'relative', width: size.w, minWidth: 200, flexShrink: 0 }}>
       <Card
         title={config.title || '未命名图表'}
         extra={
           <Dropdown menu={menuItems} trigger={['click']}>
-            <MoreOutlined style={{ fontSize: 18, cursor: 'pointer', padding: 4 }} onClick={(e) => e.stopPropagation()} />
+            <MoreOutlined
+              style={{ fontSize: 18, cursor: 'pointer', padding: 4 }}
+              onClick={(e) => e.stopPropagation()}
+            />
           </Dropdown>
         }
         style={{ height: '100%' }}
       >
         {renderChart()}
       </Card>
-      {corners.map((corner) => (
+      {(['tl', 'tr', 'bl', 'br'] as Corner[]).map((corner) => (
         <div key={corner} onMouseDown={(e) => handleResizeStart(e, corner)} style={CORNER_STYLES(corner)} />
       ))}
     </div>

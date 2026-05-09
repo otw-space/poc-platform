@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Row, Col, Button, Space, Spin, Tag, message } from 'antd';
+import { Button, Space, Spin, Tag, message } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 import { getDashboard, updateDashboard, type Dashboard } from '../api/dashboards';
 import ChartCard from '../components/ChartCard';
@@ -45,17 +45,16 @@ export default function DashboardView() {
         <Button icon={<EditOutlined />} onClick={() => navigate(`/dashboards/new?edit=${id}`)}>编辑</Button>
       </div>
 
-      <Row gutter={[16, 16]}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
         {charts.map((chart) => (
-          <Col key={chart.id} span={chart.w || 12}>
-            <ChartCard
-              config={chart}
-              onEdit={handleEditChart}
-              onDelete={handleDeleteChart}
-            />
-          </Col>
+          <ChartCard
+            key={chart.id}
+            config={chart}
+            onEdit={handleEditChart}
+            onDelete={handleDeleteChart}
+          />
         ))}
-      </Row>
+      </div>
     </div>
   );
 }
