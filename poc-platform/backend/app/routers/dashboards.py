@@ -51,8 +51,6 @@ def update_dashboard(dashboard_id: str, data: DashboardUpdate, db: Session = Dep
     if dashboard.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied")
     update_data = data.model_dump(exclude_unset=True)
-    if "config" in update_data and update_data["config"] is not None:
-        update_data["config"] = update_data["config"].model_dump()
     for key, value in update_data.items():
         setattr(dashboard, key, value)
     db.commit()

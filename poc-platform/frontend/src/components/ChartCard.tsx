@@ -59,7 +59,6 @@ export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) 
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Close menu on outside click
   useEffect(() => {
     if (!menuOpen) return;
     const handler = (e: MouseEvent) => {
@@ -67,7 +66,6 @@ export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) 
         setMenuOpen(false);
       }
     };
-    // Delay to avoid the same click that opened it
     setTimeout(() => document.addEventListener('click', handler), 0);
     return () => document.removeEventListener('click', handler);
   }, [menuOpen]);
@@ -123,7 +121,7 @@ export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) 
       );
     }
 
-    const cc = { data, xField: 'x', yField: 'y', height: size.h, autoFit: true, label: { style: { fill: '#666', fontSize: 12 } } };
+    const cc = { data, xField: 'x', yField: 'y', height: size.h, autoFit: true };
     switch (config.type) {
       case 'column': return <Column {...cc} legend={{ position: 'top' as const }} />;
       case 'bar': return <Bar {...cc} legend={{ position: 'top' as const }} />;
@@ -145,8 +143,7 @@ export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) 
 
   const menuBtnStyle: React.CSSProperties = {
     display: 'block', width: '100%', padding: '8px 16px', border: 'none', background: 'none',
-    cursor: 'pointer', textAlign: 'left', fontSize: 14, lineHeight: '22px',
-    borderRadius: 0,
+    cursor: 'pointer', textAlign: 'left', fontSize: 14, lineHeight: '22px', borderRadius: 0,
   };
 
   return (
@@ -160,13 +157,11 @@ export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) 
               onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
             />
             {menuOpen && (
-              <div
-                style={{
-                  position: 'absolute', top: '100%', right: 0, zIndex: 1050,
-                  background: '#fff', borderRadius: 8, boxShadow: '0 6px 16px rgba(0,0,0,0.12)',
-                  minWidth: 140, padding: '4px 0', border: '1px solid #f0f0f0',
-                }}
-              >
+              <div style={{
+                position: 'absolute', top: '100%', right: 0, zIndex: 1050,
+                background: '#fff', borderRadius: 8, boxShadow: '0 6px 16px rgba(0,0,0,0.12)',
+                minWidth: 140, padding: '4px 0', border: '1px solid #f0f0f0',
+              }}>
                 <button type="button" style={menuBtnStyle} onClick={doRefresh}>
                   <ReloadOutlined style={{ marginRight: 8 }} />刷新数据
                 </button>

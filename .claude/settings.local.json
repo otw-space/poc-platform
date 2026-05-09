@@ -40,7 +40,10 @@
       "Bash(/Users/lhl/cc/poc-platform/frontend/node_modules/.bin/vite build *)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8000/)",
       "Bash(pkill -f \"uvicorn app.main\")",
-      "Bash(pkill -f \"uvicorn\")"
+      "Bash(pkill -f \"uvicorn\")",
+      "Bash(grep *)",
+      "Bash(curl -s http://localhost:8000/)",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }
