@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Card, Spin, Empty, Popover, Button, Space, message } from 'antd';
+import { Card, Spin, Empty, message } from 'antd';
 import { MoreOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
 import { Column, Bar, Pie, Line, DualAxes } from '@ant-design/charts';
 import { queryProjectData } from '../api/projects';
@@ -32,35 +32,19 @@ function getInitialSize(chartId: string, defaultH: number) {
 }
 
 const CORNER_CURSORS: Record<Corner, string> = {
-  tl: 'nwse-resize',
-  tr: 'nesw-resize',
-  bl: 'nesw-resize',
-  br: 'nwse-resize',
+  tl: 'nwse-resize', tr: 'nesw-resize', bl: 'nesw-resize', br: 'nwse-resize',
 };
-
-const CORNER_STYLES = (corner: Corner): React.CSSProperties => ({
-  position: 'absolute',
-  width: 16,
-  height: 16,
-  cursor: CORNER_CURSORS[corner],
-  background: 'linear-gradient(135deg, transparent 50%, #d9d9d9 50%)',
-  borderRadius: '0 0 4px 0',
-  zIndex: 10,
-  ...(corner === 'tl' ? { top: 0, left: 0, transform: 'rotate(180deg)' } : {}),
-  ...(corner === 'tr' ? { top: 0, right: 0, transform: 'rotate(270deg)' } : {}),
-  ...(corner === 'bl' ? { bottom: 0, left: 0, transform: 'rotate(90deg)' } : {}),
-  ...(corner === 'br' ? { bottom: 0, right: 0 } : {}),
-});
 
 export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) {
   const [data, setData] = useState<{ x: string; y: number }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const initial = getInitialSize(config.id, config.h || 400);
   const [size, setSize] = useState(initial);
   const sizeRef = useRef(size);
   sizeRef.current = size;
   const rafRef = useRef<number>(0);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -75,6 +59,19 @@ export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) 
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    // Delay to avoid the same click that opened it
+    setTimeout(() => document.addEventListener('click', handler), 0);
+    return () => document.removeEventListener('click', handler);
+  }, [menuOpen]);
+
   const handleResizeStart = useCallback((e: React.MouseEvent, corner: Corner) => {
     e.stopPropagation();
     e.preventDefault();
@@ -88,18 +85,12 @@ export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) 
       rafRef.current = requestAnimationFrame(() => {
         const dx = ev.clientX - startX;
         const dy = ev.clientY - startY;
-
-        let newW = startW;
-        let newH = startH;
-
+        let newW = startW, newH = startH;
         if (corner === 'tr' || corner === 'br') newW = startW + dx;
         if (corner === 'tl' || corner === 'bl') newW = startW - dx;
         if (corner === 'bl' || corner === 'br') newH = startH + dy;
         if (corner === 'tl' || corner === 'tr') newH = startH - dy;
-
-        const clampedW = Math.max(200, newW);
-        const clampedH = Math.max(200, newH);
-        setSize({ w: clampedW, h: clampedH });
+        setSize({ w: Math.max(200, newW), h: Math.max(200, newH) });
       });
     };
 
@@ -109,43 +100,13 @@ export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) 
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       saveSize(config.id, sizeRef.current.w, sizeRef.current.h);
     };
-
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
   }, [config.id]);
 
-  const handleRefresh = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setOpen(false);
-    fetchData();
-    message.success('已刷新');
-  };
-
-  const handleEdit = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setOpen(false);
-    onEdit?.(config.id);
-  };
-
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setOpen(false);
-    onDelete?.(config.id);
-  };
-
-  const overlay = (
-    <Space direction="vertical" style={{ padding: '4px 0' }}>
-      <Button type="text" icon={<ReloadOutlined />} onClick={handleRefresh} block style={{ textAlign: 'left' }}>
-        刷新数据
-      </Button>
-      <Button type="text" icon={<EditOutlined />} onClick={handleEdit} block style={{ textAlign: 'left' }}>
-        编辑
-      </Button>
-      <Button type="text" danger icon={<DeleteOutlined />} onClick={handleDelete} block style={{ textAlign: 'left' }}>
-        删除
-      </Button>
-    </Space>
-  );
+  const doRefresh = () => { setMenuOpen(false); fetchData(); message.success('已刷新'); };
+  const doEdit = () => { setMenuOpen(false); onEdit?.(config.id); };
+  const doDelete = () => { setMenuOpen(false); onDelete?.(config.id); };
 
   const renderChart = () => {
     if (loading) return <Spin style={{ display: 'block', margin: '60px auto' }} />;
@@ -154,12 +115,7 @@ export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) 
     if (config.type === 'pie') {
       return (
         <Pie
-          data={data}
-          angleField="y"
-          colorField="x"
-          radius={0.8}
-          height={size.h}
-          autoFit
+          data={data} angleField="y" colorField="x" radius={0.8} height={size.h} autoFit
           label={{ type: 'outer' as const, content: '{name} {percentage}' }}
           legend={{ position: 'bottom' as const }}
           interactions={[{ type: 'element-active' }]}
@@ -167,27 +123,30 @@ export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) 
       );
     }
 
-    const commonConfig = {
-      data,
-      xField: 'x',
-      yField: 'y',
-      height: size.h,
-      autoFit: true,
-      label: { style: { fill: '#666', fontSize: 12 } },
-    };
-
+    const cc = { data, xField: 'x', yField: 'y', height: size.h, autoFit: true, label: { style: { fill: '#666', fontSize: 12 } } };
     switch (config.type) {
-      case 'column':
-        return <Column {...commonConfig} legend={{ position: 'top' as const }} />;
-      case 'bar':
-        return <Bar {...commonConfig} legend={{ position: 'top' as const }} />;
-      case 'line':
-        return <Line {...commonConfig} legend={{ position: 'top' as const }} />;
-      case 'dual-axes':
-        return <DualAxes {...commonConfig} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} />;
-      default:
-        return <Column {...commonConfig} legend={{ position: 'top' as const }} />;
+      case 'column': return <Column {...cc} legend={{ position: 'top' as const }} />;
+      case 'bar': return <Bar {...cc} legend={{ position: 'top' as const }} />;
+      case 'line': return <Line {...cc} legend={{ position: 'top' as const }} />;
+      case 'dual-axes': return <DualAxes {...cc} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} />;
+      default: return <Column {...cc} legend={{ position: 'top' as const }} />;
     }
+  };
+
+  const corners: Corner[] = ['tl', 'tr', 'bl', 'br'];
+  const cornerStyle = (c: Corner): React.CSSProperties => ({
+    position: 'absolute', width: 16, height: 16, cursor: CORNER_CURSORS[c], zIndex: 10,
+    background: 'linear-gradient(135deg, transparent 50%, #d9d9d9 50%)', borderRadius: '0 0 4px 0',
+    ...(c === 'tl' ? { top: 0, left: 0, transform: 'rotate(180deg)' } : {}),
+    ...(c === 'tr' ? { top: 0, right: 0, transform: 'rotate(270deg)' } : {}),
+    ...(c === 'bl' ? { bottom: 0, left: 0, transform: 'rotate(90deg)' } : {}),
+    ...(c === 'br' ? { bottom: 0, right: 0 } : {}),
+  });
+
+  const menuBtnStyle: React.CSSProperties = {
+    display: 'block', width: '100%', padding: '8px 16px', border: 'none', background: 'none',
+    cursor: 'pointer', textAlign: 'left', fontSize: 14, lineHeight: '22px',
+    borderRadius: 0,
   };
 
   return (
@@ -195,23 +154,38 @@ export default function ChartCard({ config, onEdit, onDelete }: ChartCardProps) 
       <Card
         title={config.title || '未命名图表'}
         extra={
-          <Popover
-            content={overlay}
-            trigger="click"
-            open={open}
-            onOpenChange={setOpen}
-            placement="bottomRight"
-            overlayInnerStyle={{ padding: 4 }}
-          >
-            <MoreOutlined style={{ fontSize: 18, cursor: 'pointer', padding: 4 }} />
-          </Popover>
+          <div ref={menuRef} style={{ position: 'relative', display: 'inline-block' }}>
+            <MoreOutlined
+              style={{ fontSize: 18, cursor: 'pointer', padding: 4 }}
+              onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
+            />
+            {menuOpen && (
+              <div
+                style={{
+                  position: 'absolute', top: '100%', right: 0, zIndex: 1050,
+                  background: '#fff', borderRadius: 8, boxShadow: '0 6px 16px rgba(0,0,0,0.12)',
+                  minWidth: 140, padding: '4px 0', border: '1px solid #f0f0f0',
+                }}
+              >
+                <button type="button" style={menuBtnStyle} onClick={doRefresh}>
+                  <ReloadOutlined style={{ marginRight: 8 }} />刷新数据
+                </button>
+                <button type="button" style={menuBtnStyle} onClick={doEdit}>
+                  <EditOutlined style={{ marginRight: 8 }} />编辑
+                </button>
+                <button type="button" style={{ ...menuBtnStyle, color: '#ff4d4f' }} onClick={doDelete}>
+                  <DeleteOutlined style={{ marginRight: 8 }} />删除
+                </button>
+              </div>
+            )}
+          </div>
         }
         style={{ height: '100%' }}
       >
         {renderChart()}
       </Card>
-      {(['tl', 'tr', 'bl', 'br'] as Corner[]).map((corner) => (
-        <div key={corner} onMouseDown={(e) => handleResizeStart(e, corner)} style={CORNER_STYLES(corner)} />
+      {corners.map((c) => (
+        <div key={c} onMouseDown={(e) => handleResizeStart(e, c)} style={cornerStyle(c)} />
       ))}
     </div>
   );
