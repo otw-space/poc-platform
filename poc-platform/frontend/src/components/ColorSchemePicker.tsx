@@ -1,14 +1,14 @@
 import { Select, Space } from 'antd';
 
 export const COLOR_SCHEMES: Record<string, { name: string; colors: string[] }> = {
-  'default-blue':  { name: '默认蓝', colors: ['#1677FF', '#69B1FF', '#4096FF', '#91CAFF'] },
-  'tech-purple':   { name: '科技紫', colors: ['#722ED1', '#D3ADF7', '#9254DE', '#EFDBFF'] },
-  'fresh-green':   { name: '清新绿', colors: ['#52C41A', '#B7EB8F', '#73D13D', '#D9F7BE'] },
-  'warm-orange':   { name: '暖橙',   colors: ['#FA8C16', '#FFD591', '#FFA940', '#FFE7BA'] },
-  'dark-theme':    { name: '深色系', colors: ['#141414', '#434343', '#595959', '#8C8C8C'] },
-  'macaron':       { name: '马卡龙', colors: ['#FFB3BA', '#BAFFC9', '#BAE1FF', '#FFFFBA'] },
-  'coast':         { name: '海岸',   colors: ['#13C2C2', '#87E8DE', '#36CFC9', '#B5F5EC'] },
-  'sunset':        { name: '日落',   colors: ['#F5222D', '#FA8C16', '#FADB14', '#FF9C6E'] },
+  'default-blue':  { name: '默认蓝', colors: ['#0D3B66', '#1677FF', '#4096FF', '#91CAFF'] },
+  'tech-purple':   { name: '科技紫', colors: ['#391085', '#722ED1', '#9254DE', '#D3ADF7'] },
+  'fresh-green':   { name: '清新绿', colors: ['#135200', '#52C41A', '#73D13D', '#B7EB8F'] },
+  'warm-orange':   { name: '暖橙',   colors: ['#AD4E00', '#FA8C16', '#FFA940', '#FFD591'] },
+  'dark-theme':    { name: '深色系', colors: ['#141414', '#434343', '#8C8C8C', '#BFBFBF'] },
+  'pink-macaron':  { name: '桃粉',   colors: ['#C7455C', '#FF8696', '#FFB3BA', '#FFE8EB'] },
+  'coast':         { name: '海岸',   colors: ['#005B5B', '#13C2C2', '#36CFC9', '#87E8DE'] },
+  'sunset':        { name: '日落',   colors: ['#A8071A', '#F5222D', '#FF7A45', '#FFBB96'] },
 };
 
 interface Props {
