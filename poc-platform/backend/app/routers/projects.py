@@ -198,9 +198,18 @@ def download_file(
     from urllib.parse import quote
 
     filename = metadata.get("original_filename", "download")
-    is_pdf = filename.lower().endswith(".pdf")
-    media_type = "application/pdf" if is_pdf else None
-    disposition = "inline" if (inline and is_pdf) else "attachment"
+    ext = os.path.splitext(filename)[1].lower()
+
+    MIME_TYPES = {
+        ".pdf": "application/pdf",
+        ".doc": "application/msword",
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ".ppt": "application/vnd.ms-powerpoint",
+        ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    }
+    media_type = MIME_TYPES.get(ext, "application/octet-stream")
+
+    disposition = "inline" if inline else "attachment"
 
     encoded_filename = quote(filename, safe='')
     content_disposition = f"{disposition}; filename*=UTF-8''{encoded_filename}"
