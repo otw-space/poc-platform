@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Button, Spin, Empty, Tabs, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { Responsive, WidthProvider, type Layout } from 'react-grid-layout/legacy';
@@ -67,7 +67,9 @@ export default function DashboardCanvas() {
     );
   };
 
-  // Handle layout change — persist to backend
+  const layoutSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Handle layout change — optimistic state update + debounced persist
   const handleLayoutChange = useCallback(
     (newLayout: Layout) => {
       const current = dashboardsRef.current;
@@ -87,7 +89,7 @@ export default function DashboardCanvas() {
         dbUpdates.set(db.id, charts);
       }
 
-      // Optimistic state update
+      // Optimistic state update (immediate, every pixel)
       setDashboards((prev) =>
         prev.map((db) => {
           const updatedCharts = dbUpdates.get(db.id);
@@ -98,22 +100,31 @@ export default function DashboardCanvas() {
         })
       );
 
-      // Persist each updated dashboard
-      for (const [dbId, charts] of dbUpdates) {
-        const db = current.find((d) => d.id === dbId);
-        if (!db) continue;
-        updateDashboard(dbId, {
-          config: { ...(db.config || { filters: [] }), charts },
-        }).catch(() => {
-          fetch();
-          message.error('保存布局失败');
-        });
-      }
+      // Debounced API persistence
+      if (layoutSaveTimerRef.current) clearTimeout(layoutSaveTimerRef.current);
+      layoutSaveTimerRef.current = setTimeout(() => {
+        for (const [dbId, charts] of dbUpdates) {
+          const db = dashboardsRef.current.find((d) => d.id === dbId);
+          if (!db) continue;
+          updateDashboard(dbId, { config: { ...(db.config || { filters: [] }), charts } })
+            .catch(() => { fetch(); message.error('保存布局失败'); });
+        }
+      }, 800);
     },
     [fetch]
   );
 
-  // Handle chart inline update
+  // Debounced save for chart updates
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveChartChanges = useCallback((dbId: string, charts: ChartConfig[]) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      updateDashboard(dbId, { config: { ...(dashboardsRef.current.find(d => d.id === dbId)?.config || { filters: [] }), charts } })
+        .catch(() => { fetch(); message.error('更新失败'); });
+    }, 500);
+  }, [fetch]);
+
+  // Handle chart inline update (optimistic state + debounced persisting)
   const handleChartUpdate = (chartId: string, updates: Partial<ChartConfig>) => {
     const db = findDashboard(chartId);
     if (!db) return;
@@ -128,10 +139,7 @@ export default function DashboardCanvas() {
       )
     );
 
-    updateDashboard(db.id, { config: { ...db.config, charts: newCharts } }).catch(() => {
-      fetch();
-      message.error('更新失败');
-    });
+    saveChartChanges(db.id, newCharts);
   };
 
   // Handle chart delete

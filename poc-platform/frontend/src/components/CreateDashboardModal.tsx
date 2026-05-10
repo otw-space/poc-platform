@@ -41,14 +41,14 @@ export default function CreateDashboardModal({ open, onClose, onCreated }: Props
   const [name, setName] = useState('');
   const [isPublic, setIsPublic] = useState(false);
   const [charts, setCharts] = useState<ChartConfig[]>([
-    { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 3, colorScheme: 'default-blue' },
+    { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 300, colorScheme: 'default-blue' },
   ]);
   const [saving, setSaving] = useState(false);
 
   const addChart = () => {
     setCharts((prev) => [
       ...prev,
-      { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 3, colorScheme: 'default-blue' },
+      { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 300, colorScheme: 'default-blue' },
     ]);
   };
 
@@ -74,7 +74,7 @@ export default function CreateDashboardModal({ open, onClose, onCreated }: Props
       setName('');
       setIsPublic(false);
       setCharts([
-        { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 3, colorScheme: 'default-blue' },
+        { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 300, colorScheme: 'default-blue' },
       ]);
       onCreated();
       onClose();
@@ -89,7 +89,7 @@ export default function CreateDashboardModal({ open, onClose, onCreated }: Props
     setName('');
     setIsPublic(false);
     setCharts([
-      { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 3, colorScheme: 'default-blue' },
+      { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 300, colorScheme: 'default-blue' },
     ]);
     onClose();
   };
