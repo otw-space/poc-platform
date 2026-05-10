@@ -6,6 +6,7 @@ import { Resizable } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 import { getProjects, deleteProject, type PocProject } from '../api/projects';
 import { getOptions, type PocOption } from '../api/options';
+import ProjectDrawer from '../components/ProjectDrawer';
 
 const STATUS_COLORS: Record<string, string> = {
   '未开始': 'default',
@@ -61,6 +62,8 @@ export default function ProjectList() {
     ...DEFAULT_WIDTHS,
     ...loadWidths(),
   }));
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -133,7 +136,7 @@ export default function ProjectList() {
       title: '操作', key: 'actions', width: w('actions'),
       render: (_: any, record: PocProject) => (
         <Space>
-          <a onClick={() => navigate(`/projects/${record.id}`)}>查看</a>
+          <a onClick={() => { setSelectedProjectId(record.id); setDrawerOpen(true); }}>查看</a>
           <a onClick={() => navigate(`/projects/${record.id}/edit`)}>编辑</a>
           <Popconfirm title="确认删除？" onConfirm={() => handleDelete(record.id)}>
             <a style={{ color: '#ff4d4f' }}>删除</a>
@@ -189,6 +192,19 @@ export default function ProjectList() {
           showSizeChanger: false,
           onChange: setPage,
         }}
+      />
+
+      <ProjectDrawer
+        projectId={selectedProjectId}
+        open={drawerOpen}
+        onClose={() => { setDrawerOpen(false); setSelectedProjectId(null); }}
+        onEdit={(id) => navigate(`/projects/${id}/edit`)}
+        onDelete={async (id) => {
+          await deleteProject(id);
+          message.success('删除成功');
+          fetchProjects();
+        }}
+        onFileChanged={fetchProjects}
       />
     </Card>
   );

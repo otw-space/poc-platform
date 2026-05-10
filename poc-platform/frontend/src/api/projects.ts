@@ -88,9 +88,7 @@ export function queryProjectData(data: any) {
 export function uploadProjectFile(projectId: string, fileType: 'plan' | 'report', file: File) {
   const formData = new FormData();
   formData.append('file', file);
-  return client.post(`/projects/${projectId}/upload/${fileType}`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  return client.post(`/projects/${projectId}/upload/${fileType}`, formData);
 }
 
 export function getFileDownloadUrl(projectId: string, fileType: 'plan' | 'report', inline = false) {
