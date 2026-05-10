@@ -195,14 +195,20 @@ def download_file(
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found on disk")
 
-    is_pdf = metadata.get("original_filename", "").lower().endswith(".pdf")
+    from urllib.parse import quote
+
+    filename = metadata.get("original_filename", "download")
+    is_pdf = filename.lower().endswith(".pdf")
     media_type = "application/pdf" if is_pdf else None
     disposition = "inline" if (inline and is_pdf) else "attachment"
+
+    encoded_filename = quote(filename, safe='')
+    content_disposition = f"{disposition}; filename*=UTF-8''{encoded_filename}"
 
     return FileResponse(
         file_path,
         media_type=media_type,
-        headers={"Content-Disposition": f'{disposition}; filename="{metadata["original_filename"]}"'},
+        headers={"Content-Disposition": content_disposition},
     )
 
 
