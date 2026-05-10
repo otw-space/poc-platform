@@ -50,6 +50,9 @@ def list_projects(
     total = query.count()
     items = query.order_by(PocProject.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
 
+    for item in items:
+        item.duration_days = calculate_workdays(item.start_date, item.end_date)
+
     return PocProjectListOut(
         items=[PocProjectOut.model_validate(item) for item in items],
         total=total,
@@ -63,6 +66,7 @@ def get_project(project_id: str, db: Session = Depends(get_db), current_user: Us
     project = db.query(PocProject).filter(PocProject.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    project.duration_days = calculate_workdays(project.start_date, project.end_date)
     return PocProjectOut.model_validate(project)
 
 
