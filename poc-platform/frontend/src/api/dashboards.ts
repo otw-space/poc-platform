@@ -24,6 +24,9 @@ export interface ChartConfig {
   group_field?: string | null;
   w: number;
   h: number;
+  x?: number;
+  y?: number;
+  colorScheme?: string;
 }
 
 export function getDashboards() {
