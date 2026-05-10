@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Table, Button, Input, Select, Space, Tag, Popconfirm, message, Card } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { Resizable } from 'react-resizable';
+import 'react-resizable/css/styles.css';
 import { getProjects, deleteProject, type PocProject } from '../api/projects';
 import { getOptions, type PocOption } from '../api/options';
 
@@ -13,6 +15,40 @@ const STATUS_COLORS: Record<string, string> = {
   '搁置': 'warning',
 };
 
+const LS_KEY = 'project_table_widths';
+
+const DEFAULT_WIDTHS: Record<string, number> = {
+  name: 220,
+  region: 80,
+  city: 80,
+  sales: 80,
+  pm: 80,
+  start_date: 100,
+  end_date: 100,
+  duration_days: 70,
+  poc_type_id: 90,
+  status_id: 90,
+  actions: 160,
+};
+
+function loadWidths(): Record<string, number> {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; }
+}
+
+function saveWidths(widths: Record<string, number>) {
+  localStorage.setItem(LS_KEY, JSON.stringify(widths));
+}
+
+function ResizableTitle(props: any) {
+  const { onResize, width, ...rest } = props;
+  if (!width) return <th {...rest} />;
+  return (
+    <Resizable width={width} height={0} onResize={onResize} draggableOpts={{ enableUserSelectHack: false }}>
+      <th {...rest} style={{ cursor: 'col-resize' }} />
+    </Resizable>
+  );
+}
+
 export default function ProjectList() {
   const [projects, setProjects] = useState<PocProject[]>([]);
   const [total, setTotal] = useState(0);
@@ -21,6 +57,10 @@ export default function ProjectList() {
   const [filters, setFilters] = useState<Record<string, any>>({});
   const [statusOptions, setStatusOptions] = useState<PocOption[]>([]);
   const [typeOptions, setTypeOptions] = useState<PocOption[]>([]);
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => ({
+    ...DEFAULT_WIDTHS,
+    ...loadWidths(),
+  }));
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,7 +68,7 @@ export default function ProjectList() {
     getOptions('poc_type').then((r) => setTypeOptions(r.data));
   }, []);
 
-  const fetchProjects = () => {
+  const fetchProjects = useCallback(() => {
     setLoading(true);
     getProjects({ page, page_size: 20, ...filters })
       .then((r) => {
@@ -36,9 +76,9 @@ export default function ProjectList() {
         setTotal(r.data.total);
       })
       .finally(() => setLoading(false));
-  };
+  }, [page, filters]);
 
-  useEffect(() => { fetchProjects(); }, [page, filters]);
+  useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
   const getOptionLabel = (options: PocOption[], id: number) =>
     options.find((o) => o.id === id)?.label || '';
@@ -49,31 +89,48 @@ export default function ProjectList() {
     fetchProjects();
   };
 
+  const handleResize = useCallback((key: string) => (_e: any, { size }: any) => {
+    const newWidths = { ...columnWidths, [key]: Math.max(60, size.width) };
+    setColumnWidths(newWidths);
+    saveWidths(newWidths);
+  }, [columnWidths]);
+
+  const w = (key: string) => columnWidths[key] || DEFAULT_WIDTHS[key] || 100;
+
+  const resizableCol = (col: any) => ({
+    ...col,
+    width: w(col.key || col.dataIndex),
+    onHeaderCell: (column: any) => ({
+      width: column.width,
+      onResize: handleResize(col.key || col.dataIndex),
+    }),
+  });
+
   const columns = [
-    { title: '项目名称', dataIndex: 'name', key: 'name', ellipsis: true },
-    { title: '区域', dataIndex: 'region', key: 'region', width: 80 },
-    { title: '城市', dataIndex: 'city', key: 'city', width: 80 },
-    { title: '销售', dataIndex: 'sales', key: 'sales', width: 80 },
-    { title: '项目经理', dataIndex: 'pm', key: 'pm', width: 80 },
-    { title: '开始', dataIndex: 'start_date', key: 'start_date', width: 100 },
-    { title: '完成', dataIndex: 'end_date', key: 'end_date', width: 100 },
-    {
-      title: '工期', dataIndex: 'duration_days', key: 'duration_days', width: 70,
+    resizableCol({ title: '项目名称', dataIndex: 'name', key: 'name', ellipsis: true }),
+    resizableCol({ title: '区域', dataIndex: 'region', key: 'region' }),
+    resizableCol({ title: '城市', dataIndex: 'city', key: 'city' }),
+    resizableCol({ title: '销售', dataIndex: 'sales', key: 'sales' }),
+    resizableCol({ title: '项目经理', dataIndex: 'pm', key: 'pm' }),
+    resizableCol({ title: '开始', dataIndex: 'start_date', key: 'start_date' }),
+    resizableCol({ title: '完成', dataIndex: 'end_date', key: 'end_date' }),
+    resizableCol({
+      title: '工期', dataIndex: 'duration_days', key: 'duration_days',
       render: (v: number | null) => v ? `${v}天` : '-',
-    },
-    {
-      title: 'PoC类型', dataIndex: 'poc_type_id', key: 'poc_type_id', width: 90,
+    }),
+    resizableCol({
+      title: 'PoC类型', dataIndex: 'poc_type_id', key: 'poc_type_id',
       render: (v: number) => <Tag>{getOptionLabel(typeOptions, v)}</Tag>,
-    },
-    {
-      title: '状态', dataIndex: 'status_id', key: 'status_id', width: 90,
+    }),
+    resizableCol({
+      title: '状态', dataIndex: 'status_id', key: 'status_id',
       render: (v: number) => {
         const label = getOptionLabel(statusOptions, v);
         return <Tag color={STATUS_COLORS[label]}>{label}</Tag>;
       },
-    },
+    }),
     {
-      title: '操作', key: 'actions', width: 180,
+      title: '操作', key: 'actions', width: w('actions'),
       render: (_: any, record: PocProject) => (
         <Space>
           <a onClick={() => navigate(`/projects/${record.id}`)}>查看</a>
@@ -123,7 +180,7 @@ export default function ProjectList() {
         columns={columns}
         dataSource={projects}
         loading={loading}
-        scroll={{ x: 1400 }}
+        components={{ header: { cell: ResizableTitle } }}
         pagination={{
           current: page,
           total,

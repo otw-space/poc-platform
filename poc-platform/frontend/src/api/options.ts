@@ -12,7 +12,7 @@ export function getOptions(category: string) {
   return client.get<PocOption[]>(`/options/${category}`);
 }
 
-export function createOption(data: { category: string; label: string }) {
+export function createOption(data: { category: string; label: string; sort_order?: number }) {
   return client.post<PocOption>('/options/', data);
 }
 

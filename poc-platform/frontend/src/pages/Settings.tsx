@@ -39,7 +39,8 @@ function OptionsManager() {
 
   const handleCreate = async () => {
     if (!newLabel.trim()) return;
-    await createOption({ category: activeCat, label: newLabel.trim() });
+    const maxOrder = options.reduce((max, o) => Math.max(max, o.sort_order || 0), 0);
+    await createOption({ category: activeCat, label: newLabel.trim(), sort_order: maxOrder + 1 });
     setNewLabel('');
     fetch();
   };
