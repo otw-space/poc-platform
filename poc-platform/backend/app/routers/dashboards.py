@@ -5,6 +5,7 @@ from ..models.dashboard import Dashboard
 from ..models.user import User
 from ..schemas.dashboard import DashboardCreate, DashboardUpdate, DashboardOut
 from ..middleware.auth import get_current_user
+from ..services.logger import log_operation
 
 router = APIRouter(prefix="/api/dashboards", tags=["dashboards"])
 
@@ -40,6 +41,7 @@ def create_dashboard(data: DashboardCreate, db: Session = Depends(get_db), curre
     db.add(dashboard)
     db.commit()
     db.refresh(dashboard)
+    log_operation(db, current_user, "create", "dashboard", dashboard.name)
     return DashboardOut.model_validate(dashboard)
 
 
@@ -55,6 +57,7 @@ def update_dashboard(dashboard_id: str, data: DashboardUpdate, db: Session = Dep
         setattr(dashboard, key, value)
     db.commit()
     db.refresh(dashboard)
+    log_operation(db, current_user, "update", "dashboard", dashboard.name)
     return DashboardOut.model_validate(dashboard)
 
 
@@ -65,6 +68,8 @@ def delete_dashboard(dashboard_id: str, db: Session = Depends(get_db), current_u
         raise HTTPException(status_code=404, detail="Dashboard not found")
     if dashboard.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied")
+    dashboard_name = dashboard.name
     db.delete(dashboard)
     db.commit()
+    log_operation(db, current_user, "delete", "dashboard", dashboard_name)
     return {"ok": True}
