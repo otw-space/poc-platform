@@ -4,6 +4,8 @@ import { PlusOutlined } from '@ant-design/icons';
 import { getOptions, createOption, updateOption, deleteOption, type PocOption } from '../api/options';
 import { getUsers, createUser, resetPassword, toggleActive } from '../api/users';
 import type { User } from '../api/auth';
+import client from '../api/client';
+import dayjs from 'dayjs';
 
 const CATEGORIES = [
   { key: 'poc_type', label: 'PoC类型' },
@@ -18,6 +20,7 @@ export default function Settings() {
         items={[
           { key: 'options', label: '下拉选项管理', children: <OptionsManager /> },
           { key: 'users', label: '用户管理', children: <UsersManager /> },
+          { key: 'audit', label: '操作日志', children: <AuditLogs /> },
         ]}
       />
     </Card>
@@ -175,5 +178,46 @@ function UsersManager() {
         </Space>
       </Modal>
     </div>
+  );
+}
+
+interface AuditLog {
+  id: number;
+  user_id: string;
+  username: string;
+  action: string;
+  target_type: string;
+  target_name: string;
+  details: string | null;
+  created_at: string;
+}
+
+function AuditLogs() {
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+
+  const fetch = () => {
+    setLoading(true);
+    client.get('/audit-logs/', { params: { page, page_size: 50 } })
+      .then(r => { setLogs(r.data.items); setTotal(r.data.total); })
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { fetch(); }, [page]);
+
+  const actionColors: Record<string, string> = { create: 'green', update: 'blue', delete: 'red' };
+  const actionLabels: Record<string, string> = { create: '新增', update: '编辑', delete: '删除' };
+  const typeLabels: Record<string, string> = { project: '项目', dashboard: '仪表盘', option: '下拉选项' };
+
+  const columns = [
+    { title: '操作内容', key: 'desc', render: (_: any, r: AuditLog) => `${actionLabels[r.action] || r.action}了${typeLabels[r.target_type] || r.target_type}「${r.target_name}」` },
+    { title: '操作人员', dataIndex: 'username', width: 120 },
+    { title: '操作时间', dataIndex: 'created_at', width: 180, render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm:ss') },
+  ];
+
+  return (
+    <Table rowKey="id" columns={columns} dataSource={logs} loading={loading}
+      pagination={{ current: page, total, pageSize: 50, showTotal: t => `共 ${t} 条`, onChange: setPage }} />
   );
 }
