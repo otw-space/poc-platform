@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Input, Select, Space, Tag, Popconfirm, message, Card } from 'antd';
+import { Table, Button, Input, Select, Space, Tag, Popconfirm, message, Card, DatePicker } from 'antd';
 import { PlusOutlined, SearchOutlined, DownloadOutlined } from '@ant-design/icons';
 import { Resizable } from 'react-resizable';
 import 'react-resizable/css/styles.css';
@@ -187,6 +187,22 @@ export default function ProjectList() {
           style={{ width: 120 }}
           options={typeOptions.map((o) => ({ label: o.label, value: o.id }))}
           onChange={(v) => setFilters((f) => ({ ...f, poc_type_id: v || undefined }))}
+        />
+        <DatePicker.RangePicker
+          style={{ width: 240 }}
+          placeholder={['开始日期', '结束日期']}
+          onChange={(dates) => {
+            if (dates && dates[0] && dates[1]) {
+              setFilters(f => ({ ...f, date_from: dates[0]!.format('YYYY-MM-DD'), date_to: dates[1]!.format('YYYY-MM-DD') }));
+            } else {
+              setFilters(f => {
+                const nf = { ...f };
+                delete nf.date_from;
+                delete nf.date_to;
+                return nf;
+              });
+            }
+          }}
         />
         <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/projects/new')}>
           新建项目

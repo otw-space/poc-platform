@@ -1,7 +1,7 @@
 import os
 import json
 import uuid as uuid_lib
-from datetime import datetime
+from datetime import datetime, date
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi import UploadFile, File
 from fastapi.responses import FileResponse
@@ -29,6 +29,8 @@ def list_projects(
     sales: str | None = None,
     status_id: int | None = None,
     poc_type_id: int | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -47,6 +49,10 @@ def list_projects(
         query = query.filter(PocProject.status_id == status_id)
     if poc_type_id:
         query = query.filter(PocProject.poc_type_id == poc_type_id)
+    if date_from:
+        query = query.filter(PocProject.start_date >= date.fromisoformat(date_from))
+    if date_to:
+        query = query.filter(PocProject.end_date <= date.fromisoformat(date_to))
 
     total = query.count()
     items = query.order_by(PocProject.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
