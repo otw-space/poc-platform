@@ -100,18 +100,16 @@ export default function ChartCard({ config, dashboardId, isEditing, onEditStart,
       yField: 'y',
       height: config.h || 300,
       autoFit: true,
+      colorField: 'x',
+      scale: { color: { range: colorScheme.colors } },
     };
     switch (config.type) {
-      case 'column':
-        return <Column {...base} legend={{ position: 'top' as const }} style={{ fill: colorScheme.colors[0] }} />;
-      case 'bar':
-        return <Bar {...base} legend={{ position: 'top' as const }} style={{ fill: colorScheme.colors[0] }} />;
-      case 'line':
-        return <Line {...base} legend={{ position: 'top' as const }} style={{ stroke: colorScheme.colors[0] }} />;
+      case 'column': return <Column {...base} legend={{ position: 'top' as const }} />;
+      case 'bar': return <Bar {...base} legend={{ position: 'top' as const }} />;
+      case 'line': return <Line {...base} legend={{ position: 'top' as const }} />;
       case 'dual-axes':
-        return <DualAxes {...base} legend={{ position: 'top' as const }} style={{ fill: colorScheme.colors[0] }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} />;
-      default:
-        return <Column {...base} legend={{ position: 'top' as const }} style={{ fill: colorScheme.colors[0] }} />;
+        return <DualAxes {...base} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} />;
+      default: return <Column {...base} legend={{ position: 'top' as const }} />;
     }
   };
 
