@@ -14,10 +14,10 @@ export default function DashboardHome() {
 
   useEffect(() => {
     Promise.all([
-      getProjects({ page: 1, page_size: 1000 }),
+      getProjects({ page: 1, page_size: 100 }),
       getOptions('status'),
       getOptions('poc_type'),
-    ]).then(async ([projRes, statusRes]) => {
+    ]).then(([projRes, statusRes]) => {
       const projects = projRes.data.items;
       const statusOpts = statusRes.data;
       const now = dayjs();
@@ -42,6 +42,8 @@ export default function DashboardHome() {
       projects.forEach(p => { regionCount[p.region] = (regionCount[p.region] || 0) + 1; });
       setRegionData(Object.entries(regionCount).map(([k, v]) => ({ x: k, y: v })));
 
+      setLoading(false);
+    }).catch(() => {
       setLoading(false);
     });
   }, []);
