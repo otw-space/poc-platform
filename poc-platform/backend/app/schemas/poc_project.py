@@ -28,6 +28,8 @@ class PocProjectUpdate(BaseModel):
     impl_method_id: int | None = None
     status_id: int | None = None
     result: str | None = None
+    plan_file: dict | None = None
+    report_file: dict | None = None
 
 
 class PocProjectOut(BaseModel):
@@ -44,6 +46,8 @@ class PocProjectOut(BaseModel):
     impl_method_id: int
     status_id: int
     result: str | None
+    plan_file: dict | None = None
+    report_file: dict | None = None
     created_by: str
     created_at: datetime
     updated_at: datetime
