@@ -7,6 +7,7 @@ import ProjectList from './pages/ProjectList';
 import ProjectForm from './pages/ProjectForm';
 import ProjectDetail from './pages/ProjectDetail';
 import DashboardCanvas from './pages/DashboardCanvas';
+import DashboardHome from './pages/DashboardHome';
 import Settings from './pages/Settings';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -36,7 +37,7 @@ export default function App() {
           </PrivateRoute>
         }
       >
-        <Route index element={<Navigate to="/projects" />} />
+        <Route index element={<DashboardHome />} />
         <Route path="projects" element={<ProjectList />} />
         <Route path="projects/new" element={<ProjectForm />} />
         <Route path="projects/:id/edit" element={<ProjectForm />} />
