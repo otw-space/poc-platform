@@ -1,5 +1,6 @@
+import json
 from datetime import date, datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class PocProjectCreate(BaseModel):
@@ -53,6 +54,16 @@ class PocProjectOut(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @field_validator('plan_file', 'report_file', mode='before')
+    @classmethod
+    def parse_file_json(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except (json.JSONDecodeError, TypeError):
+                return None
+        return v
 
 
 class PocProjectListOut(BaseModel):
