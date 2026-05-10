@@ -1,4 +1,10 @@
+import os
+import json
+import uuid as uuid_lib
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models.poc_project import PocProject
@@ -96,6 +102,108 @@ def delete_project(project_id: str, db: Session = Depends(get_db), current_user:
     db.delete(project)
     db.commit()
     return {"ok": True}
+
+
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "uploads")
+ALLOWED_PLAN_EXT = {".doc", ".docx", ".pdf"}
+ALLOWED_REPORT_EXT = {".ppt", ".pptx", ".pdf"}
+MAX_FILE_SIZE = 50 * 1024 * 1024
+
+
+def _ensure_upload_dir(project_id: str, file_type: str) -> str:
+    path = os.path.join(UPLOAD_DIR, project_id, file_type)
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+@router.post("/{project_id}/upload/{file_type}")
+def upload_file(
+    project_id: str,
+    file_type: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if file_type not in ("plan", "report"):
+        raise HTTPException(status_code=400, detail="file_type must be 'plan' or 'report'")
+    allowed = ALLOWED_PLAN_EXT if file_type == "plan" else ALLOWED_REPORT_EXT
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in allowed:
+        raise HTTPException(status_code=400, detail=f"File type {ext} not allowed")
+
+    project = db.query(PocProject).filter(PocProject.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    existing = getattr(project, f"{file_type}_file", None)
+    if existing:
+        try:
+            existing_data = json.loads(existing) if isinstance(existing, str) else existing
+            old_path = os.path.join(UPLOAD_DIR, project_id, file_type, existing_data.get("stored_filename", ""))
+            if os.path.exists(old_path):
+                os.remove(old_path)
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    stored_name = str(uuid_lib.uuid4()) + ext
+    save_dir = _ensure_upload_dir(project_id, file_type)
+    save_path = os.path.join(save_dir, stored_name)
+
+    content = file.file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="File too large (max 50MB)")
+
+    with open(save_path, "wb") as f:
+        f.write(content)
+
+    metadata = json.dumps({
+        "original_filename": file.filename,
+        "stored_filename": stored_name,
+        "size": len(content),
+        "uploaded_at": datetime.utcnow().isoformat(),
+    })
+
+    setattr(project, f"{file_type}_file", metadata)
+    db.commit()
+    return {"ok": True, "file": json.loads(metadata)}
+
+
+@router.get("/{project_id}/download/{file_type}")
+def download_file(
+    project_id: str,
+    file_type: str,
+    inline: bool = Query(False),
+    db: Session = Depends(get_db),
+):
+    if file_type not in ("plan", "report"):
+        raise HTTPException(status_code=400, detail="file_type must be 'plan' or 'report'")
+
+    project = db.query(PocProject).filter(PocProject.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    existing = getattr(project, f"{file_type}_file", None)
+    if not existing:
+        raise HTTPException(status_code=404, detail="No file uploaded")
+
+    try:
+        metadata = json.loads(existing) if isinstance(existing, str) else existing
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=404, detail="File metadata corrupted")
+
+    file_path = os.path.join(UPLOAD_DIR, project_id, file_type, metadata["stored_filename"])
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+
+    is_pdf = metadata.get("original_filename", "").lower().endswith(".pdf")
+    media_type = "application/pdf" if is_pdf else None
+    disposition = "inline" if (inline and is_pdf) else "attachment"
+
+    return FileResponse(
+        file_path,
+        media_type=media_type,
+        headers={"Content-Disposition": f'{disposition}; filename="{metadata["original_filename"]}"'},
+    )
 
 
 @router.post("/query")

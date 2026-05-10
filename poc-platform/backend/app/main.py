@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from .database import engine, Base
-from .routers import auth, projects, options, dashboards, users
+from .routers import auth, projects, options, dashboards, users, logs
 
 
 @asynccontextmanager
@@ -20,6 +20,7 @@ app.include_router(projects.router)
 app.include_router(options.router)
 app.include_router(dashboards.router)
 app.include_router(users.router)
+app.include_router(logs.router)
 
 frontend_dist = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
 if os.path.exists(frontend_dist):
