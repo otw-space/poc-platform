@@ -1,50 +1,48 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Card, Spin, Empty, message } from 'antd';
-import { MoreOutlined, EditOutlined, DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Card, Spin, Empty, message, Form, Input, Select } from 'antd';
+import { MoreOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, CheckOutlined } from '@ant-design/icons';
 import { Column, Bar, Pie, Line, DualAxes } from '@ant-design/charts';
 import { queryProjectData } from '../api/projects';
+import ColorSchemePicker, { COLOR_SCHEMES } from './ColorSchemePicker';
 import type { ChartConfig } from '../api/dashboards';
 
 interface ChartCardProps {
   config: ChartConfig;
   dashboardId?: string;
-  onEdit?: (chartId: string, dashboardId?: string) => void;
+  isEditing?: boolean;
+  onEditStart?: (chartId: string) => void;
+  onEditEnd?: (chartId: string) => void;
   onDelete?: (id: string) => void;
+  onUpdate?: (chartId: string, updates: Partial<ChartConfig>) => void;
 }
 
-type Corner = 'tl' | 'tr' | 'bl' | 'br';
+const CHART_TYPES = [
+  { label: '柱状图', value: 'column' },
+  { label: '条形图', value: 'bar' },
+  { label: '饼图', value: 'pie' },
+  { label: '折线图', value: 'line' },
+  { label: '组合图', value: 'dual-axes' },
+];
 
-const LS_KEY = 'chart_sizes';
+const DIMENSION_FIELDS = [
+  { label: '区域', value: 'region' },
+  { label: '城市', value: 'city' },
+  { label: '销售', value: 'sales' },
+  { label: '项目经理', value: 'pm' },
+  { label: 'PoC类型', value: 'poc_type' },
+  { label: '实施方式', value: 'impl_method' },
+  { label: '状态', value: 'status' },
+];
 
-function loadSizes(): Record<string, { w: number; h: number }> {
-  try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch { return {}; }
-}
+const METRIC_FIELDS = [
+  { label: '项目数量', value: 'count' },
+  { label: '平均工期', value: 'avg_duration' },
+];
 
-function saveSize(chartId: string, w: number, h: number) {
-  const sizes = loadSizes();
-  sizes[chartId] = { w, h };
-  localStorage.setItem(LS_KEY, JSON.stringify(sizes));
-}
-
-function getInitialSize(chartId: string, defaultH: number) {
-  const sizes = loadSizes();
-  const saved = sizes[chartId];
-  return saved ? saved : { w: 400, h: defaultH || 400 };
-}
-
-const CORNER_CURSORS: Record<Corner, string> = {
-  tl: 'nwse-resize', tr: 'nesw-resize', bl: 'nesw-resize', br: 'nwse-resize',
-};
-
-export default function ChartCard({ config, dashboardId, onEdit, onDelete }: ChartCardProps) {
+export default function ChartCard({ config, dashboardId, isEditing, onEditStart, onEditEnd, onDelete, onUpdate }: ChartCardProps) {
   const [data, setData] = useState<{ x: string; y: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
-  const initial = getInitialSize(config.id, config.h || 400);
-  const [size, setSize] = useState(initial);
-  const sizeRef = useRef(size);
-  sizeRef.current = size;
-  const rafRef = useRef<number>(0);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const fetchData = useCallback(() => {
@@ -71,41 +69,13 @@ export default function ChartCard({ config, dashboardId, onEdit, onDelete }: Cha
     return () => document.removeEventListener('click', handler);
   }, [menuOpen]);
 
-  const handleResizeStart = useCallback((e: React.MouseEvent, corner: Corner) => {
-    e.stopPropagation();
-    e.preventDefault();
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startW = sizeRef.current.w;
-    const startH = sizeRef.current.h;
-
-    const onMouseMove = (ev: MouseEvent) => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      rafRef.current = requestAnimationFrame(() => {
-        const dx = ev.clientX - startX;
-        const dy = ev.clientY - startY;
-        let newW = startW, newH = startH;
-        if (corner === 'tr' || corner === 'br') newW = startW + dx;
-        if (corner === 'tl' || corner === 'bl') newW = startW - dx;
-        if (corner === 'bl' || corner === 'br') newH = startH + dy;
-        if (corner === 'tl' || corner === 'tr') newH = startH - dy;
-        setSize({ w: Math.max(200, newW), h: Math.max(200, newH) });
-      });
-    };
-
-    const onMouseUp = () => {
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      saveSize(config.id, sizeRef.current.w, sizeRef.current.h);
-    };
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  }, [config.id]);
-
   const doRefresh = () => { setMenuOpen(false); fetchData(); message.success('已刷新'); };
-  const doEdit = () => { setMenuOpen(false); onEdit?.(config.id, dashboardId); };
+  const doEdit = () => { setMenuOpen(false); onEditStart?.(config.id); };
   const doDelete = () => { setMenuOpen(false); onDelete?.(config.id); };
+  const doFinishEdit = () => { onEditEnd?.(config.id); };
+
+  const colorScheme = COLOR_SCHEMES[config.colorScheme || 'default-blue'] || COLOR_SCHEMES['default-blue'];
+  const chartColors = config.type === 'pie' ? colorScheme.colors : [colorScheme.colors[0]];
 
   const renderChart = () => {
     if (loading) return <Spin style={{ display: 'block', margin: '60px auto' }} />;
@@ -118,31 +88,30 @@ export default function ChartCard({ config, dashboardId, onEdit, onDelete }: Cha
           angleField="y"
           colorField="x"
           radius={0.8}
-          height={size.h}
+          height={config.h || 300}
+          color={colorScheme.colors}
           autoFit
         />
       );
     }
 
-    const cc = { data, xField: 'x', yField: 'y', height: size.h, autoFit: true };
+    const cc = {
+      data,
+      xField: 'x',
+      yField: 'y',
+      height: config.h || 300,
+      autoFit: true,
+      color: chartColors,
+    };
     switch (config.type) {
       case 'column': return <Column {...cc} legend={{ position: 'top' as const }} />;
       case 'bar': return <Bar {...cc} legend={{ position: 'top' as const }} />;
       case 'line': return <Line {...cc} legend={{ position: 'top' as const }} />;
-      case 'dual-axes': return <DualAxes {...cc} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} />;
+      case 'dual-axes':
+        return <DualAxes {...cc} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} />;
       default: return <Column {...cc} legend={{ position: 'top' as const }} />;
     }
   };
-
-  const corners: Corner[] = ['tl', 'tr', 'bl', 'br'];
-  const cornerStyle = (c: Corner): React.CSSProperties => ({
-    position: 'absolute', width: 16, height: 16, cursor: CORNER_CURSORS[c], zIndex: 10,
-    background: 'linear-gradient(135deg, transparent 50%, #d9d9d9 50%)', borderRadius: '0 0 4px 0',
-    ...(c === 'tl' ? { top: 0, left: 0, transform: 'rotate(180deg)' } : {}),
-    ...(c === 'tr' ? { top: 0, right: 0, transform: 'rotate(270deg)' } : {}),
-    ...(c === 'bl' ? { bottom: 0, left: 0, transform: 'rotate(90deg)' } : {}),
-    ...(c === 'br' ? { bottom: 0, right: 0 } : {}),
-  });
 
   const menuBtnStyle: React.CSSProperties = {
     display: 'block', width: '100%', padding: '8px 16px', border: 'none', background: 'none',
@@ -150,9 +119,10 @@ export default function ChartCard({ config, dashboardId, onEdit, onDelete }: Cha
   };
 
   return (
-    <div style={{ position: 'relative', width: size.w, minWidth: 200, flexShrink: 0 }}>
+    <div className="chart-card-wrapper" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Card
         title={config.title || '未命名图表'}
+        size="small"
         extra={
           <div ref={menuRef} style={{ position: 'relative', display: 'inline-block' }}>
             <MoreOutlined
@@ -178,13 +148,71 @@ export default function ChartCard({ config, dashboardId, onEdit, onDelete }: Cha
             )}
           </div>
         }
-        style={{ height: '100%' }}
+        style={{ flex: 1 }}
       >
         {renderChart()}
       </Card>
-      {corners.map((c) => (
-        <div key={c} onMouseDown={(e) => handleResizeStart(e, c)} style={cornerStyle(c)} />
-      ))}
+
+      {isEditing && (
+        <Card
+          size="small"
+          style={{ marginTop: 8, background: '#fafafa' }}
+          title="编辑图表"
+          extra={
+            <button
+              type="button"
+              onClick={doFinishEdit}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1677ff', fontSize: 14 }}
+            >
+              <CheckOutlined /> 完成
+            </button>
+          }
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+            <Form.Item label="标题" style={{ marginBottom: 0 }}>
+              <Input
+                size="small"
+                value={config.title}
+                onChange={(e) => onUpdate?.(config.id, { title: e.target.value })}
+                placeholder="图表标题"
+              />
+            </Form.Item>
+            <Form.Item label="类型" style={{ marginBottom: 0 }}>
+              <Select
+                size="small"
+                value={config.type}
+                onChange={(v) => onUpdate?.(config.id, { type: v })}
+                options={CHART_TYPES}
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+            <Form.Item label="X轴维度" style={{ marginBottom: 0 }}>
+              <Select
+                size="small"
+                value={config.x_field}
+                onChange={(v) => onUpdate?.(config.id, { x_field: v })}
+                options={DIMENSION_FIELDS}
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+            <Form.Item label="Y轴指标" style={{ marginBottom: 0 }}>
+              <Select
+                size="small"
+                value={config.y_field}
+                onChange={(v) => onUpdate?.(config.id, { y_field: v })}
+                options={METRIC_FIELDS}
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+            <Form.Item label="配色" style={{ marginBottom: 0 }}>
+              <ColorSchemePicker
+                value={config.colorScheme || 'default-blue'}
+                onChange={(v) => onUpdate?.(config.id, { colorScheme: v })}
+              />
+            </Form.Item>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
