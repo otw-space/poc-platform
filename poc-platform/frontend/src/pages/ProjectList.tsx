@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Input, Select, Space, Tag, Popconfirm, message, Card, DatePicker } from 'antd';
+import { Table, Button, Input, Select, Space, Tag, Popconfirm, message, Card, DatePicker, Popover } from 'antd';
 import { PlusOutlined, SearchOutlined, DownloadOutlined } from '@ant-design/icons';
 import { Resizable } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 import dayjs from 'dayjs';
-import { getProjects, deleteProject, type PocProject } from '../api/projects';
+import { getProjects, deleteProject, updateProject, type PocProject } from '../api/projects';
 import { getOptions, type PocOption } from '../api/options';
 import ProjectDrawer from '../components/ProjectDrawer';
 
@@ -141,10 +141,36 @@ export default function ProjectList() {
       render: (v: number) => <Tag>{getOptionLabel(typeOptions, v)}</Tag>,
     }),
     resizableCol({
-      title: '状态', dataIndex: 'status_id', key: 'status_id',
-      render: (v: number) => {
+      title: '状态', dataIndex: 'status_id', key: 'status_id', width: w('status_id'),
+      render: (v: number, record: PocProject) => {
         const label = getOptionLabel(statusOptions, v);
-        return <Tag color={STATUS_COLORS[label]}>{label}</Tag>;
+        return (
+          <Popover
+            trigger="click"
+            content={
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 80 }}>
+                {statusOptions.map(o => (
+                  <Button
+                    key={o.id}
+                    size="small"
+                    type={o.id === v ? 'primary' : 'text'}
+                    onClick={async () => {
+                      try {
+                        await updateProject(record.id, { status_id: o.id });
+                        message.success(`状态已更新为「${o.label}」`);
+                        fetchProjects();
+                      } catch { message.error('更新失败'); }
+                    }}
+                  >
+                    {o.label}
+                  </Button>
+                ))}
+              </div>
+            }
+          >
+            <Tag color={STATUS_COLORS[label] || 'default'} style={{ cursor: 'pointer' }}>{label}</Tag>
+          </Popover>
+        );
       },
     }),
     {
