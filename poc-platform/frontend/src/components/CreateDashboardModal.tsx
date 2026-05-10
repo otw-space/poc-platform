@@ -135,10 +135,9 @@ export default function CreateDashboardModal({ open, onClose, onCreated }: Props
               <Button danger size="small" icon={<DeleteOutlined />} onClick={() => removeChart(chart.id)} />
             )}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
             <Form.Item label="标题" style={{ marginBottom: 0 }}>
               <Input
-                size="small"
                 value={chart.title}
                 onChange={(e) => updateChart(chart.id, { title: e.target.value })}
                 placeholder="图表标题"
@@ -146,7 +145,6 @@ export default function CreateDashboardModal({ open, onClose, onCreated }: Props
             </Form.Item>
             <Form.Item label="类型" style={{ marginBottom: 0 }}>
               <Select
-                size="small"
                 value={chart.type}
                 onChange={(v) => updateChart(chart.id, { type: v })}
                 options={CHART_TYPES}
@@ -155,7 +153,6 @@ export default function CreateDashboardModal({ open, onClose, onCreated }: Props
             </Form.Item>
             <Form.Item label="X轴维度" style={{ marginBottom: 0 }}>
               <Select
-                size="small"
                 value={chart.x_field}
                 onChange={(v) => updateChart(chart.id, { x_field: v })}
                 options={DIMENSION_FIELDS}
@@ -164,14 +161,13 @@ export default function CreateDashboardModal({ open, onClose, onCreated }: Props
             </Form.Item>
             <Form.Item label="Y轴指标" style={{ marginBottom: 0 }}>
               <Select
-                size="small"
                 value={chart.y_field}
                 onChange={(v) => updateChart(chart.id, { y_field: v })}
                 options={METRIC_FIELDS}
                 style={{ width: '100%' }}
               />
             </Form.Item>
-            <Form.Item label="配色" style={{ marginBottom: 0 }}>
+            <Form.Item label="配色方案" style={{ marginBottom: 0 }}>
               <ColorSchemePicker
                 value={chart.colorScheme || 'default-blue'}
                 onChange={(v) => updateChart(chart.id, { colorScheme: v })}

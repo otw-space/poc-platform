@@ -75,7 +75,7 @@ export default function ChartCard({ config, dashboardId, isEditing, onEditStart,
   const doFinishEdit = () => { onEditEnd?.(config.id); };
 
   const colorScheme = COLOR_SCHEMES[config.colorScheme || 'default-blue'] || COLOR_SCHEMES['default-blue'];
-  const chartColors = config.type === 'pie' ? colorScheme.colors : [colorScheme.colors[0]];
+  const chartColor = config.type === 'pie' ? colorScheme.colors : colorScheme.colors[0];
 
   const renderChart = () => {
     if (loading) return <Spin style={{ display: 'block', margin: '60px auto' }} />;
@@ -101,7 +101,7 @@ export default function ChartCard({ config, dashboardId, isEditing, onEditStart,
       yField: 'y',
       height: config.h || 300,
       autoFit: true,
-      color: chartColors,
+      color: chartColor,
     };
     switch (config.type) {
       case 'column': return <Column {...cc} legend={{ position: 'top' as const }} />;
@@ -168,10 +168,9 @@ export default function ChartCard({ config, dashboardId, isEditing, onEditStart,
             </button>
           }
         >
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
             <Form.Item label="标题" style={{ marginBottom: 0 }}>
               <Input
-                size="small"
                 value={config.title}
                 onChange={(e) => onUpdate?.(config.id, { title: e.target.value })}
                 placeholder="图表标题"
@@ -179,7 +178,6 @@ export default function ChartCard({ config, dashboardId, isEditing, onEditStart,
             </Form.Item>
             <Form.Item label="类型" style={{ marginBottom: 0 }}>
               <Select
-                size="small"
                 value={config.type}
                 onChange={(v) => onUpdate?.(config.id, { type: v })}
                 options={CHART_TYPES}
@@ -188,7 +186,6 @@ export default function ChartCard({ config, dashboardId, isEditing, onEditStart,
             </Form.Item>
             <Form.Item label="X轴维度" style={{ marginBottom: 0 }}>
               <Select
-                size="small"
                 value={config.x_field}
                 onChange={(v) => onUpdate?.(config.id, { x_field: v })}
                 options={DIMENSION_FIELDS}
@@ -197,14 +194,13 @@ export default function ChartCard({ config, dashboardId, isEditing, onEditStart,
             </Form.Item>
             <Form.Item label="Y轴指标" style={{ marginBottom: 0 }}>
               <Select
-                size="small"
                 value={config.y_field}
                 onChange={(v) => onUpdate?.(config.id, { y_field: v })}
                 options={METRIC_FIELDS}
                 style={{ width: '100%' }}
               />
             </Form.Item>
-            <Form.Item label="配色" style={{ marginBottom: 0 }}>
+            <Form.Item label="配色方案" style={{ marginBottom: 0 }}>
               <ColorSchemePicker
                 value={config.colorScheme || 'default-blue'}
                 onChange={(v) => onUpdate?.(config.id, { colorScheme: v })}

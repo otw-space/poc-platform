@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Button, Spin, Empty, Tabs, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { Responsive, WidthProvider, type Layout } from 'react-grid-layout/legacy';
@@ -67,11 +67,59 @@ export default function DashboardCanvas() {
     );
   };
 
-  const layoutSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialLayoutRef = useRef(true);
 
-  // Handle layout change — optimistic state update + debounced persist
+  // Persist layout to backend immediately (called on drag/resize stop)
+  const persistLayout = useCallback(
+    (layoutItems: Layout) => {
+      const current = dashboardsRef.current;
+      const dbUpdates = new Map<string, ChartConfig[]>();
+
+      for (const item of layoutItems) {
+        const db = current.find((d) =>
+          (d.config?.charts || []).some((c) => c.id === item.i)
+        );
+        if (!db) continue;
+
+        const charts = dbUpdates.get(db.id) || [...(db.config?.charts || [])];
+        const idx = charts.findIndex((c) => c.id === item.i);
+        if (idx >= 0) {
+          charts[idx] = { ...charts[idx], x: item.x, y: item.y, w: item.w, h: item.h * 100 };
+        }
+        dbUpdates.set(db.id, charts);
+      }
+
+      // Optimistic state update
+      setDashboards((prev) =>
+        prev.map((db) => {
+          const updatedCharts = dbUpdates.get(db.id);
+          if (updatedCharts) {
+            return { ...db, config: { ...db.config, charts: updatedCharts } };
+          }
+          return db;
+        })
+      );
+
+      // Persist immediately
+      for (const [dbId, charts] of dbUpdates) {
+        const db = dashboardsRef.current.find((d) => d.id === dbId);
+        if (!db) continue;
+        updateDashboard(dbId, { config: { ...(db.config || { filters: [] }), charts } })
+          .catch(() => { fetch(); message.error('保存布局失败'); });
+      }
+    },
+    [fetch]
+  );
+
+  // Handle layout change — only runs during drag/resize for smooth UI, no persistence
   const handleLayoutChange = useCallback(
     (newLayout: Layout) => {
+      // Skip the initial mount event to avoid overwriting saved positions
+      if (initialLayoutRef.current) {
+        initialLayoutRef.current = false;
+        return;
+      }
+
       const current = dashboardsRef.current;
       const dbUpdates = new Map<string, ChartConfig[]>();
 
@@ -89,7 +137,7 @@ export default function DashboardCanvas() {
         dbUpdates.set(db.id, charts);
       }
 
-      // Optimistic state update (immediate, every pixel)
+      // Optimistic state update only (no API calls during drag)
       setDashboards((prev) =>
         prev.map((db) => {
           const updatedCharts = dbUpdates.get(db.id);
@@ -99,19 +147,8 @@ export default function DashboardCanvas() {
           return db;
         })
       );
-
-      // Debounced API persistence
-      if (layoutSaveTimerRef.current) clearTimeout(layoutSaveTimerRef.current);
-      layoutSaveTimerRef.current = setTimeout(() => {
-        for (const [dbId, charts] of dbUpdates) {
-          const db = dashboardsRef.current.find((d) => d.id === dbId);
-          if (!db) continue;
-          updateDashboard(dbId, { config: { ...(db.config || { filters: [] }), charts } })
-            .catch(() => { fetch(); message.error('保存布局失败'); });
-        }
-      }, 800);
     },
-    [fetch]
+    []
   );
 
   // Debounced save for chart updates
@@ -227,9 +264,18 @@ export default function DashboardCanvas() {
           isDraggable
           draggableHandle=".ant-card-head"
           onLayoutChange={(currentLayout) => handleLayoutChange(currentLayout)}
+          onDragStop={(currentLayout) => persistLayout(currentLayout)}
+          onResizeStop={(currentLayout) => persistLayout(currentLayout)}
         >
           {visibleCharts.map(({ chart, dashboard }) => (
-            <div key={chart.id} style={{ position: 'relative' }}>
+            <div
+              key={chart.id}
+              style={{
+                position: 'relative',
+                zIndex: editingChartId === chart.id ? 100 : 'auto',
+                overflow: editingChartId === chart.id ? 'visible' : 'hidden',
+              }}
+            >
               <ChartCard
                 config={chart}
                 dashboardId={dashboard.id}
