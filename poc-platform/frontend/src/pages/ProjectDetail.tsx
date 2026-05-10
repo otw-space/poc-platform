@@ -142,6 +142,7 @@ export default function ProjectDetail() {
                 size="small"
                 icon={<EyeOutlined />}
                 onClick={() => handlePreview(fileType, fileMeta.original_filename)}
+                disabled={!fileMeta.original_filename.toLowerCase().endsWith('.pdf')}
               >
                 预览
               </Button>

@@ -146,7 +146,7 @@ export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDele
               {fileMeta.original_filename} ({formatFileSize(fileMeta.size)})
             </div>
             <Space>
-              <Button size="small" icon={<EyeOutlined />} onClick={() => handlePreview(fileType, fileMeta.original_filename)}>预览</Button>
+              <Button size="small" icon={<EyeOutlined />} onClick={() => handlePreview(fileType, fileMeta.original_filename)} disabled={!fileMeta.original_filename.toLowerCase().endsWith('.pdf')}>预览</Button>
               <Button size="small" icon={<DownloadOutlined />} onClick={() => handleDownload(fileType)}>下载</Button>
               <Popconfirm title="确认删除此文件？" onConfirm={() => handleDeleteFile(fileType)}>
                 <Button size="small" danger icon={<DeleteOutlined />}>删除</Button>
