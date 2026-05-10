@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, date
-from sqlalchemy import String, Integer, Date, Text, DateTime, ForeignKey
+from sqlalchemy import JSON, String, Integer, Date, Text, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from ..database import Base
 
@@ -21,6 +21,8 @@ class PocProject(Base):
     impl_method_id: Mapped[int] = mapped_column(Integer, ForeignKey("poc_options.id"), nullable=False)
     status_id: Mapped[int] = mapped_column(Integer, ForeignKey("poc_options.id"), nullable=False)
     result: Mapped[str | None] = mapped_column(Text, nullable=True)
+    plan_file: Mapped[str | None] = mapped_column(Text, nullable=True)
+    report_file: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
