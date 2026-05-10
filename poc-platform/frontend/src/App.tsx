@@ -6,9 +6,7 @@ import Login from './pages/Login';
 import ProjectList from './pages/ProjectList';
 import ProjectForm from './pages/ProjectForm';
 import ProjectDetail from './pages/ProjectDetail';
-import DashboardList from './pages/DashboardList';
-import DashboardView from './pages/DashboardView';
-import DashboardBuilder from './pages/DashboardBuilder';
+import DashboardCanvas from './pages/DashboardCanvas';
 import Settings from './pages/Settings';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -43,9 +41,7 @@ export default function App() {
         <Route path="projects/new" element={<ProjectForm />} />
         <Route path="projects/:id/edit" element={<ProjectForm />} />
         <Route path="projects/:id" element={<ProjectDetail />} />
-        <Route path="dashboards" element={<DashboardList />} />
-        <Route path="dashboards/new" element={<DashboardBuilder />} />
-        <Route path="dashboards/:id" element={<DashboardView />} />
+        <Route path="dashboards" element={<DashboardCanvas />} />
         <Route
           path="settings"
           element={
