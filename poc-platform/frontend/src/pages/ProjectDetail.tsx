@@ -3,9 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Descriptions, Tag, Button, Space, Popconfirm, message, Spin, Tabs, Upload, Timeline, Empty } from 'antd';
 import { UploadOutlined, DownloadOutlined, EyeOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import MDEditor from '@uiw/react-md-editor';
-import { getProject, deleteProject, updateProject, getProjectLogs, createProjectLog, updateProjectLog, deleteProjectLog, uploadProjectFile, getFileDownloadUrl, type PocProject, type ProjectLog, type ProjectLogCreate, type ProjectLogUpdate } from '../api/projects';
+import { getProject, deleteProject, updateProject, getProjectLogs, createProjectLog, updateProjectLog, deleteProjectLog, uploadProjectFile, type PocProject, type ProjectLog, type ProjectLogCreate, type ProjectLogUpdate } from '../api/projects';
 import { getOptions, type PocOption } from '../api/options';
 import LogEntryModal from '../components/LogEntryModal';
+import client from '../api/client';
 import dayjs from 'dayjs';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -55,6 +56,40 @@ export default function ProjectDetail() {
     navigate('/projects');
   };
 
+  const handlePreview = async (fileType: 'plan' | 'report') => {
+    try {
+      const res = await client.get(`/projects/${id}/download/${fileType}`, {
+        params: { inline: true },
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(res.data);
+      window.open(url, '_blank');
+    } catch {
+      message.error('预览失败');
+    }
+  };
+
+  const handleDownload = async (fileType: 'plan' | 'report') => {
+    try {
+      const res = await client.get(`/projects/${id}/download/${fileType}`, {
+        responseType: 'blob',
+      });
+      const disposition = res.headers['content-disposition'] || '';
+      const match = disposition.match(/filename\*=UTF-8''(.+)/);
+      const filename = match ? decodeURIComponent(match[1]) : 'download';
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      message.error('下载失败');
+    }
+  };
+
   const handleDeleteFile = async (fileType: 'plan' | 'report') => {
     await updateProject(id!, { [`${fileType}_file`]: null });
     message.success('文件已删除');
@@ -100,20 +135,14 @@ export default function ProjectDetail() {
               <Button
                 size="small"
                 icon={<EyeOutlined />}
-                onClick={() => window.open(getFileDownloadUrl(id!, fileType, true), '_blank')}
+                onClick={() => handlePreview(fileType)}
               >
                 预览
               </Button>
               <Button
                 size="small"
                 icon={<DownloadOutlined />}
-                onClick={() => {
-                  const a = document.createElement('a');
-                  a.href = getFileDownloadUrl(id!, fileType, false);
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                }}
+                onClick={() => handleDownload(fileType)}
               >
                 下载
               </Button>

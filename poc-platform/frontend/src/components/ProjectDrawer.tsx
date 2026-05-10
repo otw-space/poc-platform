@@ -2,9 +2,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { Drawer, Descriptions, Tag, Button, Space, Popconfirm, message, Spin, Tabs, Upload, Timeline, Empty } from 'antd';
 import { UploadOutlined, DownloadOutlined, EyeOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import MDEditor from '@uiw/react-md-editor';
-import { getProject, updateProject, getProjectLogs, createProjectLog, updateProjectLog, deleteProjectLog, uploadProjectFile, getFileDownloadUrl, type PocProject, type ProjectLog, type ProjectLogCreate, type ProjectLogUpdate } from '../api/projects';
+import { getProject, updateProject, getProjectLogs, createProjectLog, updateProjectLog, deleteProjectLog, uploadProjectFile, type PocProject, type ProjectLog, type ProjectLogCreate, type ProjectLogUpdate } from '../api/projects';
 import { getOptions, type PocOption } from '../api/options';
 import LogEntryModal from './LogEntryModal';
+import client from '../api/client';
 import dayjs from 'dayjs';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -59,6 +60,42 @@ export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDele
 
   const getLabel = (opts: PocOption[], id: number) => opts.find((o) => o.id === id)?.label || '';
 
+  const handlePreview = async (fileType: 'plan' | 'report') => {
+    if (!projectId) return;
+    try {
+      const res = await client.get(`/projects/${projectId}/download/${fileType}`, {
+        params: { inline: true },
+        responseType: 'blob',
+      });
+      const url = URL.createObjectURL(res.data);
+      window.open(url, '_blank');
+    } catch {
+      message.error('预览失败');
+    }
+  };
+
+  const handleDownload = async (fileType: 'plan' | 'report') => {
+    if (!projectId) return;
+    try {
+      const res = await client.get(`/projects/${projectId}/download/${fileType}`, {
+        responseType: 'blob',
+      });
+      const disposition = res.headers['content-disposition'] || '';
+      const match = disposition.match(/filename\*=UTF-8''(.+)/);
+      const filename = match ? decodeURIComponent(match[1]) : 'download';
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      message.error('下载失败');
+    }
+  };
+
   const handleDeleteFile = async (fileType: 'plan' | 'report') => {
     if (!projectId) return;
     await updateProject(projectId, { [`${fileType}_file`]: null });
@@ -102,8 +139,8 @@ export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDele
               {fileMeta.original_filename} ({formatFileSize(fileMeta.size)})
             </div>
             <Space>
-              <Button size="small" icon={<EyeOutlined />} onClick={() => window.open(getFileDownloadUrl(projectId!, fileType, true), '_blank')}>预览</Button>
-              <Button size="small" icon={<DownloadOutlined />} onClick={() => { const a = document.createElement('a'); a.href = getFileDownloadUrl(projectId!, fileType, false); document.body.appendChild(a); a.click(); document.body.removeChild(a); }}>下载</Button>
+              <Button size="small" icon={<EyeOutlined />} onClick={() => handlePreview(fileType)}>预览</Button>
+              <Button size="small" icon={<DownloadOutlined />} onClick={() => handleDownload(fileType)}>下载</Button>
               <Popconfirm title="确认删除此文件？" onConfirm={() => handleDeleteFile(fileType)}>
                 <Button size="small" danger icon={<DeleteOutlined />}>删除</Button>
               </Popconfirm>
