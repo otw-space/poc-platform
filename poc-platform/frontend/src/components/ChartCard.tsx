@@ -133,7 +133,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
   }));
 
   const editContent = (
-    <div style={{ width: 360 }}>
+    <div style={{ width: 420 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
         <Form.Item label="标题" style={{ marginBottom: 0 }}>
           <Input size="small" value={config.title} onChange={(e) => onUpdate?.(config.id, { title: e.target.value })} placeholder="图表标题" />

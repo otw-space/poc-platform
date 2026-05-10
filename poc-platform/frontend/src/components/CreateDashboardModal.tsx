@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Modal, Form, Input, Select, Switch, Button, message, Space, Divider } from 'antd';
+import { useState, useMemo } from 'react';
+import { Modal, Form, Input, Select, Switch, Button, message, Space, Divider, AutoComplete } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
-import { createDashboard, type ChartConfig } from '../api/dashboards';
+import { createDashboard, updateDashboard, type ChartConfig, type Dashboard } from '../api/dashboards';
 import ColorSchemePicker from './ColorSchemePicker';
 
 const CHART_TYPES = [
@@ -35,15 +35,27 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
+  existingDashboards: Dashboard[];
 }
 
-export default function CreateDashboardModal({ open, onClose, onCreated }: Props) {
+export default function CreateDashboardModal({ open, onClose, onCreated, existingDashboards }: Props) {
   const [name, setName] = useState('');
   const [isPublic, setIsPublic] = useState(false);
+  const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
   const [charts, setCharts] = useState<ChartConfig[]>([
     { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 300, colorScheme: 'default-blue' },
   ]);
   const [saving, setSaving] = useState(false);
+
+  const newName = name.trim();
+  const existingMatch = useMemo(() => {
+    if (!newName) return null;
+    return existingDashboards.find(d => d.name === newName) || null;
+  }, [newName, existingDashboards]);
+
+  const dashboardOptions = existingDashboards
+    .filter(d => (d.config?.charts || []).length > 0)
+    .map(d => ({ value: d.name, label: d.name, id: d.id }));
 
   const addChart = () => {
     setCharts((prev) => [
@@ -61,18 +73,28 @@ export default function CreateDashboardModal({ open, onClose, onCreated }: Props
   };
 
   const handleCreate = async () => {
-    if (!name.trim()) { message.error('请输入仪表盘名称'); return; }
+    if (!newName) { message.error('请输入仪表盘名称'); return; }
     if (charts.length === 0) { message.error('请至少添加一个图表'); return; }
     setSaving(true);
     try {
-      await createDashboard({
-        name,
-        is_public: isPublic,
-        config: { filters: [], charts },
-      });
-      message.success('仪表盘创建成功');
+      // If name matches existing dashboard, add charts to it
+      if (existingMatch) {
+        const existingCharts = existingMatch.config?.charts || [];
+        await updateDashboard(existingMatch.id, {
+          config: { ...(existingMatch.config || { filters: [] }), charts: [...existingCharts, ...charts] },
+        });
+        message.success(`已添加到「${existingMatch.name}」`);
+      } else {
+        await createDashboard({
+          name: newName,
+          is_public: isPublic,
+          config: { filters: [], charts },
+        });
+        message.success('仪表盘创建成功');
+      }
       setName('');
       setIsPublic(false);
+      setSelectedDashboardId(null);
       setCharts([
         { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 300, colorScheme: 'default-blue' },
       ]);
@@ -88,6 +110,7 @@ export default function CreateDashboardModal({ open, onClose, onCreated }: Props
   const handleCancel = () => {
     setName('');
     setIsPublic(false);
+    setSelectedDashboardId(null);
     setCharts([
       { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 300, colorScheme: 'default-blue' },
     ]);
@@ -105,18 +128,30 @@ export default function CreateDashboardModal({ open, onClose, onCreated }: Props
         <Button key="create" type="primary" loading={saving} onClick={handleCreate}>创建并查看</Button>,
       ]}
     >
-      <Space style={{ marginBottom: 16 }}>
-        <Input
-          placeholder="仪表盘名称"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          style={{ width: 240 }}
-        />
+      <div style={{ marginBottom: 16 }}>
         <Space>
-          <Switch checked={isPublic} onChange={setIsPublic} />
-          <span>公开</span>
+          <AutoComplete
+            placeholder="搜索或输入仪表盘名称"
+            value={name}
+            onChange={(v) => { setName(v); setSelectedDashboardId(null); }}
+            onSelect={(v) => { setName(v); }}
+            options={dashboardOptions}
+            style={{ width: 280 }}
+            filterOption={(inputValue, option) =>
+              option?.label?.toString().toLowerCase().includes(inputValue.toLowerCase()) ?? false
+            }
+          />
+          <Space>
+            <Switch checked={isPublic} onChange={setIsPublic} />
+            <span>公开</span>
+          </Space>
         </Space>
-      </Space>
+        {existingMatch && newName && (
+          <div style={{ marginTop: 6, fontSize: 12, color: '#1677ff' }}>
+            已匹配已有仪表盘「{existingMatch.name}」，图表将自动添加到其中
+          </div>
+        )}
+      </div>
 
       {charts.map((chart, idx) => (
         <div

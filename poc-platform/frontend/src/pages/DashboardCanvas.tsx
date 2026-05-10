@@ -355,6 +355,7 @@ export default function DashboardCanvas() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onCreated={fetch}
+        existingDashboards={dashboards}
       />
     </div>
   );

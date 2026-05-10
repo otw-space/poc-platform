@@ -51,7 +51,7 @@ export default function ColorSchemePicker({ value = 'default-blue', onChange }: 
     <Select
       value={value}
       onChange={onChange}
-      style={{ width: 200 }}
+      style={{ width: '100%' }}
       options={Object.entries(COLOR_SCHEMES).map(([key, scheme]) => ({
         value: key,
         label: (
