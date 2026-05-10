@@ -93,19 +93,16 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
   const yLabel = config.y_field === 'count' ? '项目数量' : config.y_field === 'avg_duration' ? '平均工期' : '数值';
   const isDuration = config.y_field === 'avg_duration';
 
-  const tooltipConfig = {
-    items: [
-      {
-        channel: 'y',
-        name: yLabel,
-        valueFormatter: (v: any) => {
-          const num = typeof v === 'number' ? v : parseFloat(v);
-          const formatted = !isNaN(num) ? (num % 1 === 0 ? String(num) : num.toFixed(1)) : String(v);
-          return isDuration ? `${formatted}天` : formatted;
-        },
-      },
-    ],
+  const formatVal = (v: any) => {
+    const num = typeof v === 'number' ? v : parseFloat(v);
+    const s = !isNaN(num) ? (num % 1 === 0 ? String(num) : num.toFixed(1)) : String(v ?? '');
+    return isDuration ? `${s}天` : s;
   };
+
+  const tooltipConfig = (d: any) => ({
+    name: yLabel,
+    value: formatVal(d.y),
+  });
 
   const renderChart = () => {
     if (loading) return <Spin style={{ display: 'block', margin: '60px auto' }} />;
