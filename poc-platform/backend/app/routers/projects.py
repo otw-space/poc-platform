@@ -11,6 +11,7 @@ from ..models.poc_project import PocProject
 from ..schemas.poc_project import PocProjectCreate, PocProjectUpdate, PocProjectOut, PocProjectListOut
 from ..services.holiday import calculate_workdays
 from ..services.project import execute_dashboard_query
+from ..services.logger import log_operation
 from ..middleware.auth import get_current_user
 from ..schemas.dashboard import DashboardQueryRequest
 from ..models.user import User
@@ -77,6 +78,7 @@ def create_project(data: PocProjectCreate, db: Session = Depends(get_db), curren
     db.add(project)
     db.commit()
     db.refresh(project)
+    log_operation(db, current_user, "create", "project", project.name)
     return PocProjectOut.model_validate(project)
 
 
@@ -95,6 +97,7 @@ def update_project(project_id: str, data: PocProjectUpdate, db: Session = Depend
 
     db.commit()
     db.refresh(project)
+    log_operation(db, current_user, "update", "project", project.name)
     return PocProjectOut.model_validate(project)
 
 
@@ -103,8 +106,10 @@ def delete_project(project_id: str, db: Session = Depends(get_db), current_user:
     project = db.query(PocProject).filter(PocProject.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    project_name = project.name
     db.delete(project)
     db.commit()
+    log_operation(db, current_user, "delete", "project", project_name)
     return {"ok": True}
 
 
