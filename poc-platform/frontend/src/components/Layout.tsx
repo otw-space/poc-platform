@@ -1,6 +1,7 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout as AntLayout, Menu, Button, theme } from 'antd';
 import {
+  HomeOutlined,
   ProjectOutlined,
   DashboardOutlined,
   SettingOutlined,
@@ -17,6 +18,7 @@ export default function Layout() {
   const { token } = theme.useToken();
 
   const menuItems = [
+    { key: '/', icon: <HomeOutlined />, label: '数据概览' },
     { key: '/projects', icon: <ProjectOutlined />, label: '项目管理' },
     { key: '/dashboards', icon: <DashboardOutlined />, label: '数据仪表盘' },
     ...(isAdmin ? [{ key: '/settings', icon: <SettingOutlined />, label: '系统设置' }] : []),
