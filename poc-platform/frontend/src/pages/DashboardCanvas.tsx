@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Button, Spin, Empty, Tabs, message } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { Button, Spin, Empty, Tabs, message, Input } from 'antd';
+import { PlusOutlined, EditOutlined } from '@ant-design/icons';
 import { Responsive, WidthProvider, type Layout } from 'react-grid-layout/legacy';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -23,6 +23,8 @@ export default function DashboardCanvas() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingChartId, setEditingChartId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('all');
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const dashboardsRef = useRef(dashboards);
   dashboardsRef.current = dashboards;
@@ -213,17 +215,74 @@ export default function DashboardCanvas() {
     }
   };
 
+  // Handle moving a chart to a different dashboard
+  const handleMoveChart = async (chartId: string, fromDashboardId: string, toDashboardId: string) => {
+    const fromDb = dashboards.find(d => d.id === fromDashboardId);
+    const toDb = dashboards.find(d => d.id === toDashboardId);
+    if (!fromDb || !toDb) return;
+    const chart = (fromDb.config?.charts || []).find(c => c.id === chartId);
+    if (!chart) return;
+
+    const fromCharts = (fromDb.config?.charts || []).filter(c => c.id !== chartId);
+    const toCharts = [...(toDb.config?.charts || []), { ...chart, x: 0, y: 0 }];
+
+    // Optimistic update
+    setDashboards(prev => prev.map(d => {
+      if (d.id === fromDashboardId) return { ...d, config: { ...d.config, charts: fromCharts } };
+      if (d.id === toDashboardId) return { ...d, config: { ...d.config, charts: toCharts } };
+      return d;
+    }));
+
+    try {
+      await updateDashboard(fromDashboardId, { config: { ...fromDb.config, charts: fromCharts } });
+      await updateDashboard(toDashboardId, { config: { ...toDb.config, charts: toCharts } });
+      if (fromCharts.length === 0) {
+        await deleteDashboard(fromDashboardId);
+        fetch();
+      }
+      message.success('图表已移动');
+    } catch {
+      message.error('移动失败');
+      fetch();
+    }
+  };
+
+  // Handle dashboard rename
+  const startRename = (id: string, name: string) => {
+    setRenamingId(id);
+    setRenameValue(name);
+  };
+  const submitRename = async () => {
+    if (!renamingId || !renameValue.trim()) { setRenamingId(null); return; }
+    await updateDashboard(renamingId, { name: renameValue.trim() });
+    setDashboards(prev => prev.map(d => d.id === renamingId ? { ...d, name: renameValue.trim() } : d));
+    setRenamingId(null);
+    message.success('已重命名');
+  };
+
   // Build tab items
   const tabItems = [
-    {
-      key: 'all',
-      label: '全部',
-    },
+    { key: 'all', label: '全部' },
     ...dashboards
       .filter((d) => (d.config?.charts || []).length > 0)
       .map((d) => ({
         key: d.id,
-        label: d.name,
+        label: renamingId === d.id ? (
+          <Input
+            size="small"
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onPressEnter={submitRename}
+            onBlur={submitRename}
+            autoFocus
+            style={{ width: 120 }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span onDoubleClick={() => startRename(d.id, d.name)} title="双击重命名">
+            {d.name} <EditOutlined style={{ fontSize: 10, opacity: 0.3, marginLeft: 2 }} />
+          </span>
+        ),
       })),
   ];
 
@@ -279,11 +338,13 @@ export default function DashboardCanvas() {
               <ChartCard
                 config={chart}
                 dashboardId={dashboard.id}
+                dashboards={dashboards}
                 isEditing={editingChartId === chart.id}
                 onEditStart={(id) => setEditingChartId(id)}
                 onEditEnd={() => setEditingChartId(null)}
                 onDelete={handleDeleteChart}
                 onUpdate={handleChartUpdate}
+                onMoveChart={handleMoveChart}
               />
             </div>
           ))}

@@ -11,6 +11,36 @@ export const COLOR_SCHEMES: Record<string, { name: string; colors: string[] }> =
   'sunset':        { name: '日落',   colors: ['#A8071A', '#F5222D', '#FF7A45', '#FFBB96'] },
 };
 
+/** Generate `count` gradient colors by interpolating between base colors */
+export function generateGradientColors(baseColors: string[], count: number): string[] {
+  if (count <= baseColors.length) return baseColors.slice(0, count);
+  const result: string[] = [];
+  const segments = count - 1;
+  const baseSegments = baseColors.length - 1;
+  for (let i = 0; i < count; i++) {
+    const t = i / segments;
+    const baseIdx = t * baseSegments;
+    const lo = Math.floor(baseIdx);
+    const hi = Math.min(lo + 1, baseSegments);
+    const frac = baseIdx - lo;
+    result.push(interpolateColor(baseColors[lo], baseColors[hi], frac));
+  }
+  return result;
+}
+
+function interpolateColor(c1: string, c2: string, t: number): string {
+  const r1 = parseInt(c1.slice(1, 3), 16);
+  const g1 = parseInt(c1.slice(3, 5), 16);
+  const b1 = parseInt(c1.slice(5, 7), 16);
+  const r2 = parseInt(c2.slice(1, 3), 16);
+  const g2 = parseInt(c2.slice(3, 5), 16);
+  const b2 = parseInt(c2.slice(5, 7), 16);
+  const r = Math.round(r1 + (r2 - r1) * t);
+  const g = Math.round(g1 + (g2 - g1) * t);
+  const b = Math.round(b1 + (b2 - b1) * t);
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
 interface Props {
   value?: string;
   onChange?: (value: string) => void;
