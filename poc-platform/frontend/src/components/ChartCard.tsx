@@ -120,7 +120,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
     switch (config.type) {
       case 'column': return <Column {...categoryBase} legend={{ position: 'top' as const }} />;
       case 'bar': return <Bar {...categoryBase} legend={{ position: 'top' as const }} />;
-      case 'line': return <Line data={data} xField="x" yField="y" height={config.h || 300} autoFit legend={{ position: 'top' as const }} style={{ stroke: gradientColors[0], lineWidth: 2 }} />;
+      case 'line': return <Line data={data} xField="x" yField="y" height={config.h || 300} autoFit scale={{ color: { range: [gradientColors[0]] } }} legend={{ position: 'top' as const }} />;
       case 'dual-axes':
         return <DualAxes {...categoryBase} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} />;
       default: return <Column {...categoryBase} legend={{ position: 'top' as const }} />;
@@ -132,10 +132,8 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
     value: d.id,
   }));
 
-  const editWidth = Math.max(360, Math.min((config.w || 4) * 100, 600));
-
   const editContent = (
-    <div style={{ width: editWidth }}>
+    <div style={{ minWidth: 360, maxWidth: 560 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
         <Form.Item label="标题" style={{ marginBottom: 0 }}>
           <Input size="small" value={config.title} onChange={(e) => onUpdate?.(config.id, { title: e.target.value })} placeholder="图表标题" />
@@ -182,7 +180,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
         open={isEditing}
         onOpenChange={(open) => { if (!open) doFinishEdit(); }}
         placement="bottomLeft"
-        overlayStyle={{ maxWidth: 400 }}
+        overlayStyle={{ maxWidth: '90vw' }}
       >
         <div style={{ flex: 1 }}>
           <Card
