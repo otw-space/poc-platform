@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, Spin, Empty, message, Form, Input, Select, Popover } from 'antd';
-import { MoreOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, CheckOutlined } from '@ant-design/icons';
+import { MoreOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, CheckOutlined, DownloadOutlined as ChartDownloadOutlined } from '@ant-design/icons';
 import { Column, Bar, Pie, Line, DualAxes } from '@ant-design/charts';
 import { queryProjectData } from '../api/projects';
 import ColorSchemePicker, { COLOR_SCHEMES, generateGradientColors } from './ColorSchemePicker';
@@ -46,6 +46,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editTargetDashboardId, setEditTargetDashboardId] = useState<string | undefined>(undefined);
+  const [chartInstance, setChartInstance] = useState<any>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const fetchData = useCallback(() => {
@@ -80,6 +81,17 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
       onMoveChart?.(config.id, dashboardId, editTargetDashboardId);
     }
     onEditEnd?.(config.id);
+  };
+
+  const handleDownloadImage = () => {
+    if (chartInstance?.toDataURL) {
+      const url = chartInstance.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${config.title || '图表'}.png`;
+      a.click();
+      message.success('图表已导出');
+    }
   };
 
   // reset editTargetDashboardId when edit mode starts
@@ -124,6 +136,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
           scale={{ color: { range: gradientColors } }}
           tooltip={pieTooltipConfig}
           autoFit
+          onReady={(chart: any) => setChartInstance(chart)}
         />
       );
     }
@@ -139,12 +152,12 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
       tooltip: tooltipFn,
     };
     switch (config.type) {
-      case 'column': return <Column {...categoryBase} legend={{ position: 'top' as const }} />;
-      case 'bar': return <Bar {...categoryBase} legend={{ position: 'top' as const }} />;
-      case 'line': return <Line data={data} xField="x" yField="y" height={config.h || 300} autoFit scale={{ color: { range: [gradientColors[0]] } }} tooltip={tooltipFn} legend={{ position: 'top' as const }} />;
+      case 'column': return <Column {...categoryBase} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} />;
+      case 'bar': return <Bar {...categoryBase} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} />;
+      case 'line': return <Line data={data} xField="x" yField="y" height={config.h || 300} autoFit scale={{ color: { range: [gradientColors[0]] } }} tooltip={tooltipFn} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} />;
       case 'dual-axes':
-        return <DualAxes {...categoryBase} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} />;
-      default: return <Column {...categoryBase} legend={{ position: 'top' as const }} />;
+        return <DualAxes {...categoryBase} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} onReady={(chart: any) => setChartInstance(chart)} />;
+      default: return <Column {...categoryBase} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} />;
     }
   };
 
@@ -221,6 +234,9 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
                   }}>
                     <button type="button" style={menuBtnStyle} onClick={doRefresh}>
                       <ReloadOutlined style={{ marginRight: 8 }} />刷新数据
+                    </button>
+                    <button type="button" style={menuBtnStyle} onClick={() => { setMenuOpen(false); handleDownloadImage(); }}>
+                      <ChartDownloadOutlined style={{ marginRight: 8 }} />导出图片
                     </button>
                     <button type="button" style={menuBtnStyle} onClick={doEdit}>
                       <EditOutlined style={{ marginRight: 8 }} />编辑
