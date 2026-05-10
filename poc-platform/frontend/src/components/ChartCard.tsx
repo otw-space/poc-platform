@@ -90,10 +90,21 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
   const baseColorScheme = COLOR_SCHEMES[config.colorScheme || 'default-blue'] || COLOR_SCHEMES['default-blue'];
   const gradientColors = generateGradientColors(baseColorScheme.colors, Math.max(data.length, 4));
 
-  const yLabel = config.y_field === 'count' ? '项目数量' : config.y_field === 'avg_duration' ? '平均工期(天)' : '数值';
-  const tooltipItem = {
-    name: yLabel,
-    value: (d: any) => typeof d.y === 'number' ? (d.y % 1 === 0 ? d.y : d.y.toFixed(1)) : d.y,
+  const yLabel = config.y_field === 'count' ? '项目数量' : config.y_field === 'avg_duration' ? '平均工期' : '数值';
+  const isDuration = config.y_field === 'avg_duration';
+
+  const tooltipConfig = {
+    items: [
+      {
+        channel: 'y',
+        name: yLabel,
+        valueFormatter: (v: any) => {
+          const num = typeof v === 'number' ? v : parseFloat(v);
+          const formatted = !isNaN(num) ? (num % 1 === 0 ? String(num) : num.toFixed(1)) : String(v);
+          return isDuration ? `${formatted}天` : formatted;
+        },
+      },
+    ],
   };
 
   const renderChart = () => {
@@ -109,7 +120,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
           radius={0.8}
           height={config.h || 300}
           scale={{ color: { range: gradientColors } }}
-          tooltip={tooltipItem}
+          tooltip={tooltipConfig}
           autoFit
         />
       );
@@ -123,12 +134,12 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
       autoFit: true,
       colorField: 'x',
       scale: { color: { range: gradientColors } },
-      tooltip: tooltipItem,
+      tooltip: tooltipConfig,
     };
     switch (config.type) {
       case 'column': return <Column {...categoryBase} legend={{ position: 'top' as const }} />;
       case 'bar': return <Bar {...categoryBase} legend={{ position: 'top' as const }} />;
-      case 'line': return <Line data={data} xField="x" yField="y" height={config.h || 300} autoFit scale={{ color: { range: [gradientColors[0]] } }} tooltip={tooltipItem} legend={{ position: 'top' as const }} />;
+      case 'line': return <Line data={data} xField="x" yField="y" height={config.h || 300} autoFit scale={{ color: { range: [gradientColors[0]] } }} tooltip={tooltipConfig} legend={{ position: 'top' as const }} />;
       case 'dual-axes':
         return <DualAxes {...categoryBase} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} />;
       default: return <Column {...categoryBase} legend={{ position: 'top' as const }} />;
