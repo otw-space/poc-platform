@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Drawer, Descriptions, Tag, Button, Space, Popconfirm, message, Spin, Tabs, Upload, Timeline, Empty } from 'antd';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { Drawer, Descriptions, Tag, Button, Space, Popconfirm, message, Spin, Tabs, Upload, Timeline, Empty, Modal } from 'antd';
 import { UploadOutlined, DownloadOutlined, EyeOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import MDEditor from '@uiw/react-md-editor';
 import { getProject, updateProject, getProjectLogs, createProjectLog, updateProjectLog, deleteProjectLog, uploadProjectFile, type PocProject, type ProjectLog, type ProjectLogCreate, type ProjectLogUpdate } from '../api/projects';
@@ -36,6 +36,9 @@ export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDele
   const [logModalOpen, setLogModalOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<ProjectLog | undefined>(undefined);
   const [loading, setLoading] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [previewTitle, setPreviewTitle] = useState('');
 
   const fetchProject = useCallback(() => {
     if (!projectId) return;
@@ -60,17 +63,21 @@ export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDele
 
   const getLabel = (opts: PocOption[], id: number) => opts.find((o) => o.id === id)?.label || '';
 
-  const handlePreview = async (fileType: 'plan' | 'report') => {
+  const handlePreview = async (fileType: 'plan' | 'report', filename: string) => {
     if (!projectId) return;
     try {
+      setPreviewTitle(filename);
+      setPreviewOpen(true);
+      setPreviewUrl('');
       const res = await client.get(`/projects/${projectId}/download/${fileType}`, {
         params: { inline: true },
         responseType: 'blob',
       });
       const url = URL.createObjectURL(res.data);
-      window.open(url, '_blank');
+      setPreviewUrl(url);
     } catch {
       message.error('预览失败');
+      setPreviewOpen(false);
     }
   };
 
@@ -139,7 +146,7 @@ export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDele
               {fileMeta.original_filename} ({formatFileSize(fileMeta.size)})
             </div>
             <Space>
-              <Button size="small" icon={<EyeOutlined />} onClick={() => handlePreview(fileType)}>预览</Button>
+              <Button size="small" icon={<EyeOutlined />} onClick={() => handlePreview(fileType, fileMeta.original_filename)}>预览</Button>
               <Button size="small" icon={<DownloadOutlined />} onClick={() => handleDownload(fileType)}>下载</Button>
               <Popconfirm title="确认删除此文件？" onConfirm={() => handleDeleteFile(fileType)}>
                 <Button size="small" danger icon={<DeleteOutlined />}>删除</Button>
@@ -268,6 +275,23 @@ export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDele
       }
     >
       <Tabs items={tabItems} />
+
+      <Modal
+        title={previewTitle}
+        open={previewOpen}
+        onCancel={() => { setPreviewOpen(false); setPreviewUrl(''); }}
+        footer={null}
+        width="90%"
+        style={{ top: 20 }}
+        destroyOnClose
+      >
+        {previewUrl ? (
+          <iframe src={previewUrl} style={{ width: '100%', height: '80vh', border: 'none' }} title={previewTitle} />
+        ) : (
+          <Spin style={{ display: 'block', margin: '80px auto' }} />
+        )}
+      </Modal>
+
       <LogEntryModal
         open={logModalOpen}
         onClose={() => { setLogModalOpen(false); setEditingLog(undefined); }}

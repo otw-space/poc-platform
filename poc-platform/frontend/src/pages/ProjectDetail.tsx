@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Tag, Button, Space, Popconfirm, message, Spin, Tabs, Upload, Timeline, Empty } from 'antd';
+import { Card, Descriptions, Tag, Button, Space, Popconfirm, message, Spin, Tabs, Upload, Timeline, Empty, Modal } from 'antd';
 import { UploadOutlined, DownloadOutlined, EyeOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import MDEditor from '@uiw/react-md-editor';
 import { getProject, deleteProject, updateProject, getProjectLogs, createProjectLog, updateProjectLog, deleteProjectLog, uploadProjectFile, type PocProject, type ProjectLog, type ProjectLogCreate, type ProjectLogUpdate } from '../api/projects';
@@ -29,6 +29,9 @@ export default function ProjectDetail() {
   const [logs, setLogs] = useState<ProjectLog[]>([]);
   const [logModalOpen, setLogModalOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<ProjectLog | undefined>(undefined);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [previewTitle, setPreviewTitle] = useState('');
 
   const fetchProject = useCallback(() => {
     if (!id) return;
@@ -56,16 +59,19 @@ export default function ProjectDetail() {
     navigate('/projects');
   };
 
-  const handlePreview = async (fileType: 'plan' | 'report') => {
+  const handlePreview = async (fileType: 'plan' | 'report', filename: string) => {
     try {
+      setPreviewTitle(filename);
+      setPreviewOpen(true);
+      setPreviewUrl('');
       const res = await client.get(`/projects/${id}/download/${fileType}`, {
         params: { inline: true },
         responseType: 'blob',
       });
-      const url = URL.createObjectURL(res.data);
-      window.open(url, '_blank');
+      setPreviewUrl(URL.createObjectURL(res.data));
     } catch {
       message.error('预览失败');
+      setPreviewOpen(false);
     }
   };
 
@@ -135,7 +141,7 @@ export default function ProjectDetail() {
               <Button
                 size="small"
                 icon={<EyeOutlined />}
-                onClick={() => handlePreview(fileType)}
+                onClick={() => handlePreview(fileType, fileMeta.original_filename)}
               >
                 预览
               </Button>
@@ -324,6 +330,22 @@ export default function ProjectDetail() {
       style={{ maxWidth: 900, margin: '0 auto' }}
     >
       <Tabs items={tabItems} />
+
+      <Modal
+        title={previewTitle}
+        open={previewOpen}
+        onCancel={() => { setPreviewOpen(false); setPreviewUrl(''); }}
+        footer={null}
+        width="90%"
+        style={{ top: 20 }}
+        destroyOnClose
+      >
+        {previewUrl ? (
+          <iframe src={previewUrl} style={{ width: '100%', height: '80vh', border: 'none' }} title={previewTitle} />
+        ) : (
+          <Spin style={{ display: 'block', margin: '80px auto' }} />
+        )}
+      </Modal>
 
       <LogEntryModal
         open={logModalOpen}
