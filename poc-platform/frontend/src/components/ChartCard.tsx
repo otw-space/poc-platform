@@ -108,7 +108,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
       );
     }
 
-    const chartBase = {
+    const categoryBase = {
       data,
       xField: 'x',
       yField: 'y',
@@ -118,12 +118,12 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
       scale: { color: { range: gradientColors } },
     };
     switch (config.type) {
-      case 'column': return <Column {...chartBase} legend={{ position: 'top' as const }} />;
-      case 'bar': return <Bar {...chartBase} legend={{ position: 'top' as const }} />;
-      case 'line': return <Line {...chartBase} legend={{ position: 'top' as const }} />;
+      case 'column': return <Column {...categoryBase} legend={{ position: 'top' as const }} />;
+      case 'bar': return <Bar {...categoryBase} legend={{ position: 'top' as const }} />;
+      case 'line': return <Line data={data} xField="x" yField="y" height={config.h || 300} autoFit legend={{ position: 'top' as const }} style={{ stroke: gradientColors[0], lineWidth: 2 }} />;
       case 'dual-axes':
-        return <DualAxes {...chartBase} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} />;
-      default: return <Column {...chartBase} legend={{ position: 'top' as const }} />;
+        return <DualAxes {...categoryBase} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} />;
+      default: return <Column {...categoryBase} legend={{ position: 'top' as const }} />;
     }
   };
 
@@ -132,8 +132,10 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
     value: d.id,
   }));
 
+  const editWidth = Math.max(360, Math.min((config.w || 4) * 100, 600));
+
   const editContent = (
-    <div style={{ width: 420 }}>
+    <div style={{ width: editWidth }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
         <Form.Item label="标题" style={{ marginBottom: 0 }}>
           <Input size="small" value={config.title} onChange={(e) => onUpdate?.(config.id, { title: e.target.value })} placeholder="图表标题" />
