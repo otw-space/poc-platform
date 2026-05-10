@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models.poc_option import PocOption
+from ..models.user import User
 from ..schemas.poc_option import PocOptionCreate, PocOptionUpdate, PocOptionOut
 from ..middleware.auth import require_admin
+from ..services.logger import log_operation
 
 router = APIRouter(prefix="/api/options", tags=["options"])
 
@@ -19,16 +21,17 @@ def list_options(category: str, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=PocOptionOut)
-def create_option(data: PocOptionCreate, db: Session = Depends(get_db), _=Depends(require_admin)):
+def create_option(data: PocOptionCreate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     option = PocOption(**data.model_dump())
     db.add(option)
     db.commit()
     db.refresh(option)
+    log_operation(db, current_user, "create", "option", option.label)
     return PocOptionOut.model_validate(option)
 
 
 @router.put("/{option_id}", response_model=PocOptionOut)
-def update_option(option_id: int, data: PocOptionUpdate, db: Session = Depends(get_db), _=Depends(require_admin)):
+def update_option(option_id: int, data: PocOptionUpdate, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     option = db.query(PocOption).filter(PocOption.id == option_id).first()
     if not option:
         raise HTTPException(status_code=404, detail="Option not found")
@@ -38,16 +41,19 @@ def update_option(option_id: int, data: PocOptionUpdate, db: Session = Depends(g
         option.sort_order = data.sort_order
     db.commit()
     db.refresh(option)
+    log_operation(db, current_user, "update", "option", option.label)
     return PocOptionOut.model_validate(option)
 
 
 @router.delete("/{option_id}")
-def delete_option(option_id: int, db: Session = Depends(get_db), _=Depends(require_admin)):
+def delete_option(option_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
     option = db.query(PocOption).filter(PocOption.id == option_id).first()
     if not option:
         raise HTTPException(status_code=404, detail="Option not found")
     if option.is_default:
         raise HTTPException(status_code=400, detail="Cannot delete default option")
+    option_label = option.label
     db.delete(option)
     db.commit()
+    log_operation(db, current_user, "delete", "option", option_label)
     return {"ok": True}
