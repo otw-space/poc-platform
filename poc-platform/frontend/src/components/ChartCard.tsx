@@ -90,6 +90,12 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
   const baseColorScheme = COLOR_SCHEMES[config.colorScheme || 'default-blue'] || COLOR_SCHEMES['default-blue'];
   const gradientColors = generateGradientColors(baseColorScheme.colors, Math.max(data.length, 4));
 
+  const yLabel = config.y_field === 'count' ? '项目数量' : config.y_field === 'avg_duration' ? '平均工期' : '数值';
+  const tooltipConfig = {
+    title: (d: any) => d.x,
+    items: [{ channel: 'y', name: yLabel }],
+  };
+
   const renderChart = () => {
     if (loading) return <Spin style={{ display: 'block', margin: '60px auto' }} />;
     if (data.length === 0) return <Empty description="暂无数据" />;
@@ -103,6 +109,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
           radius={0.8}
           height={config.h || 300}
           scale={{ color: { range: gradientColors } }}
+          tooltip={tooltipConfig}
           autoFit
         />
       );
@@ -116,11 +123,12 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
       autoFit: true,
       colorField: 'x',
       scale: { color: { range: gradientColors } },
+      tooltip: tooltipConfig,
     };
     switch (config.type) {
       case 'column': return <Column {...categoryBase} legend={{ position: 'top' as const }} />;
       case 'bar': return <Bar {...categoryBase} legend={{ position: 'top' as const }} />;
-      case 'line': return <Line data={data} xField="x" yField="y" height={config.h || 300} autoFit scale={{ color: { range: [gradientColors[0]] } }} legend={{ position: 'top' as const }} />;
+      case 'line': return <Line data={data} xField="x" yField="y" height={config.h || 300} autoFit scale={{ color: { range: [gradientColors[0]] } }} tooltip={{ title: (d: any) => d.x, items: [{ channel: 'y', name: yLabel }] }} legend={{ position: 'top' as const }} />;
       case 'dual-axes':
         return <DualAxes {...categoryBase} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} />;
       default: return <Column {...categoryBase} legend={{ position: 'top' as const }} />;
