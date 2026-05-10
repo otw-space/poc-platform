@@ -11,6 +11,9 @@ class ChartConfig(BaseModel):
     group_field: str | None = None
     w: int = 6
     h: int = 400
+    x: int | None = None
+    y: int | None = None
+    colorScheme: str | None = None
 
 
 class FilterConfig(BaseModel):

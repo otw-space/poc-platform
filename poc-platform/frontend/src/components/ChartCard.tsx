@@ -75,7 +75,6 @@ export default function ChartCard({ config, dashboardId, isEditing, onEditStart,
   const doFinishEdit = () => { onEditEnd?.(config.id); };
 
   const colorScheme = COLOR_SCHEMES[config.colorScheme || 'default-blue'] || COLOR_SCHEMES['default-blue'];
-  const chartColor = config.type === 'pie' ? colorScheme.colors : colorScheme.colors[0];
 
   const renderChart = () => {
     if (loading) return <Spin style={{ display: 'block', margin: '60px auto' }} />;
@@ -89,27 +88,30 @@ export default function ChartCard({ config, dashboardId, isEditing, onEditStart,
           colorField="x"
           radius={0.8}
           height={config.h || 300}
-          color={colorScheme.colors}
+          scale={{ color: { range: colorScheme.colors } }}
           autoFit
         />
       );
     }
 
-    const cc = {
+    const base = {
       data,
       xField: 'x',
       yField: 'y',
       height: config.h || 300,
       autoFit: true,
-      color: chartColor,
     };
     switch (config.type) {
-      case 'column': return <Column {...cc} legend={{ position: 'top' as const }} />;
-      case 'bar': return <Bar {...cc} legend={{ position: 'top' as const }} />;
-      case 'line': return <Line {...cc} legend={{ position: 'top' as const }} />;
+      case 'column':
+        return <Column {...base} legend={{ position: 'top' as const }} style={{ fill: colorScheme.colors[0] }} />;
+      case 'bar':
+        return <Bar {...base} legend={{ position: 'top' as const }} style={{ fill: colorScheme.colors[0] }} />;
+      case 'line':
+        return <Line {...base} legend={{ position: 'top' as const }} style={{ stroke: colorScheme.colors[0] }} />;
       case 'dual-axes':
-        return <DualAxes {...cc} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} />;
-      default: return <Column {...cc} legend={{ position: 'top' as const }} />;
+        return <DualAxes {...base} legend={{ position: 'top' as const }} style={{ fill: colorScheme.colors[0] }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} />;
+      default:
+        return <Column {...base} legend={{ position: 'top' as const }} style={{ fill: colorScheme.colors[0] }} />;
     }
   };
 
