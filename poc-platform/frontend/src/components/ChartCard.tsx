@@ -93,7 +93,15 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
   const yLabel = config.y_field === 'count' ? '项目数量' : config.y_field === 'avg_duration' ? '平均工期' : '数值';
   const tooltipConfig = {
     title: (d: any) => d.x,
-    items: [{ channel: 'y', name: yLabel }],
+    items: [
+      { channel: 'y', name: yLabel, valueFormatter: (v: any) => typeof v === 'number' ? v.toFixed(v % 1 === 0 ? 0 : 1) : v },
+    ],
+  };
+  const lineTooltipConfig = {
+    title: (d: any) => d.x,
+    items: [
+      { channel: 'y', name: yLabel, valueFormatter: (v: any) => typeof v === 'number' ? v.toFixed(v % 1 === 0 ? 0 : 1) : v },
+    ],
   };
 
   const renderChart = () => {
@@ -128,7 +136,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
     switch (config.type) {
       case 'column': return <Column {...categoryBase} legend={{ position: 'top' as const }} />;
       case 'bar': return <Bar {...categoryBase} legend={{ position: 'top' as const }} />;
-      case 'line': return <Line data={data} xField="x" yField="y" height={config.h || 300} autoFit scale={{ color: { range: [gradientColors[0]] } }} tooltip={{ title: (d: any) => d.x, items: [{ channel: 'y', name: yLabel }] }} legend={{ position: 'top' as const }} />;
+      case 'line': return <Line data={data} xField="x" yField="y" height={config.h || 300} autoFit scale={{ color: { range: [gradientColors[0]] } }} tooltip={lineTooltipConfig} legend={{ position: 'top' as const }} />;
       case 'dual-axes':
         return <DualAxes {...categoryBase} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} />;
       default: return <Column {...categoryBase} legend={{ position: 'top' as const }} />;
