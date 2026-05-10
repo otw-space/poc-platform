@@ -99,10 +99,15 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
     return isDuration ? `${s}天` : s;
   };
 
-  const tooltipConfig = (d: any) => ({
+  const tooltipFn = (d: any) => ({
     name: yLabel,
     value: formatVal(d.y),
   });
+
+  const pieTooltipConfig = {
+    title: (d: any) => d.x,
+    items: [{ channel: 'y', name: yLabel, valueFormatter: (v: any) => formatVal(v) }],
+  };
 
   const renderChart = () => {
     if (loading) return <Spin style={{ display: 'block', margin: '60px auto' }} />;
@@ -117,7 +122,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
           radius={0.8}
           height={config.h || 300}
           scale={{ color: { range: gradientColors } }}
-          tooltip={tooltipConfig}
+          tooltip={pieTooltipConfig}
           autoFit
         />
       );
@@ -131,12 +136,12 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
       autoFit: true,
       colorField: 'x',
       scale: { color: { range: gradientColors } },
-      tooltip: tooltipConfig,
+      tooltip: tooltipFn,
     };
     switch (config.type) {
       case 'column': return <Column {...categoryBase} legend={{ position: 'top' as const }} />;
       case 'bar': return <Bar {...categoryBase} legend={{ position: 'top' as const }} />;
-      case 'line': return <Line data={data} xField="x" yField="y" height={config.h || 300} autoFit scale={{ color: { range: [gradientColors[0]] } }} tooltip={tooltipConfig} legend={{ position: 'top' as const }} />;
+      case 'line': return <Line data={data} xField="x" yField="y" height={config.h || 300} autoFit scale={{ color: { range: [gradientColors[0]] } }} tooltip={tooltipFn} legend={{ position: 'top' as const }} />;
       case 'dual-axes':
         return <DualAxes {...categoryBase} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} />;
       default: return <Column {...categoryBase} legend={{ position: 'top' as const }} />;
