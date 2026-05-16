@@ -13,6 +13,8 @@ class UserOut(BaseModel):
     username: str
     display_name: str
     role: str
+    role_id: str | None = None
+    role_name: str | None = None
     is_active: bool
 
     model_config = {"from_attributes": True}

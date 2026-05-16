@@ -5,6 +5,7 @@ from ..schemas.user import UserLogin, Token, UserCreate, UserOut
 from ..services.auth import authenticate_user, create_access_token, hash_password, get_user_by_username
 from ..middleware.auth import get_current_user
 from ..models.user import User
+from ..models.role import RolePermission
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -22,8 +23,11 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
 
 
 @router.get("/me", response_model=UserOut)
-def me(current_user: User = Depends(get_current_user)):
-    return UserOut.model_validate(current_user)
+def me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    result = UserOut.model_validate(current_user)
+    if current_user.role_obj:
+        result.role_name = current_user.role_obj.name
+    return result
 
 
 @router.post("/register", response_model=UserOut)
@@ -40,3 +44,15 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     return UserOut.model_validate(user)
+
+
+@router.get("/me/permissions")
+def my_permissions(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Super admin gets all permissions
+    if current_user.role_obj and current_user.role_obj.is_super:
+        modules = ["project", "dashboard", "sop", "recycle_bin", "settings"]
+        actions = ["view", "create", "edit", "delete"]
+        return [f"{m}:{a}" for m in modules for a in actions]
+    # Other users get their role's permissions
+    perms = db.query(RolePermission).filter(RolePermission.role_id == current_user.role_id).all()
+    return [f"{p.module}:{p.action}" for p in perms]

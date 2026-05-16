@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from ..config import SECRET_KEY, ALGORITHM
 from ..database import get_db
 from ..models.user import User
+from ..models.role import RolePermission
 
 security = HTTPBearer()
 
@@ -31,3 +32,20 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
     return current_user
+
+
+def require_permission(module: str, action: str):
+    def checker(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+        # Super admin role bypasses all checks
+        if current_user.role_obj and current_user.role_obj.is_super:
+            return current_user
+        # Check specific permission
+        has = db.query(RolePermission).filter(
+            RolePermission.role_id == current_user.role_id,
+            RolePermission.module == module,
+            RolePermission.action == action,
+        ).first()
+        if not has:
+            raise HTTPException(status_code=403, detail="无此操作权限")
+        return current_user
+    return checker
