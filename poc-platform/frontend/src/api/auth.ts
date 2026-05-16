@@ -5,6 +5,8 @@ export interface User {
   username: string;
   display_name: string;
   role: string;
+  role_id?: string | null;
+  role_name?: string | null;
   is_active: boolean;
 }
 
@@ -20,4 +22,8 @@ export function login(username: string, password: string) {
 
 export function getMe() {
   return client.get<User>('/auth/me');
+}
+
+export function getMyPermissions() {
+  return client.get<string[]>('/auth/me/permissions');
 }

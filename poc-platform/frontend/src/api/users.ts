@@ -5,7 +5,7 @@ export function getUsers() {
   return client.get<User[]>('/users/');
 }
 
-export function createUser(data: { username: string; password: string; display_name: string; role: string }) {
+export function createUser(data: { username: string; password: string; display_name: string; role_id: string }) {
   return client.post<User>('/users/', data);
 }
 
