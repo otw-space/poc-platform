@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Card, Spin, Empty, message, Form, Input, Select, Popover } from 'antd';
+import { Card, Spin, Empty, message, Form, Input, Select, Popover, Switch } from 'antd';
 import { MoreOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, CheckOutlined, DownloadOutlined as ChartDownloadOutlined } from '@ant-design/icons';
 import { Column, Bar, Pie, Line, DualAxes } from '@ant-design/charts';
 import { queryProjectData } from '../api/projects';
@@ -16,6 +16,7 @@ interface ChartCardProps {
   onDelete?: (id: string) => void;
   onUpdate?: (chartId: string, updates: Partial<ChartConfig>) => void;
   onMoveChart?: (chartId: string, fromDashboardId: string, toDashboardId: string) => void;
+  onUpdateDashboard?: (dashboardId: string, updates: Partial<Dashboard>) => void;
 }
 
 const CHART_TYPES = [
@@ -41,7 +42,7 @@ const METRIC_FIELDS = [
   { label: '平均工期', value: 'avg_duration' },
 ];
 
-export default function ChartCard({ config, dashboardId, dashboards, isEditing, onEditStart, onEditEnd, onDelete, onUpdate, onMoveChart }: ChartCardProps) {
+export default function ChartCard({ config, dashboardId, dashboards, isEditing, onEditStart, onEditEnd, onDelete, onUpdate, onMoveChart, onUpdateDashboard }: ChartCardProps) {
   const [data, setData] = useState<{ x: string; y: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -118,7 +119,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
 
   const pieTooltipConfig = {
     title: (d: any) => d.x,
-    items: [{ channel: 'y', name: yLabel, valueFormatter: (v: any) => formatVal(v) }],
+    items: [(d: any) => ({ name: yLabel, value: formatVal(d.y) })],
   };
 
   const renderChart = () => {
@@ -128,6 +129,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
     if (config.type === 'pie') {
       return (
         <Pie
+          key={`${config.id}-${data.length}-${JSON.stringify(data).length}`}
           data={data}
           angleField="y"
           colorField="x"
@@ -135,6 +137,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
           height={config.h || 300}
           scale={{ color: { range: gradientColors } }}
           tooltip={pieTooltipConfig}
+          label={{ text: 'y', position: 'outside', style: { fontWeight: 500 } }}
           autoFit
           onReady={(chart: any) => setChartInstance(chart)}
         />
@@ -183,6 +186,13 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
         </Form.Item>
         <Form.Item label="配色方案" style={{ marginBottom: 0 }}>
           <ColorSchemePicker value={config.colorScheme || 'default-blue'} onChange={(v) => onUpdate?.(config.id, { colorScheme: v })} />
+        </Form.Item>
+        <Form.Item label="公开" style={{ marginBottom: 0 }}>
+          <Switch
+            size="small"
+            checked={dashboards?.find(d => d.id === dashboardId)?.is_public ?? false}
+            onChange={(checked) => { if (dashboardId) onUpdateDashboard?.(dashboardId, { is_public: checked }); }}
+          />
         </Form.Item>
         {dashOptions.length > 1 && (
           <Form.Item label="所属仪表盘" style={{ marginBottom: 0 }}>

@@ -9,6 +9,7 @@ import {
   getDashboards,
   updateDashboard,
   deleteDashboard,
+  deleteChart,
   type Dashboard,
   type ChartConfig,
 } from '../api/dashboards';
@@ -188,18 +189,6 @@ export default function DashboardCanvas() {
 
     const newCharts = (db.config?.charts || []).filter((c) => c.id !== chartId);
 
-    if (newCharts.length === 0) {
-      setDashboards((prev) => prev.filter((d) => d.id !== db.id));
-      try {
-        await deleteDashboard(db.id);
-        message.success('仪表盘已删除');
-      } catch {
-        message.error('删除失败');
-        fetch();
-      }
-      return;
-    }
-
     setDashboards((prev) =>
       prev.map((d) =>
         d.id === db.id ? { ...d, config: { ...d.config, charts: newCharts } } : d
@@ -207,11 +196,22 @@ export default function DashboardCanvas() {
     );
 
     try {
-      await updateDashboard(db.id, { config: { ...db.config, charts: newCharts } });
+      await deleteChart(db.id, chartId);
       message.success('图表已删除');
     } catch {
       message.error('删除失败');
       fetch();
+    }
+  };
+
+  // Handle dashboard-level updates (e.g. is_public)
+  const handleUpdateDashboard = async (dashboardId: string, updates: Partial<Dashboard>) => {
+    setDashboards(prev => prev.map(d => d.id === dashboardId ? { ...d, ...updates } : d));
+    try {
+      await updateDashboard(dashboardId, updates);
+    } catch {
+      fetch();
+      message.error('更新失败');
     }
   };
 
@@ -345,6 +345,7 @@ export default function DashboardCanvas() {
                 onDelete={handleDeleteChart}
                 onUpdate={handleChartUpdate}
                 onMoveChart={handleMoveChart}
+                onUpdateDashboard={handleUpdateDashboard}
               />
             </div>
           ))}
