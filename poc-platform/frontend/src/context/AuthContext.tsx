@@ -42,6 +42,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const hasPermission = (module: string, action: string) => {
+    // Legacy admin users have full access (backward compatibility)
+    if (user?.role === 'admin') return true;
     return permissions.includes(`${module}:${action}`);
   };
 
