@@ -4,7 +4,8 @@ import { PlusOutlined, DeleteOutlined, ClearOutlined } from '@ant-design/icons';
 import { getOptions, createOption, updateOption, deleteOption, type PocOption } from '../api/options';
 import { getUsers, createUser, resetPassword, toggleActive } from '../api/users';
 import type { User } from '../api/auth';
-import { getRoles, createRole, updateRole, deleteRole, type Role, type RolePermission } from '../api/roles';
+import { getRoles, createRole, updateRole, deleteRole } from '../api/roles';
+import type { Role, RolePermission } from '../api/roles';
 import client from '../api/client';
 import dayjs from 'dayjs';
 
