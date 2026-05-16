@@ -142,16 +142,21 @@ function UsersManager() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [form, setForm] = useState({ username: '', password: '', display_name: '', role_id: '' });
 
-  const fetch = () => getUsers().then((r) => setUsers(r.data)).catch(err => console.error('getUsers failed:', err));
+  const fetch = () => getUsers().then((r) => setUsers(r.data)).catch(err => { console.error('getUsers failed:', err); message.error('加载用户列表失败'); });
   useEffect(() => { fetch(); }, []);
-  useEffect(() => { getRoles().then(r => setRoles(r.data)).catch(err => console.error('getRoles failed:', err)); }, []);
+  useEffect(() => { getRoles().then(r => setRoles(r.data)).catch(err => { console.error('getRoles failed:', err); message.error('加载角色列表失败'); }); }, []);
 
   const handleCreate = async () => {
-    await createUser({ username: form.username, password: form.password, display_name: form.display_name, role_id: form.role_id });
-    setModalOpen(false);
-    message.success('创建成功');
-    setForm({ username: '', password: '', display_name: '', role_id: '' });
-    fetch();
+    if (!form.username || !form.password) return;
+    try {
+      await createUser({ username: form.username, password: form.password, display_name: form.display_name, role_id: form.role_id });
+      setModalOpen(false);
+      message.success('创建成功');
+      setForm({ username: '', password: '', display_name: '', role_id: '' });
+      fetch();
+    } catch (err: any) {
+      message.error(err?.response?.data?.detail || '创建失败');
+    }
   };
 
   const handleResetPwd = async (userId: string) => {
@@ -226,7 +231,7 @@ function RoleManager() {
   const [desc, setDesc] = useState('');
   const [perms, setPerms] = useState<RolePermission[]>([]);
 
-  const fetch = () => getRoles().then(r => setRoles(r.data));
+  const fetch = () => getRoles().then(r => setRoles(r.data)).catch(err => { console.error('getRoles failed:', err); message.error('加载角色列表失败'); });
   useEffect(() => { fetch(); }, []);
 
   const openCreate = () => {
@@ -247,22 +252,30 @@ function RoleManager() {
 
   const handleSave = async () => {
     if (!name.trim()) return;
-    const data = { name: name.trim(), description: desc || undefined, permissions: perms };
-    if (editingRole) {
-      await updateRole(editingRole.id, data);
-      message.success('角色已更新');
-    } else {
-      await createRole(data);
-      message.success('角色已创建');
+    try {
+      const data = { name: name.trim(), description: desc || undefined, permissions: perms };
+      if (editingRole) {
+        await updateRole(editingRole.id, data);
+        message.success('角色已更新');
+      } else {
+        await createRole(data);
+        message.success('角色已创建');
+      }
+      setModalOpen(false);
+      fetch();
+    } catch (err: any) {
+      message.error(err?.response?.data?.detail || '保存失败');
     }
-    setModalOpen(false);
-    fetch();
   };
 
   const handleDelete = async (id: string) => {
-    await deleteRole(id);
-    message.success('角色已删除');
-    fetch();
+    try {
+      await deleteRole(id);
+      message.success('角色已删除');
+      fetch();
+    } catch (err: any) {
+      message.error(err?.response?.data?.detail || '删除失败');
+    }
   };
 
   const togglePerm = (module: string, action: string) => {
