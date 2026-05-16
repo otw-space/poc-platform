@@ -11,7 +11,14 @@ router = APIRouter(prefix="/api/users", tags=["users"])
 
 @router.get("/", response_model=list[UserOut])
 def list_users(db: Session = Depends(get_db), _=Depends(require_permission("settings", "edit"))):
-    return db.query(User).order_by(User.created_at.desc()).all()
+    users = db.query(User).order_by(User.created_at.desc()).all()
+    result = []
+    for u in users:
+        uo = UserOut.model_validate(u)
+        if u.role_obj:
+            uo.role_name = u.role_obj.name
+        result.append(uo)
+    return result
 
 
 @router.post("/", response_model=UserOut, status_code=201)
@@ -23,6 +30,7 @@ def create_user(data: UserCreate, db: Session = Depends(get_db), _=Depends(requi
         password_hash=hash_password(data.password),
         display_name=data.display_name,
         role=data.role,
+        role_id=data.role_id,
     )
     db.add(user)
     db.commit()

@@ -6,6 +6,7 @@ class UserCreate(BaseModel):
     password: str
     display_name: str
     role: str = "user"
+    role_id: str | None = None
 
 
 class UserOut(BaseModel):
