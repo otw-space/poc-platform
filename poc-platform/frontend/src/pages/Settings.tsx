@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, Tabs, Table, Button, Input, Space, Popconfirm, message, Modal, Select, Tag } from 'antd';
 import { PlusOutlined, DeleteOutlined, ClearOutlined } from '@ant-design/icons';
 import { getOptions, createOption, updateOption, deleteOption, type PocOption } from '../api/options';
@@ -19,14 +19,32 @@ export default function Settings() {
     <Card title="系统设置">
       <Tabs
         items={[
-          { key: 'options', label: '下拉选项管理', children: <OptionsManager /> },
-          { key: 'users', label: '用户管理', children: <UsersManager /> },
-          { key: 'roles', label: '角色管理', children: <RoleManager /> },
-          { key: 'audit', label: '操作日志', children: <AuditLogs /> },
+          { key: 'options', label: '下拉选项管理', children: <ErrorBoundary name="options"><OptionsManager /></ErrorBoundary> },
+          { key: 'users', label: '用户管理', children: <ErrorBoundary name="users"><UsersManager /></ErrorBoundary> },
+          { key: 'roles', label: '角色管理', children: <ErrorBoundary name="roles"><RoleManager /></ErrorBoundary> },
+          { key: 'audit', label: '操作日志', children: <ErrorBoundary name="audit"><AuditLogs /></ErrorBoundary> },
         ]}
       />
     </Card>
   );
+}
+
+class ErrorBoundary extends React.Component<{ name: string; children: React.ReactNode }, { error: Error | null }> {
+  constructor(props: { name: string; children: React.ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return <div style={{ padding: 16, color: 'red', border: '1px solid red', borderRadius: 4 }}>
+        <strong>[{this.props.name}] 组件错误:</strong> {this.state.error.message}
+      </div>;
+    }
+    return this.props.children;
+  }
 }
 
 function OptionsManager() {
@@ -123,9 +141,9 @@ function UsersManager() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [form, setForm] = useState({ username: '', password: '', display_name: '', role_id: '' });
 
-  const fetch = () => getUsers().then((r) => setUsers(r.data));
+  const fetch = () => getUsers().then((r) => setUsers(r.data)).catch(err => console.error('getUsers failed:', err));
   useEffect(() => { fetch(); }, []);
-  useEffect(() => { getRoles().then(r => setRoles(r.data)); }, []);
+  useEffect(() => { getRoles().then(r => setRoles(r.data)).catch(err => console.error('getRoles failed:', err)); }, []);
 
   const handleCreate = async () => {
     await createUser({ username: form.username, password: form.password, display_name: form.display_name, role_id: form.role_id });
