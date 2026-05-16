@@ -7,7 +7,9 @@ import ProjectList from './pages/ProjectList';
 import ProjectForm from './pages/ProjectForm';
 import ProjectDetail from './pages/ProjectDetail';
 import DashboardCanvas from './pages/DashboardCanvas';
+import SopCenter from './pages/SopCenter';
 import DashboardHome from './pages/DashboardHome';
+import RecycleBin from './pages/RecycleBin';
 import Settings from './pages/Settings';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -17,11 +19,11 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, isAdmin } = useAuth();
+function PermissionRoute({ children, module, action = 'view' }: { children: React.ReactNode; module: string; action?: string }) {
+  const { user, loading, hasPermission } = useAuth();
   if (loading) return <Spin style={{ display: 'block', margin: '200px auto' }} />;
   if (!user) return <Navigate to="/login" />;
-  if (!isAdmin) return <Navigate to="/" />;
+  if (!hasPermission(module, action)) return <Navigate to="/" />;
   return <>{children}</>;
 }
 
@@ -43,12 +45,14 @@ export default function App() {
         <Route path="projects/:id/edit" element={<ProjectForm />} />
         <Route path="projects/:id" element={<ProjectDetail />} />
         <Route path="dashboards" element={<DashboardCanvas />} />
+        <Route path="sop" element={<SopCenter />} />
+        <Route path="recycle-bin" element={<RecycleBin />} />
         <Route
           path="settings"
           element={
-            <AdminRoute>
+            <PermissionRoute module="settings">
               <Settings />
-            </AdminRoute>
+            </PermissionRoute>
           }
         />
       </Route>
