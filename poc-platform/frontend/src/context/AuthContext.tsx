@@ -1,11 +1,13 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { getMe, type User } from '../api/auth';
+import { getMe, getMyPermissions, type User } from '../api/auth';
 
 interface AuthState {
   user: User | null;
   loading: boolean;
   setUser: (user: User | null) => void;
   isAdmin: boolean;
+  permissions: string[];
+  hasPermission: (module: string, action: string) => boolean;
 }
 
 const AuthContext = createContext<AuthState>({
@@ -13,17 +15,23 @@ const AuthContext = createContext<AuthState>({
   loading: true,
   setUser: () => {},
   isAdmin: false,
+  permissions: [],
+  hasPermission: () => false,
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [permissions, setPermissions] = useState<string[]>([]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      getMe()
-        .then((res) => setUser(res.data))
+      Promise.all([getMe(), getMyPermissions()])
+        .then(([userRes, permsRes]) => {
+          setUser(userRes.data);
+          setPermissions(permsRes.data);
+        })
         .catch(() => {
           localStorage.removeItem('token');
         })
@@ -33,8 +41,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const hasPermission = (module: string, action: string) => {
+    return permissions.includes(`${module}:${action}`);
+  };
+
+  // isAdmin: true if user has the super admin role or legacy admin role
+  const isAdmin = user?.role === 'admin' || permissions.includes('project:create');
+
   return (
-    <AuthContext.Provider value={{ user, loading, setUser, isAdmin: user?.role === 'admin' }}>
+    <AuthContext.Provider value={{ user, loading, setUser, isAdmin, permissions, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );
