@@ -12,7 +12,7 @@ from ..schemas.poc_project import PocProjectCreate, PocProjectUpdate, PocProject
 from ..services.holiday import calculate_workdays
 from ..services.project import execute_dashboard_query
 from ..services.logger import log_operation
-from ..middleware.auth import get_current_user
+from ..middleware.auth import get_current_user, require_permission
 from ..schemas.dashboard import DashboardQueryRequest
 from ..models.user import User
 
@@ -31,10 +31,11 @@ def list_projects(
     poc_type_id: int | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
+    _=Depends(require_permission("project", "view")),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(PocProject)
+    query = db.query(PocProject).filter(PocProject.is_deleted == False)
     if current_user.role != "admin":
         query = query.filter(PocProject.created_by == current_user.id)
     if name:
@@ -69,8 +70,8 @@ def list_projects(
 
 
 @router.get("/{project_id}", response_model=PocProjectOut)
-def get_project(project_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    project = db.query(PocProject).filter(PocProject.id == project_id).first()
+def get_project(project_id: str, db: Session = Depends(get_db), _=Depends(require_permission("project", "view")), current_user: User = Depends(get_current_user)):
+    project = db.query(PocProject).filter(PocProject.id == project_id, PocProject.is_deleted == False).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     project.duration_days = calculate_workdays(project.start_date, project.end_date)
@@ -78,7 +79,7 @@ def get_project(project_id: str, db: Session = Depends(get_db), current_user: Us
 
 
 @router.post("/", response_model=PocProjectOut, status_code=201)
-def create_project(data: PocProjectCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def create_project(data: PocProjectCreate, db: Session = Depends(get_db), _=Depends(require_permission("project", "create")), current_user: User = Depends(get_current_user)):
     duration = calculate_workdays(data.start_date, data.end_date)
     project = PocProject(**data.model_dump(), duration_days=duration, created_by=current_user.id)
     db.add(project)
@@ -89,12 +90,28 @@ def create_project(data: PocProjectCreate, db: Session = Depends(get_db), curren
 
 
 @router.put("/{project_id}", response_model=PocProjectOut)
-def update_project(project_id: str, data: PocProjectUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def update_project(project_id: str, data: PocProjectUpdate, db: Session = Depends(get_db), _=Depends(require_permission("project", "edit")), current_user: User = Depends(get_current_user)):
     project = db.query(PocProject).filter(PocProject.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
     update_data = data.model_dump(exclude_unset=True)
+
+    # Compute details for audit log
+    field_labels = {
+        "name": "项目名称", "region": "区域", "city": "城市", "sales": "销售",
+        "pm": "项目经理", "start_date": "开始日期", "end_date": "完成日期",
+        "poc_type_id": "PoC类型", "impl_method_id": "实施方式", "status_id": "状态",
+        "result": "结果", "plan_file": "实施方案", "report_file": "总结报告",
+    }
+    changes = []
+    for key, new_val in update_data.items():
+        old_val = getattr(project, key, None)
+        if key in ("plan_file", "report_file"):
+            changes.append(f"{field_labels.get(key, key)}: 已更新")
+        elif old_val != new_val:
+            changes.append(f"{field_labels.get(key, key)}: {old_val} → {new_val}")
+
     for key, value in update_data.items():
         setattr(project, key, value)
 
@@ -103,19 +120,21 @@ def update_project(project_id: str, data: PocProjectUpdate, db: Session = Depend
 
     db.commit()
     db.refresh(project)
-    log_operation(db, current_user, "update", "project", project.name)
+    details = "; ".join(changes) if changes else None
+    log_operation(db, current_user, "update", "project", project.name, details=details)
     return PocProjectOut.model_validate(project)
 
 
 @router.delete("/{project_id}")
-def delete_project(project_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    project = db.query(PocProject).filter(PocProject.id == project_id).first()
+def delete_project(project_id: str, db: Session = Depends(get_db), _=Depends(require_permission("project", "delete")), current_user: User = Depends(get_current_user)):
+    project = db.query(PocProject).filter(PocProject.id == project_id, PocProject.is_deleted == False).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    project_name = project.name
-    db.delete(project)
+    project.is_deleted = True
+    project.deleted_at = datetime.utcnow()
+    project.deleted_by = current_user.display_name or current_user.username
     db.commit()
-    log_operation(db, current_user, "delete", "project", project_name)
+    log_operation(db, current_user, "delete", "project", project.name)
     return {"ok": True}
 
 

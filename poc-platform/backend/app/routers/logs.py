@@ -1,22 +1,25 @@
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models.poc_project import PocProject
 from ..models.poc_project_log import PocProjectLog
 from ..schemas.poc_project_log import PocProjectLogCreate, PocProjectLogUpdate, PocProjectLogOut
-from ..middleware.auth import get_current_user
+from ..middleware.auth import get_current_user, require_permission
+from ..services.logger import log_operation
 from ..models.user import User
 
 router = APIRouter(prefix="/api/projects/{project_id}/logs", tags=["logs"])
 
 
 @router.get("/", response_model=list[PocProjectLogOut])
-def list_logs(project_id: str, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+def list_logs(project_id: str, db: Session = Depends(get_db), _=Depends(require_permission("project", "view"))):
     project = db.query(PocProject).filter(PocProject.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    logs = db.query(PocProjectLog).filter(PocProjectLog.project_id == project_id)\
-        .order_by(PocProjectLog.log_date.desc()).all()
+    logs = db.query(PocProjectLog).filter(
+        PocProjectLog.project_id == project_id, PocProjectLog.is_deleted == False
+    ).order_by(PocProjectLog.log_date.desc()).all()
     return [PocProjectLogOut.model_validate(log) for log in logs]
 
 
@@ -25,6 +28,7 @@ def create_log(
     project_id: str,
     data: PocProjectLogCreate,
     db: Session = Depends(get_db),
+    _=Depends(require_permission("project", "edit")),
     current_user: User = Depends(get_current_user),
 ):
     project = db.query(PocProject).filter(PocProject.id == project_id).first()
@@ -66,10 +70,13 @@ def delete_log(
     current_user: User = Depends(get_current_user),
 ):
     log = db.query(PocProjectLog).filter(
-        PocProjectLog.id == log_id, PocProjectLog.project_id == project_id
+        PocProjectLog.id == log_id, PocProjectLog.project_id == project_id, PocProjectLog.is_deleted == False
     ).first()
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
-    db.delete(log)
+    log.is_deleted = True
+    log.deleted_at = datetime.utcnow()
+    log.deleted_by = current_user.display_name or current_user.username
     db.commit()
+    log_operation(db, current_user, "delete", "project_log", log.log_date.isoformat())
     return {"ok": True}

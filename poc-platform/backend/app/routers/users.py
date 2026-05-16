@@ -4,18 +4,18 @@ from ..database import get_db
 from ..models.user import User
 from ..schemas.user import UserCreate, UserOut, PasswordReset
 from ..services.auth import hash_password, get_user_by_username
-from ..middleware.auth import require_admin, get_current_user
+from ..middleware.auth import get_current_user, require_permission
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
 @router.get("/", response_model=list[UserOut])
-def list_users(db: Session = Depends(get_db), _=Depends(require_admin)):
+def list_users(db: Session = Depends(get_db), _=Depends(require_permission("settings", "edit"))):
     return db.query(User).order_by(User.created_at.desc()).all()
 
 
 @router.post("/", response_model=UserOut, status_code=201)
-def create_user(data: UserCreate, db: Session = Depends(get_db), _=Depends(require_admin)):
+def create_user(data: UserCreate, db: Session = Depends(get_db), _=Depends(require_permission("settings", "edit"))):
     if get_user_by_username(db, data.username):
         raise HTTPException(status_code=400, detail="Username already exists")
     user = User(
@@ -31,7 +31,7 @@ def create_user(data: UserCreate, db: Session = Depends(get_db), _=Depends(requi
 
 
 @router.put("/{user_id}/password")
-def reset_password(user_id: str, data: PasswordReset, db: Session = Depends(get_db), _=Depends(require_admin)):
+def reset_password(user_id: str, data: PasswordReset, db: Session = Depends(get_db), _=Depends(require_permission("settings", "edit"))):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -41,7 +41,7 @@ def reset_password(user_id: str, data: PasswordReset, db: Session = Depends(get_
 
 
 @router.put("/{user_id}/toggle-active")
-def toggle_active(user_id: str, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+def toggle_active(user_id: str, db: Session = Depends(get_db), current_user: User = Depends(require_permission("settings", "edit"))):
     if current_user.id == user_id:
         raise HTTPException(status_code=400, detail="Cannot disable yourself")
     user = db.query(User).filter(User.id == user_id).first()
