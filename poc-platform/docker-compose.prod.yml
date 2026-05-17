@@ -1,0 +1,23 @@
+services:
+  poc-platform:
+    image: poc-platform:latest
+    container_name: poc-platform
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    working_dir: /app/backend
+    environment:
+      - DATABASE_URL=sqlite:////app/data/poc.db
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+    volumes:
+      - poc-data:/app/data
+      - poc-uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/auth/me"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  poc-data:
+  poc-uploads:
