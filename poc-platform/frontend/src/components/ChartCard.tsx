@@ -1,10 +1,13 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Card, Spin, Empty, message, Form, Input, Select, Popover, Switch } from 'antd';
-import { MoreOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, CheckOutlined, DownloadOutlined as ChartDownloadOutlined } from '@ant-design/icons';
+import { Card, Spin, Empty, message, Form, Input, Select, Popover, Switch, Statistic } from 'antd';
+import { MoreOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, CheckOutlined, DownloadOutlined as ChartDownloadOutlined, ProjectOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { Column, Bar, Pie, Line, DualAxes } from '@ant-design/charts';
 import { queryProjectData } from '../api/projects';
 import ColorSchemePicker, { COLOR_SCHEMES, generateGradientColors } from './ColorSchemePicker';
+import ChartFilterBuilder from './ChartFilterBuilder';
+import ProjectListModal from './ProjectListModal';
 import type { ChartConfig, Dashboard } from '../api/dashboards';
+import { CHART_TYPES, DIMENSION_FIELDS, METRIC_FIELDS } from '../constants/chart';
 
 interface ChartCardProps {
   config: ChartConfig;
@@ -19,47 +22,31 @@ interface ChartCardProps {
   onUpdateDashboard?: (dashboardId: string, updates: Partial<Dashboard>) => void;
 }
 
-const CHART_TYPES = [
-  { label: '柱状图', value: 'column' },
-  { label: '条形图', value: 'bar' },
-  { label: '饼图', value: 'pie' },
-  { label: '折线图', value: 'line' },
-  { label: '组合图', value: 'dual-axes' },
-];
-
-const DIMENSION_FIELDS = [
-  { label: '区域', value: 'region' },
-  { label: '城市', value: 'city' },
-  { label: '销售', value: 'sales' },
-  { label: '项目经理', value: 'pm' },
-  { label: 'PoC类型', value: 'poc_type' },
-  { label: '实施方式', value: 'impl_method' },
-  { label: '状态', value: 'status' },
-];
-
-const METRIC_FIELDS = [
-  { label: '项目数量', value: 'count' },
-  { label: '平均工期', value: 'avg_duration' },
-];
-
 export default function ChartCard({ config, dashboardId, dashboards, isEditing, onEditStart, onEditEnd, onDelete, onUpdate, onMoveChart, onUpdateDashboard }: ChartCardProps) {
   const [data, setData] = useState<{ x: string; y: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editTargetDashboardId, setEditTargetDashboardId] = useState<string | undefined>(undefined);
   const [chartInstance, setChartInstance] = useState<any>(null);
+  const [projectModalOpen, setProjectModalOpen] = useState(false);
+  const [projectModalFilters, setProjectModalFilters] = useState<{ field: string; op: string; value: any }[]>([]);
+  const [projectModalTitle, setProjectModalTitle] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const filtersKey = JSON.stringify(config.filters || []);
 
   const fetchData = useCallback(() => {
     setLoading(true);
-    queryProjectData({
-      filters: [],
-      x_field: config.x_field,
+    const payload: any = {
+      filters: config.filters || [],
+      x_field: config.x_field || 'region',
       y_field: config.y_field,
-    })
+    };
+    if (config.type === 'stat') payload.aggregate = true;
+    queryProjectData(payload)
       .then((r) => setData(r.data.data))
       .finally(() => setLoading(false));
-  }, [config.x_field, config.y_field]);
+  }, [config.x_field, config.y_field, config.type, filtersKey]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -75,6 +62,26 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
   }, [menuOpen]);
 
   const doRefresh = () => { setMenuOpen(false); fetchData(); message.success('已刷新'); };
+
+  const handleChartClick = (chart: any, event: any) => {
+    if (event.type !== 'element:click') return;
+    const clickedData = event.data?.data;
+    if (!clickedData || clickedData.x === undefined) return;
+    const clickedX = String(clickedData.x);
+    const dimensionFilter = { field: config.x_field, op: 'eq', value: clickedX };
+    const combined = [...(config.filters || []), dimensionFilter];
+    const fieldLabel = DIMENSION_FIELDS.find(f => f.value === config.x_field)?.label || config.x_field;
+    setProjectModalTitle(`${fieldLabel}: ${clickedX}`);
+    setProjectModalFilters(combined);
+    setProjectModalOpen(true);
+  };
+
+  const handleStatClick = () => {
+    setProjectModalTitle(config.title || '统计结果');
+    setProjectModalFilters(config.filters || []);
+    setProjectModalOpen(true);
+  };
+
   const doEdit = () => { setMenuOpen(false); setEditTargetDashboardId(dashboardId); onEditStart?.(config.id); };
   const doDelete = () => { setMenuOpen(false); onDelete?.(config.id); };
   const doFinishEdit = () => {
@@ -124,6 +131,26 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
 
   const renderChart = () => {
     if (loading) return <Spin style={{ display: 'block', margin: '60px auto' }} />;
+
+    if (config.type === 'stat') {
+      const value = data.length > 0 ? data[0].y : 0;
+      const isCount = config.y_field === 'count';
+      const prefix = isCount ? <ProjectOutlined /> : <ClockCircleOutlined />;
+      return (
+        <div onClick={handleStatClick} style={{ textAlign: 'center', padding: '40px 0', cursor: 'pointer' }}>
+          <Statistic
+            title={config.title || (isCount ? '项目总数' : '平均工期')}
+            value={isCount ? Math.round(value) : value}
+            precision={isCount ? 0 : 1}
+            prefix={prefix}
+            suffix={isCount ? '' : '天'}
+            valueStyle={{ fontSize: 48, fontWeight: 700, color: isCount ? '#1677ff' : '#52c41a' }}
+          />
+          <div style={{ fontSize: 12, color: '#999', marginTop: 8 }}>点击查看项目详情</div>
+        </div>
+      );
+    }
+
     if (data.length === 0) return <Empty description="暂无数据" />;
 
     if (config.type === 'pie') {
@@ -140,6 +167,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
           label={{ text: (d: any) => formatVal(d.y), position: 'outside', style: { fontWeight: 500 } }}
           autoFit
           onReady={(chart: any) => setChartInstance(chart)}
+          onEvent={handleChartClick}
         />
       );
     }
@@ -155,12 +183,12 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
       tooltip: tooltipFn,
     };
     switch (config.type) {
-      case 'column': return <Column {...categoryBase} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} />;
-      case 'bar': return <Bar {...categoryBase} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} />;
-      case 'line': return <Line data={data} xField="x" yField="y" height={config.h || 300} autoFit scale={{ color: { range: [gradientColors[0]] } }} tooltip={tooltipFn} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} />;
+      case 'column': return <Column {...categoryBase} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
+      case 'bar': return <Bar {...categoryBase} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
+      case 'line': return <Line data={data} xField="x" yField="y" height={config.h || 300} autoFit scale={{ color: { range: [gradientColors[0]] } }} tooltip={tooltipFn} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
       case 'dual-axes':
-        return <DualAxes {...categoryBase} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} onReady={(chart: any) => setChartInstance(chart)} />;
-      default: return <Column {...categoryBase} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} />;
+        return <DualAxes {...categoryBase} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
+      default: return <Column {...categoryBase} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
     }
   };
 
@@ -178,9 +206,11 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
         <Form.Item label="类型" style={{ marginBottom: 0 }}>
           <Select size="small" value={config.type} onChange={(v) => onUpdate?.(config.id, { type: v })} options={CHART_TYPES} style={{ width: '100%' }} />
         </Form.Item>
-        <Form.Item label="X轴维度" style={{ marginBottom: 0 }}>
-          <Select size="small" value={config.x_field} onChange={(v) => onUpdate?.(config.id, { x_field: v })} options={DIMENSION_FIELDS} style={{ width: '100%' }} />
-        </Form.Item>
+        {config.type !== 'stat' && (
+          <Form.Item label="X轴维度" style={{ marginBottom: 0 }}>
+            <Select size="small" value={config.x_field} onChange={(v) => onUpdate?.(config.id, { x_field: v })} options={DIMENSION_FIELDS} style={{ width: '100%' }} />
+          </Form.Item>
+        )}
         <Form.Item label="Y轴指标" style={{ marginBottom: 0 }}>
           <Select size="small" value={config.y_field} onChange={(v) => onUpdate?.(config.id, { y_field: v })} options={METRIC_FIELDS} style={{ width: '100%' }} />
         </Form.Item>
@@ -199,6 +229,13 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
             <Select size="small" value={editTargetDashboardId} onChange={setEditTargetDashboardId} options={dashOptions} style={{ width: '100%' }} />
           </Form.Item>
         )}
+      </div>
+      <div style={{ marginTop: 8, borderTop: '1px solid #f0f0f0', paddingTop: 8 }}>
+        <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>筛选条件（可选）</div>
+        <ChartFilterBuilder
+          filters={config.filters || []}
+          onChange={(f) => onUpdate?.(config.id, { filters: f })}
+        />
       </div>
     </div>
   );
@@ -264,6 +301,12 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
           </Card>
         </div>
       </Popover>
+      <ProjectListModal
+        open={projectModalOpen}
+        onClose={() => setProjectModalOpen(false)}
+        filters={projectModalFilters}
+        title={projectModalTitle}
+      />
     </div>
   );
 }

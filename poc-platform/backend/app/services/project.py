@@ -46,9 +46,22 @@ def apply_project_filters(db: Session, query, filters: list[dict]):
     return query
 
 
-def execute_dashboard_query(db: Session, x_field: str, y_field: str, filters: list[dict]) -> list[dict]:
+def execute_dashboard_query(db: Session, x_field: str, y_field: str, filters: list[dict], aggregate: bool = False) -> list[dict]:
     query = db.query(PocProject).filter(PocProject.is_deleted == False)
     query = apply_project_filters(db, query, filters)
+
+    # Aggregate mode: return a single total value, no GROUP BY
+    if aggregate:
+        if y_field == "count":
+            total = query.count()
+            return [{"x": "total", "y": float(total)}]
+        if y_field == "avg_duration":
+            rows = query.with_entities(PocProject.start_date, PocProject.end_date).all()
+            if not rows:
+                return [{"x": "average", "y": 0.0}]
+            durations = [calculate_workdays(sd, ed) for sd, ed in rows]
+            return [{"x": "average", "y": round(sum(durations) / len(durations), 1)}]
+        raise ValueError(f"Unknown y_field: {y_field}")
 
     x_col = getattr(PocProject, x_field, None)
     need_option_join = False

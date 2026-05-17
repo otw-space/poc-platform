@@ -3,29 +3,8 @@ import { Modal, Form, Input, Select, Switch, Button, message, Space, Divider, Au
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { createDashboard, updateDashboard, type ChartConfig, type Dashboard } from '../api/dashboards';
 import ColorSchemePicker from './ColorSchemePicker';
-
-const CHART_TYPES = [
-  { label: '柱状图', value: 'column' },
-  { label: '条形图', value: 'bar' },
-  { label: '饼图', value: 'pie' },
-  { label: '折线图', value: 'line' },
-  { label: '组合图', value: 'dual-axes' },
-];
-
-const DIMENSION_FIELDS = [
-  { label: '区域', value: 'region' },
-  { label: '城市', value: 'city' },
-  { label: '销售', value: 'sales' },
-  { label: '项目经理', value: 'pm' },
-  { label: 'PoC类型', value: 'poc_type' },
-  { label: '实施方式', value: 'impl_method' },
-  { label: '状态', value: 'status' },
-];
-
-const METRIC_FIELDS = [
-  { label: '项目数量', value: 'count' },
-  { label: '平均工期', value: 'avg_duration' },
-];
+import ChartFilterBuilder from './ChartFilterBuilder';
+import { CHART_TYPES, DIMENSION_FIELDS, METRIC_FIELDS } from '../constants/chart';
 
 function generateId() {
   return Math.random().toString(36).substring(2, 10);
@@ -43,7 +22,7 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
   const [isPublic, setIsPublic] = useState(false);
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
   const [charts, setCharts] = useState<ChartConfig[]>([
-    { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 300, colorScheme: 'default-blue' },
+    { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 300, colorScheme: 'default-blue', filters: [] },
   ]);
   const [saving, setSaving] = useState(false);
 
@@ -60,7 +39,7 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
   const addChart = () => {
     setCharts((prev) => [
       ...prev,
-      { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 300, colorScheme: 'default-blue' },
+      { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 300, colorScheme: 'default-blue', filters: [] },
     ]);
   };
 
@@ -96,7 +75,7 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
       setIsPublic(false);
       setSelectedDashboardId(null);
       setCharts([
-        { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 300, colorScheme: 'default-blue' },
+        { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 300, colorScheme: 'default-blue', filters: [] },
       ]);
       onCreated();
       onClose();
@@ -112,7 +91,7 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
     setIsPublic(false);
     setSelectedDashboardId(null);
     setCharts([
-      { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 300, colorScheme: 'default-blue' },
+      { id: generateId(), type: 'column', title: '', x_field: 'region', y_field: 'count', w: 4, h: 300, colorScheme: 'default-blue', filters: [] },
     ]);
     onClose();
   };
@@ -186,14 +165,16 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
                 style={{ width: '100%' }}
               />
             </Form.Item>
-            <Form.Item label="X轴维度" style={{ marginBottom: 0 }}>
-              <Select
-                value={chart.x_field}
-                onChange={(v) => updateChart(chart.id, { x_field: v })}
-                options={DIMENSION_FIELDS}
-                style={{ width: '100%' }}
-              />
-            </Form.Item>
+            {chart.type !== 'stat' && (
+              <Form.Item label="X轴维度" style={{ marginBottom: 0 }}>
+                <Select
+                  value={chart.x_field}
+                  onChange={(v) => updateChart(chart.id, { x_field: v })}
+                  options={DIMENSION_FIELDS}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            )}
             <Form.Item label="Y轴指标" style={{ marginBottom: 0 }}>
               <Select
                 value={chart.y_field}
@@ -208,6 +189,13 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
                 onChange={(v) => updateChart(chart.id, { colorScheme: v })}
               />
             </Form.Item>
+          </div>
+          <div style={{ marginTop: 8 }}>
+            <div style={{ fontSize: 13, color: '#666', marginBottom: 4 }}>筛选条件（可选）</div>
+            <ChartFilterBuilder
+              filters={chart.filters || []}
+              onChange={(f) => updateChart(chart.id, { filters: f })}
+            />
           </div>
         </div>
       ))}

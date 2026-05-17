@@ -27,6 +27,7 @@ export interface ChartConfig {
   x?: number;
   y?: number;
   colorScheme?: string;
+  filters?: { field: string; op: string; value: any }[];
 }
 
 export function getDashboards() {

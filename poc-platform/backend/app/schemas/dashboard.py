@@ -14,6 +14,7 @@ class ChartConfig(BaseModel):
     x: int | None = None
     y: int | None = None
     colorScheme: str | None = None
+    filters: list["FilterConfig"] = []
 
 
 class FilterConfig(BaseModel):
@@ -56,3 +57,4 @@ class DashboardQueryRequest(BaseModel):
     x_field: str
     y_field: str
     group_field: str | None = None
+    aggregate: bool = False
