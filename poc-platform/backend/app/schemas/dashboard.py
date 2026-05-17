@@ -15,6 +15,10 @@ class ChartConfig(BaseModel):
     y: int | None = None
     colorScheme: str | None = None
     filters: list["FilterConfig"] = []
+    stackMode: str | None = None
+    pieType: str | None = None
+    smoothLine: bool = False
+    filterMode: str = "and"
 
 
 class FilterConfig(BaseModel):
@@ -58,3 +62,4 @@ class DashboardQueryRequest(BaseModel):
     y_field: str
     group_field: str | None = None
     aggregate: bool = False
+    filter_mode: str = "and"

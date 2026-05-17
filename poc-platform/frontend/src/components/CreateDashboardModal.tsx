@@ -183,6 +183,46 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
                 style={{ width: '100%' }}
               />
             </Form.Item>
+            {(chart.type === 'column' || chart.type === 'bar') && (
+              <Form.Item label="展示形式" style={{ marginBottom: 0 }}>
+                <Select
+                  value={chart.stackMode || 'none'}
+                  onChange={(v) => updateChart(chart.id, { stackMode: v === 'none' ? undefined : v })}
+                  options={[
+                    { label: '默认分组', value: 'none' },
+                    { label: '堆积', value: 'stacked' },
+                    { label: '百分比堆积', value: 'percent' },
+                  ]}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            )}
+            {chart.type === 'pie' && (
+              <Form.Item label="饼图类型" style={{ marginBottom: 0 }}>
+                <Select
+                  value={chart.pieType || 'pie'}
+                  onChange={(v) => updateChart(chart.id, { pieType: v === 'pie' ? undefined : v })}
+                  options={[
+                    { label: '饼图', value: 'pie' },
+                    { label: '环形图', value: 'donut' },
+                  ]}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            )}
+            {chart.type === 'line' && (
+              <Form.Item label="平滑折线" style={{ marginBottom: 0 }}>
+                <Select
+                  value={chart.smoothLine ? 'yes' : 'no'}
+                  onChange={(v) => updateChart(chart.id, { smoothLine: v === 'yes' })}
+                  options={[
+                    { label: '关闭', value: 'no' },
+                    { label: '开启', value: 'yes' },
+                  ]}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            )}
             <Form.Item label="配色方案" style={{ marginBottom: 0 }}>
               <ColorSchemePicker
                 value={chart.colorScheme || 'default-blue'}
@@ -196,6 +236,19 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
               filters={chart.filters || []}
               onChange={(f) => updateChart(chart.id, { filters: f })}
             />
+            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13, color: '#666' }}>组合模式：</span>
+              <Select
+                size="small"
+                value={chart.filterMode || 'and'}
+                onChange={(v) => updateChart(chart.id, { filterMode: v })}
+                options={[
+                  { label: '全部满足 (AND)', value: 'and' },
+                  { label: '任一满足 (OR)', value: 'or' },
+                ]}
+                style={{ width: 160 }}
+              />
+            </div>
           </div>
         </div>
       ))}

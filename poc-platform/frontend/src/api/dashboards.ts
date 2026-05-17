@@ -28,6 +28,10 @@ export interface ChartConfig {
   y?: number;
   colorScheme?: string;
   filters?: { field: string; op: string; value: any }[];
+  stackMode?: 'none' | 'stacked' | 'percent';
+  pieType?: 'pie' | 'donut';
+  smoothLine?: boolean;
+  filterMode?: 'and' | 'or';
 }
 
 export function getDashboards() {

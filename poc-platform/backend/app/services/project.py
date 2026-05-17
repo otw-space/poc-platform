@@ -1,12 +1,12 @@
 from collections import defaultdict
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from ..models.poc_project import PocProject
 from ..models.poc_option import PocOption
 from .holiday import calculate_workdays
 
 
-def apply_project_filters(db: Session, query, filters: list[dict]):
+def apply_project_filters(db: Session, query, filters: list[dict], filter_mode: str = "and"):
     op_map = {
         "eq": lambda col, val: col == val,
         "neq": lambda col, val: col != val,
@@ -15,6 +15,7 @@ def apply_project_filters(db: Session, query, filters: list[dict]):
         "lte": lambda col, val: col <= val,
         "like": lambda col, val: col.like(f"%{val}%"),
     }
+    clauses = []
     for f in filters:
         field = f["field"]
         op = f["op"]
@@ -25,30 +26,37 @@ def apply_project_filters(db: Session, query, filters: list[dict]):
                 .filter(PocOption.category == "poc_type", PocOption.label.in_(value if isinstance(value, list) else [value]))
                 .all()
             )
-            query = query.filter(PocProject.poc_type_id.in_([r[0] for r in opt_ids]))
+            clauses.append(PocProject.poc_type_id.in_([r[0] for r in opt_ids]))
         elif field == "impl_method":
             opt_ids = (
                 db.query(PocOption.id)
                 .filter(PocOption.category == "impl_method", PocOption.label.in_(value if isinstance(value, list) else [value]))
                 .all()
             )
-            query = query.filter(PocProject.impl_method_id.in_([r[0] for r in opt_ids]))
+            clauses.append(PocProject.impl_method_id.in_([r[0] for r in opt_ids]))
         elif field == "status":
             opt_ids = (
                 db.query(PocOption.id)
                 .filter(PocOption.category == "status", PocOption.label.in_(value if isinstance(value, list) else [value]))
                 .all()
             )
-            query = query.filter(PocProject.status_id.in_([r[0] for r in opt_ids]))
+            clauses.append(PocProject.status_id.in_([r[0] for r in opt_ids]))
         elif hasattr(PocProject, field) and op in op_map:
             col = getattr(PocProject, field)
-            query = query.filter(op_map[op](col, value))
+            clauses.append(op_map[op](col, value))
+
+    if clauses:
+        if filter_mode == "or":
+            query = query.filter(or_(*clauses))
+        else:
+            for c in clauses:
+                query = query.filter(c)
     return query
 
 
-def execute_dashboard_query(db: Session, x_field: str, y_field: str, filters: list[dict], aggregate: bool = False) -> list[dict]:
+def execute_dashboard_query(db: Session, x_field: str, y_field: str, filters: list[dict], aggregate: bool = False, filter_mode: str = "and") -> list[dict]:
     query = db.query(PocProject).filter(PocProject.is_deleted == False)
-    query = apply_project_filters(db, query, filters)
+    query = apply_project_filters(db, query, filters, filter_mode)
 
     # Aggregate mode: return a single total value, no GROUP BY
     if aggregate:
