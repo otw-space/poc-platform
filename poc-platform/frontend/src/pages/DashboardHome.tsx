@@ -64,14 +64,16 @@ export default function DashboardHome() {
           <Card title="项目状态分布">
             <Pie data={statusData} angleField="y" colorField="x" radius={0.8} height={300} autoFit
               scale={{ color: { range: ['#1677FF', '#52C41A', '#FA8C16', '#F5222D', '#722ED1'] } }}
-              label={{ text: 'x', position: 'outside' }} />
+              label={{ text: 'y', position: 'outside', style: { fontWeight: 500 } }}
+              tooltip={{ title: (d: any) => d.x, items: [(d: any) => ({ name: '项目数量', value: String(d.y) })] }} />
           </Card>
         </Col>
         <Col span={12}>
           <Card title="区域分布">
             <Column data={regionData} xField="x" yField="y" height={300} autoFit
               scale={{ color: { range: ['#1677FF', '#4096FF', '#69B1FF', '#91CAFF', '#BAE7FF'] } }}
-              legend={false} />
+              legend={false}
+              tooltip={(d: any) => ({ name: '项目数量', value: String(d.y) })} />
           </Card>
         </Col>
       </Row>
