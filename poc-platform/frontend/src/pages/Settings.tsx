@@ -16,14 +16,22 @@ const CATEGORIES = [
 ];
 
 export default function Settings() {
+  const [activeTab, setActiveTab] = useState('options');
+  const [auditVersion, setAuditVersion] = useState(0);
+
   return (
     <Card title="系统设置">
       <Tabs
+        activeKey={activeTab}
+        onChange={(key) => {
+          setActiveTab(key);
+          if (key === 'audit') setAuditVersion(v => v + 1);
+        }}
         items={[
           { key: 'options', label: '下拉选项管理', children: <ErrorBoundary name="options"><OptionsManager /></ErrorBoundary> },
           { key: 'users', label: '用户管理', children: <ErrorBoundary name="users"><UsersManager /></ErrorBoundary> },
           { key: 'roles', label: '角色管理', children: <ErrorBoundary name="roles"><RoleManager /></ErrorBoundary> },
-          { key: 'audit', label: '操作日志', children: <ErrorBoundary name="audit"><AuditLogs /></ErrorBoundary> },
+          { key: 'audit', label: '操作日志', children: <ErrorBoundary name="audit"><AuditLogs refreshKey={auditVersion} /></ErrorBoundary> },
         ]}
       />
     </Card>
@@ -440,7 +448,7 @@ interface AuditLog {
   created_at: string;
 }
 
-function AuditLogs() {
+function AuditLogs({ refreshKey }: { refreshKey?: number }) {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -453,7 +461,12 @@ function AuditLogs() {
       .then(r => { setLogs(r.data.items); setTotal(r.data.total); })
       .finally(() => setLoading(false));
   };
-  useEffect(() => { fetch(); }, [page]);
+  useEffect(() => { fetch(); }, [page, refreshKey]);
+
+  // Reset page when refreshKey changes (switch to tab)
+  useEffect(() => {
+    if (refreshKey !== undefined && refreshKey > 0) setPage(1);
+  }, [refreshKey]);
 
   const actionLabels: Record<string, string> = {
     create: '新增', update: '编辑', delete: '删除',
@@ -478,6 +491,8 @@ function AuditLogs() {
     project_log: '项目管理-日志',
     user: '系统设置-用户管理',
     role: '系统设置-角色管理',
+    recycle_bin: '回收站',
+    sop: 'SOP中心',
   };
 
   const handleBatchDelete = async () => {
