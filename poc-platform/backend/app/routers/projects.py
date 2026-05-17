@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models.poc_project import PocProject
+from ..models.poc_option import PocOption
 from ..schemas.poc_project import PocProjectCreate, PocProjectUpdate, PocProjectOut, PocProjectListOut
 from ..services.holiday import calculate_workdays
 from ..services.project import execute_dashboard_query
@@ -104,13 +105,34 @@ def update_project(project_id: str, data: PocProjectUpdate, db: Session = Depend
         "poc_type_id": "PoC类型", "impl_method_id": "实施方式", "status_id": "状态",
         "result": "结果", "plan_file": "实施方案", "report_file": "总结报告",
     }
+    # Resolve option IDs to labels for friendly display
+    option_ids = set()
+    for key in ("poc_type_id", "impl_method_id", "status_id"):
+        val = update_data.get(key)
+        if val is not None:
+            option_ids.add(val)
+            old_val = getattr(project, key, None)
+            if old_val is not None:
+                option_ids.add(old_val)
+    id_to_label = {}
+    if option_ids:
+        options = db.query(PocOption).filter(PocOption.id.in_(option_ids)).all()
+        id_to_label = {o.id: o.label for o in options}
+
+    def format_val(key: str, val) -> str:
+        if isinstance(val, date):
+            return val.isoformat()
+        if key in ("poc_type_id", "impl_method_id", "status_id"):
+            return id_to_label.get(val, str(val))
+        return str(val)
+
     changes = []
     for key, new_val in update_data.items():
         old_val = getattr(project, key, None)
         if key in ("plan_file", "report_file"):
             changes.append(f"{field_labels.get(key, key)}: 已更新")
         elif old_val != new_val:
-            changes.append(f"{field_labels.get(key, key)}: {old_val} → {new_val}")
+            changes.append(f"{field_labels.get(key, key)}: {format_val(key, old_val)} → {format_val(key, new_val)}")
 
     for key, value in update_data.items():
         setattr(project, key, value)

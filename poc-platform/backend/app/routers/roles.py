@@ -49,11 +49,27 @@ def update_role(role_id: str, data: RoleUpdate, db: Session = Depends(get_db), c
     if data.description is not None:
         role.description = data.description
     if data.permissions is not None:
-        old_count = len(role.permissions) if role.permissions else 0
+        module_labels = {"project": "项目管理", "dashboard": "数据仪表盘", "sop": "SOP中心", "recycle_bin": "回收站", "settings": "系统设置"}
+        action_labels = {"view": "查看", "create": "新建", "edit": "编辑", "delete": "删除"}
+        def perm_label(p):
+            m, a = p
+            return f"{module_labels.get(m, m)}-{action_labels.get(a, a)}"
+
+        old_perms = {(p.module, p.action) for p in (role.permissions or [])}
+        new_perms = {(p.module, p.action) for p in data.permissions}
+
         db.query(RolePermission).filter(RolePermission.role_id == role_id).delete()
         for p in data.permissions:
             db.add(RolePermission(role_id=role_id, module=p.module, action=p.action))
-        changes.append(f"权限: {old_count} → {len(data.permissions)} 项")
+
+        added = new_perms - old_perms
+        removed = old_perms - new_perms
+        if added:
+            changes.append(f"增加权限: {', '.join(perm_label(p) for p in sorted(added))}")
+        if removed:
+            changes.append(f"移除权限: {', '.join(perm_label(p) for p in sorted(removed))}")
+        if not added and not removed:
+            changes.append("权限无变化")
     db.commit()
     db.refresh(role)
     log_operation(db, current_user, "update", "role", role.name, details="; ".join(changes) if changes else None)
