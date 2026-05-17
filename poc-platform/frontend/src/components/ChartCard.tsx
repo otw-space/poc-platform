@@ -137,7 +137,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
           height={config.h || 300}
           scale={{ color: { range: gradientColors } }}
           tooltip={pieTooltipConfig}
-          label={{ text: 'y', position: 'outside', style: { fontWeight: 500 } }}
+          label={{ text: (d: any) => formatVal(d.y), position: 'outside', style: { fontWeight: 500 } }}
           autoFit
           onReady={(chart: any) => setChartInstance(chart)}
         />
