@@ -64,11 +64,15 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
   const doRefresh = () => { setMenuOpen(false); fetchData(); message.success('已刷新'); };
 
   const handleChartClick = (chart: any, event: any) => {
+    // Only respond to actual clicks, not hover/mousemove
+    const nativeEvent = event?.gEvent || event?.event || event;
+    if (!nativeEvent || nativeEvent.type !== 'click') return;
+
     // G2 event structure varies — navigate to find the original data item
     const findData = (obj: any, depth = 0): any => {
       if (!obj || depth > 5) return null;
       if (typeof obj === 'object' && obj.x !== undefined && (typeof obj.x === 'string' || typeof obj.x === 'number')) return obj;
-      for (const k of ['data', 'target', 'gEvent']) {
+      for (const k of ['data', 'target']) {
         const r = findData(obj[k], depth + 1);
         if (r) return r;
       }

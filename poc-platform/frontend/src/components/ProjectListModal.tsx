@@ -22,6 +22,8 @@ export default function ProjectListModal({ open, onClose, filters, title }: Prop
   const [statusOpts, setStatusOpts] = useState<PocOption[]>([]);
   const [implOpts, setImplOpts] = useState<PocOption[]>([]);
 
+  const filtersKey = JSON.stringify(filters);
+
   useEffect(() => {
     if (open) {
       Promise.all([
@@ -36,11 +38,19 @@ export default function ProjectListModal({ open, onClose, filters, title }: Prop
     }
   }, [open]);
 
+  // Reset page when filters change
   useEffect(() => {
-    if (!open) return;
+    if (open) setPage(1);
+  }, [open, filtersKey]);
+
+  useEffect(() => {
+    if (!open) {
+      setProjects([]);
+      setTotal(0);
+      return;
+    }
     setLoading(true);
-    setPage(1);
-    const params: Record<string, any> = { page: 1, page_size: 20 };
+    const params: Record<string, any> = { page, page_size: 20 };
     for (const f of filters) {
       if (f.op !== 'eq') continue;
       if (['region', 'city', 'sales', 'pm'].includes(f.field)) {
@@ -60,10 +70,12 @@ export default function ProjectListModal({ open, onClose, filters, title }: Prop
         if (opt) params.status_id = opt.id;
       }
     }
+    console.log('ProjectListModal fetch with params:', params, 'filters:', filters);
     getProjects(params)
       .then((r) => { setProjects(r.data.items); setTotal(r.data.total); })
+      .catch((err) => { console.error('ProjectListModal fetch error:', err); })
       .finally(() => setLoading(false));
-  }, [open, filters, page, typeOpts, statusOpts, implOpts]);
+  }, [open, filtersKey, page, typeOpts, statusOpts, implOpts]);
 
   const getLabel = (opts: PocOption[], id: number) => opts.find(o => o.id === id)?.label || '';
 
