@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models.user import User
-from ..schemas.user import UserCreate, UserOut, PasswordReset
+from ..schemas.user import UserCreate, UserUpdate, UserOut, PasswordReset
 from ..services.auth import hash_password, get_user_by_username
 from ..middleware.auth import get_current_user, require_permission
 
@@ -36,6 +36,37 @@ def create_user(data: UserCreate, db: Session = Depends(get_db), _=Depends(requi
     db.commit()
     db.refresh(user)
     return UserOut.model_validate(user)
+
+
+@router.put("/{user_id}", response_model=UserOut)
+def update_user(user_id: str, data: UserUpdate, db: Session = Depends(get_db), _=Depends(require_permission("settings", "edit"))):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if data.username is not None:
+        existing = db.query(User).filter(User.username == data.username, User.id != user_id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Username already exists")
+        user.username = data.username
+    if data.display_name is not None:
+        user.display_name = data.display_name
+    if data.role_id is not None:
+        user.role_id = data.role_id
+    db.commit()
+    db.refresh(user)
+    return UserOut.model_validate(user)
+
+
+@router.delete("/{user_id}")
+def delete_user(user_id: str, db: Session = Depends(get_db), current_user: User = Depends(require_permission("settings", "edit"))):
+    if current_user.id == user_id:
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(user)
+    db.commit()
+    return {"ok": True}
 
 
 @router.put("/{user_id}/password")

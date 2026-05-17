@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Tabs, Table, Button, Input, Space, Popconfirm, message, Modal, Select, Tag } from 'antd';
-import { PlusOutlined, DeleteOutlined, ClearOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, ClearOutlined, EditOutlined } from '@ant-design/icons';
 import { getOptions, createOption, updateOption, deleteOption, type PocOption } from '../api/options';
-import { getUsers, createUser, resetPassword, toggleActive } from '../api/users';
+import { getUsers, createUser, updateUser, deleteUser, resetPassword, toggleActive } from '../api/users';
 import type { User } from '../api/auth';
 import { getRoles, createRole, updateRole, deleteRole } from '../api/roles';
 import type { Role, RolePermission } from '../api/roles';
@@ -138,9 +138,12 @@ function OptionsManager() {
 
 function UsersManager() {
   const [users, setUsers] = useState<User[]>([]);
-  const [modalOpen, setModalOpen] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({ username: '', display_name: '', role_id: '' });
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editForm, setEditForm] = useState({ username: '', display_name: '', role_id: '' });
 
   const fetch = () => getUsers().then((r) => setUsers(r.data)).catch(err => { console.error('getUsers failed:', err); message.error('加载用户列表失败'); });
   useEffect(() => { fetch(); }, []);
@@ -156,6 +159,34 @@ function UsersManager() {
       fetch();
     } catch (err: any) {
       message.error(err?.response?.data?.detail || '创建失败');
+    }
+  };
+
+  const openEdit = (user: User) => {
+    setEditingUser(user);
+    setEditForm({ username: user.username, display_name: user.display_name, role_id: user.role_id || '' });
+    setEditModalOpen(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingUser || !editForm.username) return;
+    try {
+      await updateUser(editingUser.id, { username: editForm.username, display_name: editForm.display_name, role_id: editForm.role_id || undefined });
+      setEditModalOpen(false);
+      message.success('用户已更新');
+      fetch();
+    } catch (err: any) {
+      message.error(err?.response?.data?.detail || '更新失败');
+    }
+  };
+
+  const handleDelete = async (userId: string) => {
+    try {
+      await deleteUser(userId);
+      message.success('用户已删除');
+      fetch();
+    } catch (err: any) {
+      message.error(err?.response?.data?.detail || '删除失败');
     }
   };
 
@@ -181,11 +212,15 @@ function UsersManager() {
       render: (v: boolean) => v ? <Tag color="green">启用</Tag> : <Tag color="red">禁用</Tag>,
     },
     {
-      title: '操作', key: 'actions',
+      title: '操作', key: 'actions', width: 300,
       render: (_: any, r: User) => (
         <Space>
+          <a onClick={() => openEdit(r)}><EditOutlined /> 编辑</a>
           <a onClick={() => handleResetPwd(r.id)}>重置密码</a>
           <a onClick={() => handleToggle(r.id)}>{r.is_active ? '禁用' : '启用'}</a>
+          <Popconfirm title="确认删除此用户？" onConfirm={() => handleDelete(r.id)}>
+            <a style={{ color: '#ff4d4f' }}>删除</a>
+          </Popconfirm>
         </Space>
       ),
     },
@@ -212,6 +247,20 @@ function UsersManager() {
         <div style={rowStyle}>
           <span style={labelStyle}>角色</span>
           <Select value={form.role_id || undefined} onChange={(v) => setForm({ ...form, role_id: v || '' })} options={roles.map(r => ({ label: r.name, value: r.id }))} style={{ flex: 1 }} placeholder="选择角色" allowClear />
+        </div>
+      </Modal>
+      <Modal title="编辑用户" open={editModalOpen} onOk={handleUpdate} onCancel={() => setEditModalOpen(false)}>
+        <div style={rowStyle}>
+          <span style={labelStyle}>账号</span>
+          <Input placeholder="登录账号" value={editForm.username} onChange={(e) => setEditForm({ ...editForm, username: e.target.value })} style={{ flex: 1 }} />
+        </div>
+        <div style={rowStyle}>
+          <span style={labelStyle}>用户名</span>
+          <Input placeholder="显示名称" value={editForm.display_name} onChange={(e) => setEditForm({ ...editForm, display_name: e.target.value })} style={{ flex: 1 }} />
+        </div>
+        <div style={rowStyle}>
+          <span style={labelStyle}>角色</span>
+          <Select value={editForm.role_id || undefined} onChange={(v) => setEditForm({ ...editForm, role_id: v || '' })} options={roles.map(r => ({ label: r.name, value: r.id }))} style={{ flex: 1 }} placeholder="选择角色" allowClear />
         </div>
       </Modal>
     </div>

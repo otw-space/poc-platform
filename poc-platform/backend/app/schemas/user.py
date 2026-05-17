@@ -32,5 +32,11 @@ class Token(BaseModel):
     user: UserOut
 
 
+class UserUpdate(BaseModel):
+    username: str | None = None
+    display_name: str | None = None
+    role_id: str | None = None
+
+
 class PasswordReset(BaseModel):
     new_password: str
