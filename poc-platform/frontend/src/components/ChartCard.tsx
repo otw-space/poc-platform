@@ -150,7 +150,10 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
       const isCount = config.y_field === 'count';
       const prefix = isCount ? <ProjectOutlined /> : <ClockCircleOutlined />;
       return (
-        <div onClick={handleStatClick} style={{ textAlign: 'center', padding: '20px 0', cursor: 'pointer' }}>
+        <div onClick={handleStatClick} style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          height: (config.h || 300) - 48, cursor: 'pointer',
+        }}>
           <Statistic
             value={isCount ? Math.round(value) : value}
             precision={isCount ? 0 : 1}

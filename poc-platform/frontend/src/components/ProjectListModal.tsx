@@ -52,25 +52,29 @@ export default function ProjectListModal({ open, onClose, filters, title }: Prop
     setLoading(true);
     const params: Record<string, any> = { page, page_size: 20 };
     for (const f of filters) {
-      if (f.op !== 'eq') continue;
-      if (['region', 'city', 'sales', 'pm'].includes(f.field)) {
-        params[f.field] = f.value;
-      } else if (f.field === 'start_date') {
-        params.date_from = f.value;
-      } else if (f.field === 'end_date') {
-        params.date_to = f.value;
-      } else if (f.field === 'poc_type') {
-        const opt = typeOpts.find(o => o.label === f.value);
-        if (opt) params.poc_type_id = opt.id;
-      } else if (f.field === 'impl_method') {
-        const opt = implOpts.find(o => o.label === f.value);
-        if (opt) params.impl_method_id = opt.id;
-      } else if (f.field === 'status') {
-        const opt = statusOpts.find(o => o.label === f.value);
-        if (opt) params.status_id = opt.id;
+      const isText = ['region', 'city', 'sales', 'pm'].includes(f.field);
+      const isDate = f.field === 'start_date' || f.field === 'end_date';
+      const isOption = ['poc_type', 'impl_method', 'status'].includes(f.field);
+
+      if (isText) {
+        if (f.op === 'eq') params[f.field] = f.value;
+        else if (f.op === 'like') params.name = f.value; // text like => search by name
+        // neq cannot be mapped to list API directly, skip
+      } else if (isDate) {
+        const key = f.field === 'start_date' ? 'date_from' : 'date_to';
+        if (f.op === 'eq' || f.op === 'gte') params[key] = f.value;
+        else if (f.op === 'lte') params[f.field === 'start_date' ? 'date_to' : 'date_from'] = f.value;
+      } else if (isOption) {
+        const cat = f.field === 'poc_type' ? 'poc_type' : f.field === 'impl_method' ? 'impl_method' : 'status';
+        const paramKey = `${cat}_id`;
+        const opts = cat === 'poc_type' ? typeOpts : cat === 'impl_method' ? implOpts : statusOpts;
+        if (f.op === 'eq') {
+          const opt = opts.find(o => o.label === f.value);
+          if (opt) params[paramKey] = opt.id;
+        }
+        // in/neq cannot be mapped to list API directly, skip
       }
     }
-    console.log('ProjectListModal fetch with params:', params, 'filters:', filters);
     getProjects(params)
       .then((r) => { setProjects(r.data.items); setTotal(r.data.total); })
       .catch((err) => { console.error('ProjectListModal fetch error:', err); })
