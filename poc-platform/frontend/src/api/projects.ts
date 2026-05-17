@@ -85,10 +85,18 @@ export function queryProjectData(data: any) {
 }
 
 // File upload
-export function uploadProjectFile(projectId: string, fileType: 'plan' | 'report', file: File) {
+export function uploadProjectFile(
+  projectId: string, fileType: 'plan' | 'report', file: File,
+  onProgress?: (pct: number) => void, signal?: AbortSignal,
+) {
   const formData = new FormData();
   formData.append('file', file);
-  return client.post(`/projects/${projectId}/upload/${fileType}`, formData);
+  return client.post(`/projects/${projectId}/upload/${fileType}`, formData, {
+    signal,
+    onUploadProgress: (e) => {
+      if (e.total && onProgress) onProgress((e.loaded / e.total) * 100);
+    },
+  });
 }
 
 export function getFileDownloadUrl(projectId: string, fileType: 'plan' | 'report', inline = false) {

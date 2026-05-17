@@ -34,10 +34,15 @@ export function deleteDocument(id: string) {
   return client.delete(`/sops/documents/${id}`);
 }
 
-export function uploadDocumentFile(id: string, file: File) {
+export function uploadDocumentFile(id: string, file: File, onProgress?: (pct: number) => void, signal?: AbortSignal) {
   const form = new FormData();
   form.append('file', file);
-  return client.post(`/sops/documents/${id}/upload`, form);
+  return client.post(`/sops/documents/${id}/upload`, form, {
+    signal,
+    onUploadProgress: (e) => {
+      if (e.total && onProgress) onProgress((e.loaded / e.total) * 100);
+    },
+  });
 }
 
 export function uploadImage(docId: string, file: File) {
@@ -122,10 +127,15 @@ export function deleteTestCase(id: string) {
   return client.delete(`/sops/test-cases/${id}`);
 }
 
-export function importTestCases(file: File) {
+export function importTestCases(file: File, onProgress?: (pct: number) => void, signal?: AbortSignal) {
   const form = new FormData();
   form.append('file', file);
-  return client.post('/sops/test-cases/import', form);
+  return client.post('/sops/test-cases/import', form, {
+    signal,
+    onUploadProgress: (e) => {
+      if (e.total && onProgress) onProgress((e.loaded / e.total) * 100);
+    },
+  });
 }
 
 export function exportTestCases() {
@@ -153,10 +163,15 @@ export function listScripts() {
   return client.get<ScriptFile[]>('/sops/scripts');
 }
 
-export function createScript(name: string, description: string | undefined, file: File) {
+export function createScript(name: string, description: string | undefined, file: File, onProgress?: (pct: number) => void, signal?: AbortSignal) {
   const form = new FormData();
   form.append('file', file);
-  return client.post<ScriptFile>(`/sops/scripts?name=${encodeURIComponent(name)}${description ? `&description=${encodeURIComponent(description)}` : ''}`, form);
+  return client.post<ScriptFile>(`/sops/scripts?name=${encodeURIComponent(name)}${description ? `&description=${encodeURIComponent(description)}` : ''}`, form, {
+    signal,
+    onUploadProgress: (e) => {
+      if (e.total && onProgress) onProgress((e.loaded / e.total) * 100);
+    },
+  });
 }
 
 export function deleteScript(id: string) {

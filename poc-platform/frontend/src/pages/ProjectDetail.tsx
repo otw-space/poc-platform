@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Tag, Button, Space, Popconfirm, message, Spin, Tabs, Upload, Timeline, Empty, Modal } from 'antd';
+import { Card, Descriptions, Tag, Button, Space, Popconfirm, message, Spin, Tabs, Timeline, Empty, Modal } from 'antd';
 import { UploadOutlined, DownloadOutlined, EyeOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import MDEditor from '@uiw/react-md-editor';
 import { getProject, deleteProject, updateProject, getProjectLogs, createProjectLog, updateProjectLog, deleteProjectLog, uploadProjectFile, type PocProject, type ProjectLog, type ProjectLogCreate, type ProjectLogUpdate } from '../api/projects';
 import { getOptions, type PocOption } from '../api/options';
 import LogEntryModal from '../components/LogEntryModal';
+import FileUpload from '../components/FileUpload';
 import client from '../api/client';
 import dayjs from 'dayjs';
 
@@ -160,46 +161,25 @@ export default function ProjectDetail() {
           </div>
         ) : (
           <Empty description="暂无文件" image={Empty.PRESENTED_IMAGE_SIMPLE}>
-            <Upload
+            <FileUpload
               accept={accept}
-              maxCount={1}
-              showUploadList={false}
-              customRequest={async ({ file, onSuccess, onError }) => {
-                try {
-                  await uploadProjectFile(id!, fileType, file as File);
-                  onSuccess?.('ok');
-                  message.success('上传成功');
-                  fetchProject();
-                } catch {
-                  onError?.(new Error('Upload failed'));
-                  message.error('上传失败');
-                }
-              }}
+              uploadFn={(file, onProgress, signal) => uploadProjectFile(id!, fileType, file as File, onProgress, signal)}
+              onSuccess={fetchProject}
             >
               <Button icon={<UploadOutlined />}>上传文件</Button>
-            </Upload>
+            </FileUpload>
           </Empty>
         )}
         {hasFile && (
           <div style={{ marginTop: 8 }}>
-            <Upload
+            <FileUpload
               accept={accept}
-              maxCount={1}
-              showUploadList={false}
-              customRequest={async ({ file, onSuccess, onError }) => {
-                try {
-                  await uploadProjectFile(id!, fileType, file as File);
-                  onSuccess?.('ok');
-                  message.success('重新上传成功');
-                  fetchProject();
-                } catch {
-                  onError?.(new Error('Upload failed'));
-                  message.error('上传失败');
-                }
-              }}
+              hasFile
+              uploadFn={(file, onProgress, signal) => uploadProjectFile(id!, fileType, file as File, onProgress, signal)}
+              onSuccess={fetchProject}
             >
               <Button size="small" type="link">重新上传</Button>
-            </Upload>
+            </FileUpload>
           </div>
         )}
       </Card>

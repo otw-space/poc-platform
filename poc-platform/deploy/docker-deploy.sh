@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
+# Docker Desktop credential helper 路径（macOS）
+export PATH="$PATH:/Applications/Docker.app/Contents/Resources/bin"
+
 # ============================================================
 # Docker 部署 — 本地构建镜像，传到服务器运行
 # 服务器不需要访问任何外部网络

@@ -15,6 +15,7 @@ import { Card, Tabs, Button, Table, Tag, Modal, Input, Select, Space, Popconfirm
 import { PlusOutlined, UploadOutlined, DownloadOutlined, ImportOutlined, ExportOutlined, DeleteOutlined, FileTextOutlined, EyeOutlined, DownOutlined, PictureOutlined, EditOutlined } from '@ant-design/icons';
 import MDEditor from '@uiw/react-md-editor';
 import dayjs from 'dayjs';
+import UploadProgressBar from '../components/UploadProgressBar';
 import {
   listDocuments, createDocument, updateDocument, deleteDocument,
   uploadDocumentFile, getDocumentDownloadUrl, previewDocument, uploadImage,
@@ -263,6 +264,9 @@ function ReportTab() {
   const [reportName, setReportName] = useState('');
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [upProgress, setUpProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [upCtrl, setUpCtrl] = useState<AbortController | null>(null);
 
   const fetch = useCallback(() => {
     setLoading(true);
@@ -271,10 +275,17 @@ function ReportTab() {
 
   useEffect(() => { fetch(); }, [fetch]);
 
+  const uploadFile = async (file: File, docId: string) => {
+    const ctrl = new AbortController();
+    setUpCtrl(ctrl); setUpProgress(0); setUploading(true);
+    try { await uploadDocumentFile(docId, file, (pct) => setUpProgress(pct), ctrl.signal); }
+    finally { setUploading(false); setUpCtrl(null); }
+  };
+
   const handleUpload = async (file: File) => {
     if (!reportName.trim()) { message.warning('请输入报告名称'); return; }
     const r = await createDocument({ category: 'report', name: reportName.trim() });
-    await uploadDocumentFile(r.data.id, file);
+    await uploadFile(file, r.data.id);
     message.success('上传成功');
     setUploadOpen(false);
     setReportName('');
@@ -282,7 +293,7 @@ function ReportTab() {
   };
 
   const handleReplace = async (id: string, file: File) => {
-    await uploadDocumentFile(id, file);
+    await uploadFile(file, id);
     message.success('文件已更新');
     fetch();
   };
@@ -322,10 +333,12 @@ function ReportTab() {
       title: '操作', key: 'actions', width: 300,
       render: (_: any, r: SopDocument) => (
         <Space>
-          <Upload accept=".ppt,.pptx,.pdf" showUploadList={false}
-            customRequest={({ file }) => handleReplace(r.id, file as File)}>
-            <Button type="link" size="small" icon={<UploadOutlined />}>替换</Button>
-          </Upload>
+          {!uploading && (
+            <Upload accept=".ppt,.pptx,.pdf" showUploadList={false}
+              customRequest={({ file }) => handleReplace(r.id, file as File)}>
+              <Button type="link" size="small" icon={<UploadOutlined />}>替换</Button>
+            </Upload>
+          )}
           {r.file_json && (
             <>
               <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => handlePreview(r.id)}>预览</Button>
@@ -348,13 +361,16 @@ function ReportTab() {
 
       <Table rowKey="id" columns={columns} dataSource={docs} loading={loading} pagination={false} />
 
-      <Modal title="上传报告" open={uploadOpen} onCancel={() => setUploadOpen(false)} footer={null} destroyOnClose>
+      <Modal title="上传报告" open={uploadOpen} onCancel={() => { if (!uploading) setUploadOpen(false); }} footer={null} destroyOnClose>
         <Space direction="vertical" style={{ width: '100%' }}>
-          <Input placeholder="报告名称" value={reportName} onChange={e => setReportName(e.target.value)} />
-          <Upload accept=".ppt,.pptx,.pdf" showUploadList={false}
-            customRequest={({ file }) => handleUpload(file as File)}>
-            <Button icon={<UploadOutlined />}>选择 PPT 或 PDF 文件</Button>
-          </Upload>
+          <Input placeholder="报告名称" value={reportName} onChange={e => setReportName(e.target.value)} disabled={uploading} />
+          {!uploading && (
+            <Upload accept=".ppt,.pptx,.pdf" showUploadList={false}
+              customRequest={({ file }) => handleUpload(file as File)}>
+              <Button icon={<UploadOutlined />}>选择 PPT 或 PDF 文件</Button>
+            </Upload>
+          )}
+          <UploadProgressBar progress={upProgress} uploading={uploading} onCancel={() => { upCtrl?.abort(); setUploading(false); message.info('已取消上传'); }} />
         </Space>
       </Modal>
 
@@ -390,6 +406,9 @@ function TestCaseTab() {
   const [catSaving, setCatSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [trigger, setTrigger] = useState(0);
+  const [upProgress, setUpProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [upCtrl, setUpCtrl] = useState<AbortController | null>(null);
 
   const refreshCats = () => {
     listCategories().then(r => setCategories(Array.isArray(r.data) ? r.data : [])).catch(() => {});
@@ -457,11 +476,20 @@ function TestCaseTab() {
   };
 
   const handleImport = async (file: File) => {
-    const r = await importTestCases(file);
-    message.success(`导入成功，共 ${r.data.count} 条`);
-    setTrigger(t => t + 1);
-    refreshCats();
-    listTestCases({ page: 1, page_size: 1 }).then(r => setAllTotal(r.data.total));
+    const ctrl = new AbortController();
+    setUpCtrl(ctrl); setUpProgress(0); setUploading(true);
+    try {
+      const r = await importTestCases(file, (pct) => setUpProgress(pct), ctrl.signal);
+      message.success(`导入成功，共 ${r.data.count} 条`);
+      setTrigger(t => t + 1);
+      refreshCats();
+      listTestCases({ page: 1, page_size: 1 }).then(r => setAllTotal(r.data.total));
+    } catch (err: any) {
+      if (err?.code !== 'ERR_CANCELED' && err?.name !== 'CanceledError') message.error('导入失败');
+    } finally {
+      setUploading(false);
+      setUpCtrl(null);
+    }
   };
 
   const columns = [
@@ -537,9 +565,12 @@ function TestCaseTab() {
           <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingCase(null); form.resetFields(); form.setFieldsValue({ category_id: activeCategory }); setModalOpen(true); }}>
             新增用例
           </Button>
-          <Upload accept=".xlsx,.xls" showUploadList={false} customRequest={({ file }) => handleImport(file as File)}>
-            <Button icon={<ImportOutlined />}>导入 Excel</Button>
-          </Upload>
+          {!uploading && (
+            <Upload accept=".xlsx,.xls" showUploadList={false} customRequest={({ file }) => handleImport(file as File)}>
+              <Button icon={<ImportOutlined />}>导入 Excel</Button>
+            </Upload>
+          )}
+          <UploadProgressBar progress={upProgress} uploading={uploading} onCancel={() => { upCtrl?.abort(); setUploading(false); message.info('已取消上传'); }} />
           <Button icon={<ExportOutlined />} onClick={handleExport}>导出 Excel</Button>
         </Space>
 
@@ -618,6 +649,9 @@ function ScriptTab() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [scriptName, setScriptName] = useState('');
   const [scriptDesc, setScriptDesc] = useState('');
+  const [upProgress, setUpProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [upCtrl, setUpCtrl] = useState<AbortController | null>(null);
 
   const fetch = useCallback(() => {
     setLoading(true);
@@ -628,12 +662,21 @@ function ScriptTab() {
 
   const handleUpload = async (file: File) => {
     if (!scriptName.trim()) { message.warning('请输入脚本名称'); return; }
-    await createScript(scriptName.trim(), scriptDesc || undefined, file);
-    message.success('上传成功');
-    setUploadOpen(false);
-    setScriptName('');
-    setScriptDesc('');
-    fetch();
+    const ctrl = new AbortController();
+    setUpCtrl(ctrl); setUpProgress(0); setUploading(true);
+    try {
+      await createScript(scriptName.trim(), scriptDesc || undefined, file, (pct) => setUpProgress(pct), ctrl.signal);
+      message.success('上传成功');
+      setUploadOpen(false);
+      setScriptName('');
+      setScriptDesc('');
+      fetch();
+    } catch (err: any) {
+      if (err?.code !== 'ERR_CANCELED' && err?.name !== 'CanceledError') message.error('上传失败');
+    } finally {
+      setUploading(false);
+      setUpCtrl(null);
+    }
   };
 
   const handleDownload = async (id: string) => {
@@ -675,13 +718,16 @@ function ScriptTab() {
 
       <Table rowKey="id" columns={columns} dataSource={scripts} loading={loading} pagination={false} />
 
-      <Modal title="上传脚本" open={uploadOpen} onCancel={() => setUploadOpen(false)} footer={null} destroyOnClose>
+      <Modal title="上传脚本" open={uploadOpen} onCancel={() => { if (!uploading) setUploadOpen(false); }} footer={null} destroyOnClose>
         <Space direction="vertical" style={{ width: '100%' }}>
-          <Input placeholder="脚本名称" value={scriptName} onChange={e => setScriptName(e.target.value)} />
-          <Input placeholder="描述（可选）" value={scriptDesc} onChange={e => setScriptDesc(e.target.value)} />
-          <Upload accept=".zip" showUploadList={false} customRequest={({ file }) => handleUpload(file as File)}>
-            <Button icon={<UploadOutlined />}>选择 ZIP 文件</Button>
-          </Upload>
+          <Input placeholder="脚本名称" value={scriptName} onChange={e => setScriptName(e.target.value)} disabled={uploading} />
+          <Input placeholder="描述（可选）" value={scriptDesc} onChange={e => setScriptDesc(e.target.value)} disabled={uploading} />
+          {!uploading && (
+            <Upload accept=".zip" showUploadList={false} customRequest={({ file }) => handleUpload(file as File)}>
+              <Button icon={<UploadOutlined />}>选择 ZIP 文件</Button>
+            </Upload>
+          )}
+          <UploadProgressBar progress={upProgress} uploading={uploading} onCancel={() => { upCtrl?.abort(); setUploading(false); message.info('已取消上传'); }} />
         </Space>
       </Modal>
     </div>
