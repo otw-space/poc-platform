@@ -64,19 +64,23 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
   const doRefresh = () => { setMenuOpen(false); fetchData(); message.success('已刷新'); };
 
   const handleChartClick = (chart: any, event: any) => {
-    // Accept various click event types from G2
-    if (!event.type?.includes('click')) return;
-    // Try different data paths based on geometry type
-    let clickedData = event.data?.data;
-    if (!clickedData) clickedData = event.data;
+    // G2 event structure varies — navigate to find the original data item
+    const findData = (obj: any, depth = 0): any => {
+      if (!obj || depth > 5) return null;
+      if (typeof obj === 'object' && obj.x !== undefined && (typeof obj.x === 'string' || typeof obj.x === 'number')) return obj;
+      for (const k of ['data', 'target', 'gEvent']) {
+        const r = findData(obj[k], depth + 1);
+        if (r) return r;
+      }
+      return null;
+    };
+    const clickedData = findData(event);
     if (!clickedData) return;
-    const clickedX = clickedData.x || clickedData[config.x_field] || clickedData.name;
-    if (clickedX === undefined || clickedX === null) return;
-    const strX = String(clickedX);
-    const dimensionFilter = { field: config.x_field, op: 'eq', value: strX };
+    const clickedX = String(clickedData.x);
+    const dimensionFilter = { field: config.x_field, op: 'eq', value: clickedX };
     const combined = [...(config.filters || []), dimensionFilter];
     const fieldLabel = DIMENSION_FIELDS.find(f => f.value === config.x_field)?.label || config.x_field;
-    setProjectModalTitle(`${fieldLabel}: ${strX}`);
+    setProjectModalTitle(`${fieldLabel}: ${clickedX}`);
     setProjectModalFilters(combined);
     setProjectModalOpen(true);
   };
