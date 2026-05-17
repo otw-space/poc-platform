@@ -86,6 +86,7 @@ export function deleteCategory(id: string) {
 export interface TestCase {
   id: string;
   title: string;
+  category_id: string | null;
   module: string | null;
   priority: string;
   precondition: string | null;

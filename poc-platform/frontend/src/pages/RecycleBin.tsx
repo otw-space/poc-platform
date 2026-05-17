@@ -173,7 +173,7 @@ export default function RecycleBin() {
         pagination={false}
         rowSelection={{
           selectedRowKeys: selectedKeys,
-          onChange: setSelectedKeys,
+          onChange: (keys) => setSelectedKeys(keys as string[]),
         }}
       />
     </Card>

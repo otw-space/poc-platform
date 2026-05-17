@@ -67,7 +67,7 @@ function CreatableSelect({ value, onChange, options, category, ...rest }: {
     }
   };
 
-  const optionRender = (opt: { label: string; value: number }) => {
+  const optionRender = (opt: any) => {
     if (editingId === opt.value) {
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 4px' }} onClick={(e) => e.stopPropagation()}>
