@@ -9,14 +9,15 @@ import { getProjects, deleteProject, updateProject, type PocProject } from '../a
 import { getOptions, type PocOption } from '../api/options';
 import ProjectDrawer from '../components/ProjectDrawer';
 
-function generateCSV(projects: PocProject[], typeOptions: PocOption[], statusOptions: PocOption[]): string {
+function generateCSV(projects: PocProject[], typeOptions: PocOption[], implOptions: PocOption[], statusOptions: PocOption[]): string {
   const getLabel = (opts: PocOption[], id: number) => opts.find(o => o.id === id)?.label || '';
-  const headers = ['项目名称', '区域', '城市', '销售', '项目经理', '开始日期', '完成日期', '工期', 'PoC类型', '状态'];
+  const headers = ['项目名称', '区域', '城市', '销售', '项目经理', '开始日期', '完成日期', '工期', 'PoC类型', '实施方式', '状态'];
   const rows = projects.map(p => [
     p.name, p.region, p.city, p.sales, p.pm,
     p.start_date, p.end_date,
     p.duration_days ? `${p.duration_days}天` : '',
     getLabel(typeOptions, p.poc_type_id),
+    getLabel(implOptions, p.impl_method_id),
     getLabel(statusOptions, p.status_id),
   ]);
   const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
@@ -43,6 +44,7 @@ const DEFAULT_WIDTHS: Record<string, number> = {
   end_date: 100,
   duration_days: 70,
   poc_type_id: 90,
+  impl_method_id: 90,
   status_id: 90,
   actions: 160,
 };
@@ -73,6 +75,7 @@ export default function ProjectList() {
   const [filters, setFilters] = useState<Record<string, any>>({});
   const [statusOptions, setStatusOptions] = useState<PocOption[]>([]);
   const [typeOptions, setTypeOptions] = useState<PocOption[]>([]);
+  const [implOptions, setImplOptions] = useState<PocOption[]>([]);
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => ({
     ...DEFAULT_WIDTHS,
     ...loadWidths(),
@@ -84,6 +87,7 @@ export default function ProjectList() {
   useEffect(() => {
     getOptions('status').then((r) => setStatusOptions(r.data));
     getOptions('poc_type').then((r) => setTypeOptions(r.data));
+    getOptions('impl_method').then((r) => setImplOptions(r.data));
   }, []);
 
   const fetchProjects = useCallback(() => {
@@ -139,6 +143,10 @@ export default function ProjectList() {
     resizableCol({
       title: 'PoC类型', dataIndex: 'poc_type_id', key: 'poc_type_id',
       render: (v: number) => <Tag>{getOptionLabel(typeOptions, v)}</Tag>,
+    }),
+    resizableCol({
+      title: '实施方式', dataIndex: 'impl_method_id', key: 'impl_method_id',
+      render: (v: number) => <Tag>{getOptionLabel(implOptions, v)}</Tag>,
     }),
     resizableCol({
       title: '状态', dataIndex: 'status_id', key: 'status_id', width: w('status_id'),
@@ -234,7 +242,7 @@ export default function ProjectList() {
           新建项目
         </Button>
         <Button icon={<DownloadOutlined />} onClick={() => {
-          const csv = '﻿' + generateCSV(projects, typeOptions, statusOptions);
+          const csv = '﻿' + generateCSV(projects, typeOptions, implOptions, statusOptions);
           const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
