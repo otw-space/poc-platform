@@ -129,7 +129,12 @@ export default function ProjectList() {
   });
 
   const columns = [
-    resizableCol({ title: '项目名称', dataIndex: 'name', key: 'name', ellipsis: true }),
+    resizableCol({
+      title: '项目名称', dataIndex: 'name', key: 'name', ellipsis: true,
+      render: (v: string, record: PocProject) => (
+        <a onClick={() => { setSelectedProjectId(record.id); setDrawerOpen(true); }}>{v}</a>
+      ),
+    }),
     resizableCol({ title: '区域', dataIndex: 'region', key: 'region' }),
     resizableCol({ title: '城市', dataIndex: 'city', key: 'city' }),
     resizableCol({ title: '销售', dataIndex: 'sales', key: 'sales' }),
