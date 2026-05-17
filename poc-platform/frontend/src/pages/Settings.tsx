@@ -477,6 +477,7 @@ function AuditLogs() {
     script: 'SOP中心-脚本库',
     project_log: '项目管理-日志',
     user: '系统设置-用户管理',
+    role: '系统设置-角色管理',
   };
 
   const handleBatchDelete = async () => {
