@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: poc-platform
+  labels:
+    app: poc-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: poc-platform
+  template:
+    metadata:
+      labels:
+        app: poc-platform
+    spec:
+      containers:
+        - name: poc-platform
+          image: poc-platform:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              value: "sqlite:////app/data/poc.db"
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: poc-platform-secret
+                  key: SECRET_KEY
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: uploads
+              mountPath: /app/uploads
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /api/auth/me
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/auth/me
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: poc-platform-data
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: poc-platform-uploads
