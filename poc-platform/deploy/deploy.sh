@@ -3,7 +3,7 @@ set -e
 
 # ============================================================
 # PoC Management Platform - 一键部署脚本
-# 适用: Ubuntu 22.04+ / Debian 12+ / CentOS Stream 9+
+# 适用: Ubuntu 22.04+ / Debian 12+
 # ============================================================
 
 APP_DIR="/opt/poc-platform"
@@ -11,107 +11,121 @@ VENV_DIR="$APP_DIR/venv"
 BACKEND_DIR="$APP_DIR/backend"
 FRONTEND_DIR="$APP_DIR/frontend"
 SERVICE_NAME="poc-platform"
+OFFLINE_PIP_DIR=""
+DOMAIN="_"
 
-# ---- 检查系统依赖 ----
-check_deps() {
-    echo "==> 检查系统依赖..."
+# 解析参数
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --offline)
+            OFFLINE_PIP_DIR="$2"
+            shift 2
+            ;;
+        --mirror)
+            USE_MIRROR=true
+            shift
+            ;;
+        *)
+            DOMAIN="$1"
+            shift
+            ;;
+    esac
+done
 
-    if ! command -v python3 &>/dev/null; then
-        echo "安装 Python3..."
-        sudo apt-get update && sudo apt-get install -y python3 python3-venv python3-pip
+# ---- 系统依赖 ----
+install_system_deps() {
+    echo "==> 安装系统依赖..."
+    if command -v apt-get &>/dev/null; then
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq python3 python3-venv python3-pip nginx
+    elif command -v yum &>/dev/null; then
+        sudo yum install -y python3 python3-pip nginx
     fi
-
-    if ! command -v node &>/dev/null && ! command -v nodejs &>/dev/null; then
-        echo "安装 Node.js 20.x..."
-        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-        sudo apt-get install -y nodejs
-    fi
-
-    if ! command -v nginx &>/dev/null; then
-        echo "安装 Nginx..."
-        sudo apt-get install -y nginx
-    fi
-
-    echo "   依赖检查完毕"
+    echo "   系统依赖 OK"
 }
 
-# ---- 构建前端 ----
-build_frontend() {
-    echo "==> 构建前端..."
-    cd "$FRONTEND_DIR"
-    npm install --production
-    npm run build
-    echo "   前端构建完成 -> $FRONTEND_DIR/dist"
-}
-
-# ---- 安装后端依赖 ----
+# ---- 后端 ----
 setup_backend() {
     echo "==> 安装后端依赖..."
     python3 -m venv "$VENV_DIR"
     source "$VENV_DIR/bin/activate"
-    pip install --upgrade pip
-    pip install -r "$BACKEND_DIR/requirements.txt"
-    echo "   后端依赖安装完成"
+    pip install --upgrade pip -q
+
+    if [ -n "$OFFLINE_PIP_DIR" ] && [ -d "$OFFLINE_PIP_DIR" ]; then
+        echo "   离线模式: 从 $OFFLINE_PIP_DIR 安装"
+        pip install --no-index --find-links="$OFFLINE_PIP_DIR" -r "$BACKEND_DIR/requirements.txt"
+    elif [ "$USE_MIRROR" = true ]; then
+        echo "   使用清华镜像加速"
+        pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r "$BACKEND_DIR/requirements.txt"
+    else
+        pip install -r "$BACKEND_DIR/requirements.txt"
+    fi
+    echo "   后端依赖 OK"
 }
 
-# ---- 配置 systemd 服务 ----
+# ---- systemd ----
 setup_service() {
-    echo "==> 配置 systemd 服务..."
+    echo "==> 注册 systemd 服务..."
     sudo cp "$APP_DIR/deploy/poc-platform.service" /etc/systemd/system/
     sudo systemctl daemon-reload
     sudo systemctl enable "$SERVICE_NAME"
-    echo "   服务已注册: $SERVICE_NAME"
+    echo "   服务已注册"
 }
 
-# ---- 配置 Nginx ----
+# ---- Nginx ----
 setup_nginx() {
-    echo "==> 配置 Nginx 反向代理..."
-    DOMAIN=${1:-_}
+    echo "==> 配置 Nginx..."
     sudo cp "$APP_DIR/deploy/nginx.conf" /etc/nginx/sites-available/poc-platform
     sudo sed -i "s/__DOMAIN__/$DOMAIN/g" /etc/nginx/sites-available/poc-platform
     sudo ln -sf /etc/nginx/sites-available/poc-platform /etc/nginx/sites-enabled/
     sudo nginx -t && sudo systemctl reload nginx
-    echo "   Nginx 配置完成"
+    echo "   Nginx 配置 OK"
 }
 
 # ---- 主流程 ----
 main() {
     echo "=========================================="
-    echo " PoC Platform 部署脚本"
+    echo " PoC Platform 部署"
     echo "=========================================="
 
-    # 复制项目到部署目录（如果当前不在目标目录）
-    if [ "$(pwd)" != "$APP_DIR" ]; then
+    # 复制项目到部署目录
+    if [ "$(pwd)" != "$APP_DIR" ] && [ ! -f "$APP_DIR/deploy/deploy.sh" ]; then
         echo "==> 复制项目到 $APP_DIR..."
-        sudo mkdir -p "$APP_DIR"
         SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
         PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-        sudo rsync -a --exclude='node_modules' --exclude='__pycache__' --exclude='*.pyc' --exclude='.git' --exclude='dist' --exclude='*.db' --exclude='uploads/*' "$PROJECT_DIR/" "$APP_DIR/"
+        sudo mkdir -p "$APP_DIR"
+        sudo rsync -a \
+            --exclude='.git' --exclude='node_modules' --exclude='__pycache__' \
+            --exclude='*.pyc' --exclude='*.db' --exclude='venv' \
+            --exclude='uploads/*' --exclude='.claude' \
+            "$PROJECT_DIR/" "$APP_DIR/"
         sudo chown -R "$(whoami):$(whoami)" "$APP_DIR"
     fi
 
-    check_deps
+    install_system_deps
 
-    # 检查 .env 文件
+    # 生成 .env（如果不存在）
     if [ ! -f "$APP_DIR/.env" ]; then
-        echo "==> 生成 .env 文件..."
+        echo "==> 生成 .env..."
         SECRET=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
         cat > "$APP_DIR/.env" <<EOF
 DATABASE_URL=sqlite:///$APP_DIR/data/poc.db
 SECRET_KEY=$SECRET
 EOF
-        echo "   密钥已生成，请妥善保管 $APP_DIR/.env"
+        echo "   密钥已生成"
     fi
 
-    # 创建数据目录
     mkdir -p "$APP_DIR/data" "$APP_DIR/uploads"
 
     setup_backend
-    build_frontend
     setup_service
-    setup_nginx "$1"
 
-    # 启动服务
+    # Nginx 可选
+    if [ "$DOMAIN" != "__skip__" ]; then
+        setup_nginx
+    fi
+
+    # 启动
     echo "==> 启动服务..."
     sudo systemctl restart "$SERVICE_NAME"
     sleep 2
@@ -119,10 +133,9 @@ EOF
 
     echo ""
     echo "=========================================="
-    echo " 部署完成!"
-    echo " 访问地址: http://$(curl -s ifconfig.me 2>/dev/null || echo 'YOUR_IP')"
-    echo " 查看日志: sudo journalctl -u $SERVICE_NAME -f"
+    echo " 部署完成"
     echo "=========================================="
+    echo " 查看日志: sudo journalctl -u $SERVICE_NAME -f"
 }
 
-main "$@"
+main
