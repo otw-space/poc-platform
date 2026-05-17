@@ -37,7 +37,7 @@ export default function ProjectListModal({ open, onClose, filters, title }: Prop
   }, [open]);
 
   useEffect(() => {
-    if (!open || filters.length === 0) return;
+    if (!open) return;
     setLoading(true);
     setPage(1);
     const params: Record<string, any> = { page: 1, page_size: 20 };

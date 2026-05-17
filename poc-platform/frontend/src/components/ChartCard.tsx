@@ -64,14 +64,19 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
   const doRefresh = () => { setMenuOpen(false); fetchData(); message.success('已刷新'); };
 
   const handleChartClick = (chart: any, event: any) => {
-    if (event.type !== 'element:click') return;
-    const clickedData = event.data?.data;
-    if (!clickedData || clickedData.x === undefined) return;
-    const clickedX = String(clickedData.x);
-    const dimensionFilter = { field: config.x_field, op: 'eq', value: clickedX };
+    // Accept various click event types from G2
+    if (!event.type?.includes('click')) return;
+    // Try different data paths based on geometry type
+    let clickedData = event.data?.data;
+    if (!clickedData) clickedData = event.data;
+    if (!clickedData) return;
+    const clickedX = clickedData.x || clickedData[config.x_field] || clickedData.name;
+    if (clickedX === undefined || clickedX === null) return;
+    const strX = String(clickedX);
+    const dimensionFilter = { field: config.x_field, op: 'eq', value: strX };
     const combined = [...(config.filters || []), dimensionFilter];
     const fieldLabel = DIMENSION_FIELDS.find(f => f.value === config.x_field)?.label || config.x_field;
-    setProjectModalTitle(`${fieldLabel}: ${clickedX}`);
+    setProjectModalTitle(`${fieldLabel}: ${strX}`);
     setProjectModalFilters(combined);
     setProjectModalOpen(true);
   };
@@ -137,16 +142,14 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
       const isCount = config.y_field === 'count';
       const prefix = isCount ? <ProjectOutlined /> : <ClockCircleOutlined />;
       return (
-        <div onClick={handleStatClick} style={{ textAlign: 'center', padding: '40px 0', cursor: 'pointer' }}>
+        <div onClick={handleStatClick} style={{ textAlign: 'center', padding: '20px 0', cursor: 'pointer' }}>
           <Statistic
-            title={config.title || (isCount ? '项目总数' : '平均工期')}
             value={isCount ? Math.round(value) : value}
             precision={isCount ? 0 : 1}
             prefix={prefix}
             suffix={isCount ? '' : '天'}
             valueStyle={{ fontSize: 48, fontWeight: 700, color: isCount ? '#1677ff' : '#52c41a' }}
           />
-          <div style={{ fontSize: 12, color: '#999', marginTop: 8 }}>点击查看项目详情</div>
         </div>
       );
     }
