@@ -259,6 +259,7 @@ export default function ProjectList() {
         columns={columns}
         dataSource={projects}
         loading={loading}
+        scroll={{ x: 'max-content' }}
         components={{ header: { cell: ResizableTitle } }}
         pagination={{
           current: page,
