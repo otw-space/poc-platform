@@ -1,0 +1,21 @@
+[Unit]
+Description=PoC Management Platform
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/poc-platform/backend
+EnvironmentFile=/opt/poc-platform/.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/poc-platform/venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2
+Restart=always
+RestartSec=5
+
+# 安全加固
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target
