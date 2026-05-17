@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Card, Form, Input, DatePicker, Select, Button, message, Divider } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { Card, Form, Input, DatePicker, Select, Button, message, Popconfirm, Divider, Space } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, CheckOutlined } from '@ant-design/icons';
 import { createProject, updateProject, getProject } from '../api/projects';
-import { getOptions, createOption, type PocOption } from '../api/options';
+import { getOptions, createOption, updateOption, deleteOption, type PocOption } from '../api/options';
 import dayjs from 'dayjs';
 
 function CreatableSelect({ value, onChange, options, category, ...rest }: {
@@ -16,6 +16,8 @@ function CreatableSelect({ value, onChange, options, category, ...rest }: {
   const [items, setItems] = useState(options);
   const [newName, setNewName] = useState('');
   const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingLabel, setEditingLabel] = useState('');
   const inputRef = useRef<any>(null);
 
   useEffect(() => setItems(options), [options]);
@@ -38,11 +40,68 @@ function CreatableSelect({ value, onChange, options, category, ...rest }: {
     }
   };
 
+  const handleEditStart = (id: number, label: string) => {
+    setEditingId(id);
+    setEditingLabel(label);
+  };
+
+  const handleEditSave = async (id: number) => {
+    if (!editingLabel.trim()) return;
+    try {
+      await updateOption(id, { label: editingLabel.trim() });
+      setItems(prev => prev.map(o => o.value === id ? { ...o, label: editingLabel.trim() } : o));
+      setEditingId(null);
+    } catch {
+      message.error('修改失败');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteOption(id);
+      setItems(prev => prev.filter(o => o.value !== id));
+      if (value === id) onChange?.(undefined as any);
+      message.success('已删除');
+    } catch {
+      message.error('删除失败');
+    }
+  };
+
+  const optionRender = (opt: { label: string; value: number }) => {
+    if (editingId === opt.value) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 4px' }} onClick={(e) => e.stopPropagation()}>
+          <Input
+            size="small"
+            value={editingLabel}
+            onChange={(e) => setEditingLabel(e.target.value)}
+            onPressEnter={() => handleEditSave(opt.value)}
+            style={{ flex: 1 }}
+            autoFocus
+          />
+          <Button size="small" type="text" icon={<CheckOutlined />} onClick={() => handleEditSave(opt.value)} />
+        </div>
+      );
+    }
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span>{opt.label}</span>
+        <Space size={0} onClick={(e) => e.stopPropagation()}>
+          <Button size="small" type="text" icon={<EditOutlined />} onClick={() => handleEditStart(opt.value, opt.label)} />
+          <Popconfirm title="确认删除？" onConfirm={() => handleDelete(opt.value)}>
+            <Button size="small" type="text" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </Space>
+      </div>
+    );
+  };
+
   return (
     <Select
       value={value}
       onChange={onChange}
       options={items}
+      optionRender={optionRender}
       {...rest}
       dropdownRender={(menu) => (
         <div>
