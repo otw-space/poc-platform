@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout as AntLayout, Menu, Button, theme } from 'antd';
+import { Layout as AntLayout, Menu, Button, theme, Dropdown } from 'antd';
 import {
   HomeOutlined,
   ProjectOutlined,
@@ -9,6 +9,7 @@ import {
   SettingOutlined,
   DeleteOutlined,
   LogoutOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
 
@@ -59,12 +60,23 @@ export default function Layout() {
           PoC 管理平台
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 14, color: token.colorTextSecondary }}>
-            {user?.display_name}
-          </span>
-          <Button icon={<LogoutOutlined />} onClick={handleLogout} size="small" type="text">
-            退出登录
-          </Button>
+          <Dropdown
+            menu={{
+              items: [
+                { key: 'profile', icon: <UserOutlined />, label: '个人中心' },
+                { type: 'divider' },
+                { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', danger: true },
+              ],
+              onClick: ({ key }) => {
+                if (key === 'profile') navigate('/profile');
+                if (key === 'logout') handleLogout();
+              },
+            }}
+          >
+            <a style={{ fontSize: 14, cursor: 'pointer', color: token.colorTextSecondary }}>
+              {user?.display_name}
+            </a>
+          </Dropdown>
         </div>
       </Header>
 

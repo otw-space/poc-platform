@@ -11,6 +11,7 @@ import SopCenter from './pages/SopCenter';
 import DashboardHome from './pages/DashboardHome';
 import RecycleBin from './pages/RecycleBin';
 import Settings from './pages/Settings';
+import Profile from './pages/Profile';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -45,6 +46,7 @@ export default function App() {
         <Route path="projects/:id/edit" element={<ProjectForm />} />
         <Route path="projects/:id" element={<ProjectDetail />} />
         <Route path="dashboards" element={<DashboardCanvas />} />
+        <Route path="profile" element={<Profile />} />
         <Route path="sop" element={<SopCenter />} />
         <Route path="recycle-bin" element={<RecycleBin />} />
         <Route

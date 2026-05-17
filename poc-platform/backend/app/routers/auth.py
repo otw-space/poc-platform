@@ -1,11 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..schemas.user import UserLogin, Token, UserCreate, UserOut
-from ..services.auth import authenticate_user, create_access_token, hash_password, get_user_by_username
+from ..services.auth import authenticate_user, create_access_token, hash_password, get_user_by_username, verify_password
 from ..middleware.auth import get_current_user
 from ..models.user import User
 from ..models.role import RolePermission
+
+router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -56,3 +64,12 @@ def my_permissions(current_user: User = Depends(get_current_user), db: Session =
     # Other users get their role's permissions
     perms = db.query(RolePermission).filter(RolePermission.role_id == current_user.role_id).all()
     return [f"{p.module}:{p.action}" for p in perms]
+
+
+@router.put("/me/password")
+def change_my_password(data: PasswordChange, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not verify_password(data.current_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="当前密码错误")
+    current_user.password_hash = hash_password(data.new_password)
+    db.commit()
+    return {"ok": True}

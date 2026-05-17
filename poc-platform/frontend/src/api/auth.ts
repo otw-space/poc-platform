@@ -27,3 +27,7 @@ export function getMe() {
 export function getMyPermissions() {
   return client.get<string[]>('/auth/me/permissions');
 }
+
+export function changePassword(currentPassword: string, newPassword: string) {
+  return client.put('/auth/me/password', { current_password: currentPassword, new_password: newPassword });
+}
