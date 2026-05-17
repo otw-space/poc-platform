@@ -1,9 +1,72 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Card, Form, Input, DatePicker, Select, Button, message } from 'antd';
+import { Card, Form, Input, DatePicker, Select, Button, message, Divider } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
 import { createProject, updateProject, getProject } from '../api/projects';
-import { getOptions, type PocOption } from '../api/options';
+import { getOptions, createOption, type PocOption } from '../api/options';
 import dayjs from 'dayjs';
+
+function CreatableSelect({ value, onChange, options, category, ...rest }: {
+  value?: number;
+  onChange?: (value: number) => void;
+  options: { label: string; value: number }[];
+  category: string;
+  placeholder?: string;
+}) {
+  const [items, setItems] = useState(options);
+  const [newName, setNewName] = useState('');
+  const [adding, setAdding] = useState(false);
+  const inputRef = useRef<any>(null);
+
+  useEffect(() => setItems(options), [options]);
+
+  const handleAdd = async () => {
+    const label = newName.trim();
+    if (!label) return;
+    setAdding(true);
+    try {
+      const maxOrder = items.length;
+      const res = await createOption({ category, label, sort_order: maxOrder + 1 });
+      const newOpt = { label: res.data.label, value: res.data.id };
+      setItems(prev => [...prev, newOpt]);
+      setNewName('');
+      onChange?.(res.data.id);
+    } catch {
+      message.error('添加失败');
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  return (
+    <Select
+      value={value}
+      onChange={onChange}
+      options={items}
+      {...rest}
+      dropdownRender={(menu) => (
+        <div>
+          {menu}
+          <Divider style={{ margin: '8px 0' }} />
+          <div style={{ display: 'flex', padding: '0 8px 8px', gap: 8 }}>
+            <Input
+              ref={inputRef}
+              size="small"
+              placeholder="新增选项"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onPressEnter={handleAdd}
+              onKeyDown={(e) => e.stopPropagation()}
+            />
+            <Button size="small" type="text" icon={<PlusOutlined />} loading={adding} onClick={handleAdd}>
+              添加
+            </Button>
+          </div>
+        </div>
+      )}
+    />
+  );
+}
 
 export default function ProjectForm() {
   const { id } = useParams();
@@ -15,11 +78,13 @@ export default function ProjectForm() {
   const [implOptions, setImplOptions] = useState<PocOption[]>([]);
   const [statusOptions, setStatusOptions] = useState<PocOption[]>([]);
 
-  useEffect(() => {
+  const fetchOptions = () => {
     getOptions('poc_type').then((r) => setTypeOptions(r.data));
     getOptions('impl_method').then((r) => setImplOptions(r.data));
     getOptions('status').then((r) => setStatusOptions(r.data));
-  }, []);
+  };
+
+  useEffect(() => { fetchOptions(); }, []);
 
   useEffect(() => {
     if (isEdit) {
@@ -88,13 +153,13 @@ export default function ProjectForm() {
         </div>
         <div style={{ display: 'flex', gap: 16 }}>
           <Form.Item name="poc_type_id" label="PoC类型" rules={[{ required: true }]} style={{ flex: 1 }}>
-            <Select options={typeOptions.map((o) => ({ label: o.label, value: o.id }))} />
+            <CreatableSelect options={typeOptions.map((o) => ({ label: o.label, value: o.id }))} category="poc_type" placeholder="选择或新增" />
           </Form.Item>
           <Form.Item name="impl_method_id" label="实施方式" rules={[{ required: true }]} style={{ flex: 1 }}>
-            <Select options={implOptions.map((o) => ({ label: o.label, value: o.id }))} />
+            <CreatableSelect options={implOptions.map((o) => ({ label: o.label, value: o.id }))} category="impl_method" placeholder="选择或新增" />
           </Form.Item>
           <Form.Item name="status_id" label="状态" rules={[{ required: true }]} style={{ flex: 1 }}>
-            <Select options={statusOptions.map((o) => ({ label: o.label, value: o.id }))} />
+            <CreatableSelect options={statusOptions.map((o) => ({ label: o.label, value: o.id }))} category="status" placeholder="选择或新增" />
           </Form.Item>
         </div>
         <Form.Item name="result" label="PoC结果">

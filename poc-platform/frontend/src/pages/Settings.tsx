@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Tabs, Table, Button, Input, Space, Popconfirm, message, Modal, Select, Tag } from 'antd';
 import { PlusOutlined, DeleteOutlined, ClearOutlined, EditOutlined } from '@ant-design/icons';
-import { getOptions, createOption, updateOption, deleteOption, type PocOption } from '../api/options';
 import { getUsers, createUser, updateUser, deleteUser, resetPassword, toggleActive } from '../api/users';
 import type { User } from '../api/auth';
 import { getRoles, createRole, updateRole, deleteRole } from '../api/roles';
@@ -9,14 +8,8 @@ import type { Role, RolePermission } from '../api/roles';
 import client from '../api/client';
 import dayjs from 'dayjs';
 
-const CATEGORIES = [
-  { key: 'poc_type', label: 'PoC类型' },
-  { key: 'impl_method', label: '实施方式' },
-  { key: 'status', label: '状态' },
-];
-
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState('options');
+  const [activeTab, setActiveTab] = useState('users');
   const [auditVersion, setAuditVersion] = useState(0);
 
   return (
@@ -28,7 +21,6 @@ export default function Settings() {
           if (key === 'audit') setAuditVersion(v => v + 1);
         }}
         items={[
-          { key: 'options', label: '下拉选项管理', children: <ErrorBoundary name="options"><OptionsManager /></ErrorBoundary> },
           { key: 'users', label: '用户管理', children: <ErrorBoundary name="users"><UsersManager /></ErrorBoundary> },
           { key: 'roles', label: '角色管理', children: <ErrorBoundary name="roles"><RoleManager /></ErrorBoundary> },
           { key: 'audit', label: '操作日志', children: <ErrorBoundary name="audit"><AuditLogs refreshKey={auditVersion} /></ErrorBoundary> },
@@ -54,94 +46,6 @@ class ErrorBoundary extends React.Component<{ name: string; children: React.Reac
     }
     return this.props.children;
   }
-}
-
-function OptionsManager() {
-  const [activeCat, setActiveCat] = useState('poc_type');
-  const [options, setOptions] = useState<PocOption[]>([]);
-  const [newLabel, setNewLabel] = useState('');
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editingLabel, setEditingLabel] = useState('');
-
-  const fetch = () => {
-    getOptions(activeCat).then((r) => setOptions(r.data));
-  };
-
-  useEffect(() => { fetch(); }, [activeCat]);
-
-  const handleCreate = async () => {
-    if (!newLabel.trim()) return;
-    const maxOrder = options.reduce((max, o) => Math.max(max, o.sort_order || 0), 0);
-    await createOption({ category: activeCat, label: newLabel.trim(), sort_order: maxOrder + 1 });
-    setNewLabel('');
-    fetch();
-  };
-
-  const handleUpdate = async (id: number) => {
-    await updateOption(id, { label: editingLabel });
-    setEditingId(null);
-    fetch();
-  };
-
-  const handleDelete = async (id: number) => {
-    await deleteOption(id);
-    fetch();
-  };
-
-  return (
-    <div>
-      <Tabs
-        activeKey={activeCat}
-        onChange={setActiveCat}
-        items={CATEGORIES.map((c) => ({ key: c.key, label: c.label }))}
-        style={{ marginBottom: 16 }}
-      />
-      <Table
-        rowKey="id"
-        dataSource={options}
-        pagination={false}
-        columns={[
-          {
-            title: '名称', dataIndex: 'label', key: 'label',
-            render: (v: string, r: PocOption) => {
-              if (editingId === r.id) {
-                return <Input value={editingLabel} onChange={(e) => setEditingLabel(e.target.value)} style={{ width: 150 }} />;
-              }
-              return <span>{v} {r.is_default && <Tag style={{ marginLeft: 8 }}>默认</Tag>}</span>;
-            },
-          },
-          { title: '排序', dataIndex: 'sort_order', key: 'sort_order', width: 80 },
-          {
-            title: '操作', key: 'actions', width: 200,
-            render: (_: any, r: PocOption) => {
-              if (editingId === r.id) {
-                return (
-                  <Space>
-                    <a onClick={() => handleUpdate(r.id)}>保存</a>
-                    <a onClick={() => setEditingId(null)}>取消</a>
-                  </Space>
-                );
-              }
-              return (
-                <Space>
-                  <a onClick={() => { setEditingId(r.id); setEditingLabel(r.label); }}>编辑</a>
-                  {!r.is_default && (
-                    <Popconfirm title="确认删除？" onConfirm={() => handleDelete(r.id)}>
-                      <a style={{ color: '#ff4d4f' }}>删除</a>
-                    </Popconfirm>
-                  )}
-                </Space>
-              );
-            },
-          },
-        ]}
-      />
-      <Space style={{ marginTop: 16 }}>
-        <Input placeholder="新增选项" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} style={{ width: 150 }} />
-        <Button icon={<PlusOutlined />} onClick={handleCreate}>新增</Button>
-      </Space>
-    </div>
-  );
 }
 
 function UsersManager() {
