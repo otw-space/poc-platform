@@ -13,7 +13,8 @@ RUN npm run build
 # ============================================
 FROM python:3.12-slim
 
-WORKDIR /app
+# 目录结构需与开发环境一致: backend/app/main.py 用 ../../frontend/dist 找前端
+WORKDIR /app/backend
 
 # 安装系统依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -27,7 +28,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 复制后端代码
 COPY backend/ .
 
-# 复制前端构建产物
+# 复制前端构建产物（对应 ../../frontend/dist）
 COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
 
 # 数据目录

@@ -7,13 +7,12 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+    working_dir: /app/backend
     environment:
       - DATABASE_URL=sqlite:////app/data/poc.db
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
     volumes:
-      # 持久化 SQLite 数据库文件
       - poc-data:/app/data
-      # 持久化上传文件
       - poc-uploads:/app/uploads
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/auth/me"]
