@@ -3,8 +3,8 @@ from pydantic import BaseModel
 
 class UserCreate(BaseModel):
     username: str
-    password: str
-    display_name: str
+    password: str = "123456"
+    display_name: str = ""
     role: str = "user"
     role_id: str | None = None
 

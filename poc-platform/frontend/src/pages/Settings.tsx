@@ -140,19 +140,19 @@ function UsersManager() {
   const [users, setUsers] = useState<User[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
-  const [form, setForm] = useState({ username: '', password: '', display_name: '', role_id: '' });
+  const [form, setForm] = useState({ username: '', display_name: '', role_id: '' });
 
   const fetch = () => getUsers().then((r) => setUsers(r.data)).catch(err => { console.error('getUsers failed:', err); message.error('加载用户列表失败'); });
   useEffect(() => { fetch(); }, []);
   useEffect(() => { getRoles().then(r => setRoles(r.data)).catch(err => { console.error('getRoles failed:', err); message.error('加载角色列表失败'); }); }, []);
 
   const handleCreate = async () => {
-    if (!form.username || !form.password) return;
+    if (!form.username) return;
     try {
-      await createUser({ username: form.username, password: form.password, display_name: form.display_name, role_id: form.role_id });
+      await createUser({ username: form.username, display_name: form.display_name, role_id: form.role_id || undefined });
       setModalOpen(false);
-      message.success('创建成功');
-      setForm({ username: '', password: '', display_name: '', role_id: '' });
+      message.success('创建成功（默认密码 123456）');
+      setForm({ username: '', display_name: '', role_id: '' });
       fetch();
     } catch (err: any) {
       message.error(err?.response?.data?.detail || '创建失败');
@@ -170,8 +170,8 @@ function UsersManager() {
   };
 
   const columns = [
-    { title: '用户名', dataIndex: 'username', key: 'username' },
-    { title: '显示名', dataIndex: 'display_name', key: 'display_name' },
+    { title: '账号', dataIndex: 'username', key: 'username' },
+    { title: '用户名', dataIndex: 'display_name', key: 'display_name' },
     {
       title: '角色', dataIndex: 'role_name', key: 'role',
       render: (v: string | null) => <Tag>{v || '未分配'}</Tag>,
@@ -191,6 +191,9 @@ function UsersManager() {
     },
   ];
 
+  const rowStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', marginBottom: 12 };
+  const labelStyle: React.CSSProperties = { width: 56, flexShrink: 0, textAlign: 'right', marginRight: 8 };
+
   return (
     <div>
       <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)} style={{ marginBottom: 16 }}>
@@ -198,12 +201,18 @@ function UsersManager() {
       </Button>
       <Table rowKey="id" columns={columns} dataSource={users} pagination={false} />
       <Modal title="新建用户" open={modalOpen} onOk={handleCreate} onCancel={() => setModalOpen(false)}>
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <Input placeholder="用户名" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
-          <Input.Password placeholder="密码" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-          <Input placeholder="显示名" value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} />
-          <Select value={form.role_id} onChange={(v) => setForm({ ...form, role_id: v })} options={roles.map(r => ({ label: r.name, value: r.id }))} style={{ width: '100%' }} placeholder="选择角色" />
-        </Space>
+        <div style={rowStyle}>
+          <span style={labelStyle}>账号</span>
+          <Input placeholder="登录账号" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} style={{ flex: 1 }} />
+        </div>
+        <div style={rowStyle}>
+          <span style={labelStyle}>用户名</span>
+          <Input placeholder="显示名称" value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} style={{ flex: 1 }} />
+        </div>
+        <div style={rowStyle}>
+          <span style={labelStyle}>角色</span>
+          <Select value={form.role_id || undefined} onChange={(v) => setForm({ ...form, role_id: v || '' })} options={roles.map(r => ({ label: r.name, value: r.id }))} style={{ flex: 1 }} placeholder="选择角色" allowClear />
+        </div>
       </Modal>
     </div>
   );
