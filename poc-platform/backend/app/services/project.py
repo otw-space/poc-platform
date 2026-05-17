@@ -47,7 +47,7 @@ def apply_project_filters(db: Session, query, filters: list[dict]):
 
 
 def execute_dashboard_query(db: Session, x_field: str, y_field: str, filters: list[dict]) -> list[dict]:
-    query = db.query(PocProject)
+    query = db.query(PocProject).filter(PocProject.is_deleted == False)
     query = apply_project_filters(db, query, filters)
 
     x_col = getattr(PocProject, x_field, None)

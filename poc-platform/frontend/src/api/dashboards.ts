@@ -48,3 +48,11 @@ export function updateDashboard(id: string, data: Partial<Dashboard>) {
 export function deleteDashboard(id: string) {
   return client.delete(`/dashboards/${id}`);
 }
+
+export function deleteChart(dashboardId: string, chartId: string) {
+  return client.delete(`/dashboards/${dashboardId}/charts/${chartId}`);
+}
+
+export function restoreChart(dashboardId: string, chartId: string) {
+  return client.post(`/dashboards/${dashboardId}/charts/${chartId}/restore`);
+}
