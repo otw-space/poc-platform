@@ -54,9 +54,20 @@ def apply_project_filters(db: Session, query, filters: list[dict], filter_mode: 
     return query
 
 
-def execute_dashboard_query(db: Session, x_field: str, y_field: str, filters: list[dict], aggregate: bool = False, filter_mode: str = "and") -> list[dict]:
+def execute_dashboard_query(db: Session, x_field: str, y_field: str, filters: list[dict], aggregate: bool = False, filter_mode: str = "and", group_field: str | None = None) -> list[dict]:
     query = db.query(PocProject).filter(PocProject.is_deleted == False)
     query = apply_project_filters(db, query, filters, filter_mode)
+
+    # Resolve a field to a column (handles option label joins)
+    def resolve_field(field):
+        col = getattr(PocProject, field, None)
+        if col is not None:
+            return col, False
+        if field in ("poc_type", "impl_method", "status"):
+            cat_map = {"poc_type": "poc_type", "impl_method": "impl_method", "status": "status"}
+            id_col = {"poc_type": PocProject.poc_type_id, "impl_method": PocProject.impl_method_id, "status": PocProject.status_id}[field]
+            return PocOption.label, True, cat_map[field], id_col
+        return None, False
 
     # Aggregate mode: return a single total value, no GROUP BY
     if aggregate:
@@ -71,37 +82,73 @@ def execute_dashboard_query(db: Session, x_field: str, y_field: str, filters: li
             return [{"x": "average", "y": round(sum(durations) / len(durations), 1)}]
         raise ValueError(f"Unknown y_field: {y_field}")
 
-    x_col = getattr(PocProject, x_field, None)
-    need_option_join = False
-    if x_col is None:
-        if x_field in ("poc_type", "impl_method", "status"):
-            need_option_join = True
+    def join_option(field):
+        """Join PocOption for label-based fields; returns (column, needs_join_flag)."""
+        col = getattr(PocProject, field, None)
+        if col is not None:
+            return col, False
+        if field in ("poc_type", "impl_method", "status"):
             cat_map = {"poc_type": "poc_type", "impl_method": "impl_method", "status": "status"}
-            cat = cat_map[x_field]
-            id_col = {"poc_type": PocProject.poc_type_id, "impl_method": PocProject.impl_method_id, "status": PocProject.status_id}[x_field]
-            query = query.join(PocOption, id_col == PocOption.id).filter(PocOption.category == cat)
-            x_col = PocOption.label
+            id_col = {"poc_type": PocProject.poc_type_id, "impl_method": PocProject.impl_method_id, "status": PocProject.status_id}[field]
+            return PocOption.label, True, cat_map[field], id_col
+        return None, False
+
+    x_resolved = join_option(x_field)
+    if x_resolved[0] is None:
+        raise ValueError(f"Unknown x_field: {x_field}")
+    x_col = x_resolved[0]
+    need_join = x_resolved[1]
+    if need_join:
+        cat = x_resolved[2]
+        id_col = x_resolved[3]
+        query = query.join(PocOption, id_col == PocOption.id).filter(PocOption.category == cat)
+
+    # Resolve group_field (secondary dimension) if provided
+    g_col = None
+    if group_field:
+        g_resolved = join_option(group_field)
+        if g_resolved[0] is None:
+            raise ValueError(f"Unknown group_field: {group_field}")
+        g_col = g_resolved[0]
+        if g_resolved[1]:
+            g_cat = g_resolved[2]
+            g_id_col = g_resolved[3]
+            # Need a second join with alias
+            from sqlalchemy.orm import aliased
+            OptAlias = aliased(PocOption)
+            query = query.join(OptAlias, g_id_col == OptAlias.id).filter(OptAlias.category == g_cat)
+            g_col = OptAlias.label
 
     if y_field == "count":
         y_expr = func.count(PocProject.id)
-        rows = query.with_entities(x_col, y_expr).group_by(x_col).all()
-        return [{"x": str(row[0]), "y": float(row[1]) if row[1] else 0} for row in rows]
+        if g_col:
+            entities = [x_col, g_col, y_expr]
+            group_by = [x_col, g_col]
+            rows = query.with_entities(*entities).group_by(*group_by).all()
+            return [{"x": str(r[0]), "series": str(r[1]), "y": float(r[2]) if r[2] else 0} for r in rows]
+        else:
+            rows = query.with_entities(x_col, y_expr).group_by(x_col).all()
+            return [{"x": str(r[0]), "y": float(r[1]) if r[1] else 0} for r in rows]
 
     if y_field == "avg_duration":
-        # Fetch raw rows and calculate workdays in Python for accurate holiday-aware results
         entities = [PocProject.start_date, PocProject.end_date]
-        if need_option_join:
-            entities.append(PocOption.label)
-        else:
-            entities.append(x_col)
+        entities.append(x_col)
+        idx_x = 2
+        if g_col:
+            entities.append(g_col)
+            idx_x = 2
         raw = query.with_entities(*entities).all()
-
-        groups = defaultdict(list)
-        for row in raw:
-            sd, ed, label = row[0], row[1], row[2]
-            wd = calculate_workdays(sd, ed)
-            groups[str(label)].append(wd)
-
-        return [{"x": label, "y": round(sum(vals) / len(vals), 1)} for label, vals in groups.items()]
+        if g_col:
+            groups = defaultdict(list)
+            for row in raw:
+                sd, ed, xv, sv = row[0], row[1], str(row[2]), str(row[3])
+                groups[(xv, sv)].append(calculate_workdays(sd, ed))
+            return [{"x": xv, "series": sv, "y": round(sum(vals) / len(vals), 1)} for (xv, sv), vals in groups.items()]
+        else:
+            groups = defaultdict(list)
+            for row in raw:
+                sd, ed, xv = row[0], row[1], str(row[2])
+                groups[xv].append(calculate_workdays(sd, ed))
+            return [{"x": xv, "y": round(sum(vals) / len(vals), 1)} for xv, vals in groups.items()]
 
     raise ValueError(f"Unknown y_field: {y_field}")

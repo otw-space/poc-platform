@@ -184,18 +184,32 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
               />
             </Form.Item>
             {(chart.type === 'column' || chart.type === 'bar') && (
-              <Form.Item label="展示形式" style={{ marginBottom: 0 }}>
-                <Select
-                  value={chart.stackMode || 'none'}
-                  onChange={(v) => updateChart(chart.id, { stackMode: v === 'none' ? undefined : v })}
-                  options={[
-                    { label: '默认分组', value: 'none' },
-                    { label: '堆积', value: 'stacked' },
-                    { label: '百分比堆积', value: 'percent' },
-                  ]}
-                  style={{ width: '100%' }}
-                />
-              </Form.Item>
+              <>
+                <Form.Item label="展示形式" style={{ marginBottom: 0 }}>
+                  <Select
+                    value={chart.stackMode || 'none'}
+                    onChange={(v) => updateChart(chart.id, { stackMode: v === 'none' ? undefined : v })}
+                    options={[
+                      { label: '默认分组', value: 'none' },
+                      { label: '堆积', value: 'stacked' },
+                      { label: '百分比堆积', value: 'percent' },
+                    ]}
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+                {(chart.stackMode === 'stacked' || chart.stackMode === 'percent') && (
+                  <Form.Item label="分组字段" style={{ marginBottom: 0 }}>
+                    <Select
+                      value={chart.group_field || undefined}
+                      allowClear
+                      onChange={(v) => updateChart(chart.id, { group_field: v || null })}
+                      options={DIMENSION_FIELDS.filter(f => f.value !== chart.x_field)}
+                      placeholder="选择二级分组维度"
+                      style={{ width: '100%' }}
+                    />
+                  </Form.Item>
+                )}
+              </>
             )}
             {chart.type === 'pie' && (
               <Form.Item label="饼图类型" style={{ marginBottom: 0 }}>

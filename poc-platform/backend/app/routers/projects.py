@@ -279,5 +279,5 @@ def download_file(
 
 @router.post("/query")
 def query_data(data: DashboardQueryRequest, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
-    results = execute_dashboard_query(db, data.x_field, data.y_field, [f.model_dump() for f in data.filters], aggregate=data.aggregate, filter_mode=data.filter_mode)
+    results = execute_dashboard_query(db, data.x_field, data.y_field, [f.model_dump() for f in data.filters], aggregate=data.aggregate, filter_mode=data.filter_mode, group_field=data.group_field)
     return {"data": results}

@@ -44,6 +44,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
     };
     if (config.type === 'stat') payload.aggregate = true;
     if (config.filterMode) payload.filter_mode = config.filterMode;
+    if (config.group_field) payload.group_field = config.group_field;
     queryProjectData(payload)
       .then((r) => setData(r.data.data))
       .finally(() => setLoading(false));
@@ -199,9 +200,9 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
       tooltip: tooltipFn,
     };
     switch (config.type) {
-      case 'column': return <Column {...categoryBase} isStack={config.stackMode === 'stacked' || config.stackMode === 'percent'} isPercent={config.stackMode === 'percent'} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
-      case 'bar': return <Bar {...categoryBase} isStack={config.stackMode === 'stacked' || config.stackMode === 'percent'} isPercent={config.stackMode === 'percent'} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
-      case 'line': return <Line data={data} xField="x" yField="y" height={config.h || 300} autoFit smooth={config.smoothLine} scale={{ color: { range: [gradientColors[0]] } }} tooltip={tooltipFn} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
+      case 'column': return <Column {...categoryBase} isStack={config.stackMode === 'stacked' || config.stackMode === 'percent'} isPercent={config.stackMode === 'percent'} seriesField={config.group_field ? 'series' : undefined} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
+      case 'bar': return <Bar {...categoryBase} isStack={config.stackMode === 'stacked' || config.stackMode === 'percent'} isPercent={config.stackMode === 'percent'} seriesField={config.group_field ? 'series' : undefined} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
+      case 'line': return <Line data={data} xField="x" yField="y" height={config.h || 300} autoFit shape={config.smoothLine ? 'smooth' : undefined} scale={{ color: { range: [gradientColors[0]] } }} tooltip={tooltipFn} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
       case 'dual-axes':
         return <DualAxes {...categoryBase} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
       default: return <Column {...categoryBase} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
@@ -231,15 +232,26 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
           <Select size="small" value={config.y_field} onChange={(v) => onUpdate?.(config.id, { y_field: v })} options={METRIC_FIELDS} style={{ width: '100%' }} />
         </Form.Item>
         {(config.type === 'column' || config.type === 'bar') && (
-          <Form.Item label="展示形式" style={{ marginBottom: 0 }}>
-            <Select size="small" value={config.stackMode || 'none'}
-              onChange={(v) => onUpdate?.(config.id, { stackMode: v === 'none' ? undefined : v })}
-              options={[
-                { label: '默认分组', value: 'none' },
-                { label: '堆积', value: 'stacked' },
-                { label: '百分比堆积', value: 'percent' },
-              ]} style={{ width: '100%' }} />
-          </Form.Item>
+          <>
+            <Form.Item label="展示形式" style={{ marginBottom: 0 }}>
+              <Select size="small" value={config.stackMode || 'none'}
+                onChange={(v) => onUpdate?.(config.id, { stackMode: v === 'none' ? undefined : v })}
+                options={[
+                  { label: '默认分组', value: 'none' },
+                  { label: '堆积', value: 'stacked' },
+                  { label: '百分比堆积', value: 'percent' },
+                ]} style={{ width: '100%' }} />
+            </Form.Item>
+            {(config.stackMode === 'stacked' || config.stackMode === 'percent') && (
+              <Form.Item label="分组字段" style={{ marginBottom: 0 }}>
+                <Select size="small" value={config.group_field || undefined} allowClear
+                  onChange={(v) => onUpdate?.(config.id, { group_field: v || null })}
+                  options={DIMENSION_FIELDS.filter(f => f.value !== config.x_field)}
+                  placeholder="选择二级分组维度"
+                  style={{ width: '100%' }} />
+              </Form.Item>
+            )}
+          </>
         )}
         {config.type === 'pie' && (
           <Form.Item label="饼图类型" style={{ marginBottom: 0 }}>
