@@ -198,13 +198,13 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
       yField: 'y',
       height: config.h || 300,
       autoFit: true,
+      colorField: hasGroup ? 'series' : 'x',
       scale: { color: { range: gradientColors } },
       tooltip: tooltipFn,
     };
-    if (!hasGroup) categoryBase.colorField = 'x';
     switch (config.type) {
-      case 'column': return <Column key={renderKey} {...categoryBase} stack={config.stackMode === 'stacked' || config.stackMode === 'percent'} normalize={config.stackMode === 'percent'} seriesField={config.group_field ? 'series' : undefined} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
-      case 'bar': return <Bar key={renderKey} {...categoryBase} stack={config.stackMode === 'stacked' || config.stackMode === 'percent'} normalize={config.stackMode === 'percent'} seriesField={config.group_field ? 'series' : undefined} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
+      case 'column': return <Column key={renderKey} {...categoryBase} transform={config.stackMode === 'stacked' ? [{type: 'stackY'}] : config.stackMode === 'percent' ? [{type: 'stackY'}, {type: 'normalizeY'}] : undefined} seriesField={config.group_field ? 'series' : undefined} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
+      case 'bar': return <Bar key={renderKey} {...categoryBase} transform={config.stackMode === 'stacked' ? [{type: 'stackY'}] : config.stackMode === 'percent' ? [{type: 'stackY'}, {type: 'normalizeY'}] : undefined} seriesField={config.group_field ? 'series' : undefined} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
       case 'line': return <Line key={renderKey} data={data} xField="x" yField="y" height={config.h || 300} autoFit shape={config.smoothLine ? 'smooth' : undefined} scale={{ color: { range: [gradientColors[0]] } }} tooltip={tooltipFn} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
       case 'dual-axes':
         return <DualAxes key={renderKey} {...categoryBase} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
