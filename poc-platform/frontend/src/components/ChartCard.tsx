@@ -192,16 +192,16 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
       );
     }
 
-    const categoryBase = {
+    const categoryBase: any = {
       data,
       xField: 'x',
       yField: 'y',
       height: config.h || 300,
       autoFit: true,
-      colorField: 'x',
       scale: { color: { range: gradientColors } },
       tooltip: tooltipFn,
     };
+    if (!hasGroup) categoryBase.colorField = 'x';
     switch (config.type) {
       case 'column': return <Column key={renderKey} {...categoryBase} stack={config.stackMode === 'stacked' || config.stackMode === 'percent'} normalize={config.stackMode === 'percent'} seriesField={config.group_field ? 'series' : undefined} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
       case 'bar': return <Bar key={renderKey} {...categoryBase} stack={config.stackMode === 'stacked' || config.stackMode === 'percent'} normalize={config.stackMode === 'percent'} seriesField={config.group_field ? 'series' : undefined} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
