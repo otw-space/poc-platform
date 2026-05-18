@@ -33,7 +33,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
   const [projectModalTitle, setProjectModalTitle] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const filtersKey = JSON.stringify(config.filters || []);
+  const filtersKey = JSON.stringify({ f: config.filters, g: config.group_field, s: config.stackMode, t: config.type });
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -139,7 +139,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
 
   const tooltipFn = (d: any) => ({
     name: d.series !== undefined ? `${d.x} - ${d.series}` : yLabel,
-    value: formatVal(d.y),
+    value: config.stackMode === 'percent' ? `${(d.y * 100).toFixed(1)}%` : formatVal(d.y),
   });
 
   const pieTooltipConfig = {
@@ -246,10 +246,9 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
                 ]} style={{ width: '100%' }} />
             </Form.Item>
             <Form.Item label="分组字段" style={{ marginBottom: 0 }}>
-              <Select size="small" value={config.group_field || undefined} allowClear
-                onChange={(v) => onUpdate?.(config.id, { group_field: v || null })}
-                options={DIMENSION_FIELDS.filter(f => f.value !== config.x_field)}
-                placeholder="选择二级分组维度"
+              <Select size="small" value={config.group_field || 'none'}
+                onChange={(v) => onUpdate?.(config.id, { group_field: v === 'none' ? null : v })}
+                options={[{ label: '无', value: 'none' }, ...DIMENSION_FIELDS.filter(f => f.value !== config.x_field)]}
                 style={{ width: '100%' }} />
             </Form.Item>
           </>
