@@ -197,18 +197,16 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
                     style={{ width: '100%' }}
                   />
                 </Form.Item>
-                {(chart.stackMode === 'stacked' || chart.stackMode === 'percent') && (
-                  <Form.Item label="分组字段" style={{ marginBottom: 0 }}>
-                    <Select
-                      value={chart.group_field || undefined}
-                      allowClear
-                      onChange={(v) => updateChart(chart.id, { group_field: v || null })}
-                      options={DIMENSION_FIELDS.filter(f => f.value !== chart.x_field)}
-                      placeholder="选择二级分组维度"
-                      style={{ width: '100%' }}
-                    />
-                  </Form.Item>
-                )}
+                <Form.Item label="分组字段" style={{ marginBottom: 0 }}>
+                  <Select
+                    value={chart.group_field || undefined}
+                    allowClear
+                    onChange={(v) => updateChart(chart.id, { group_field: v || null })}
+                    options={DIMENSION_FIELDS.filter(f => f.value !== chart.x_field)}
+                    placeholder="选择二级分组维度"
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
               </>
             )}
             {chart.type === 'pie' && (

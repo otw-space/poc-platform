@@ -245,15 +245,13 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
                   { label: '百分比堆积', value: 'percent' },
                 ]} style={{ width: '100%' }} />
             </Form.Item>
-            {(config.stackMode === 'stacked' || config.stackMode === 'percent') && (
-              <Form.Item label="分组字段" style={{ marginBottom: 0 }}>
-                <Select size="small" value={config.group_field || undefined} allowClear
-                  onChange={(v) => onUpdate?.(config.id, { group_field: v || null })}
-                  options={DIMENSION_FIELDS.filter(f => f.value !== config.x_field)}
-                  placeholder="选择二级分组维度"
-                  style={{ width: '100%' }} />
-              </Form.Item>
-            )}
+            <Form.Item label="分组字段" style={{ marginBottom: 0 }}>
+              <Select size="small" value={config.group_field || undefined} allowClear
+                onChange={(v) => onUpdate?.(config.id, { group_field: v || null })}
+                options={DIMENSION_FIELDS.filter(f => f.value !== config.x_field)}
+                placeholder="选择二级分组维度"
+                style={{ width: '100%' }} />
+            </Form.Item>
           </>
         )}
         {config.type === 'pie' && (
