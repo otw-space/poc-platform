@@ -188,7 +188,7 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
                 <Form.Item label="展示形式" style={{ marginBottom: 0 }}>
                   <Select
                     value={chart.stackMode || 'none'}
-                    onChange={(v) => updateChart(chart.id, { stackMode: v === 'none' ? undefined : v })}
+                    onChange={(v) => updateChart(chart.id, { stackMode: v === 'none' ? undefined : v, group_field: v === 'none' ? null : chart.group_field })}
                     options={[
                       { label: '默认分组', value: 'none' },
                       { label: '堆积', value: 'stacked' },
@@ -197,14 +197,16 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
                     style={{ width: '100%' }}
                   />
                 </Form.Item>
-                <Form.Item label="分组字段" style={{ marginBottom: 0 }}>
-                  <Select
-                    value={chart.group_field || 'none'}
-                    onChange={(v) => updateChart(chart.id, { group_field: v === 'none' ? null : v })}
-                    options={[{ label: '无', value: 'none' }, ...DIMENSION_FIELDS.filter(f => f.value !== chart.x_field)]}
-                    style={{ width: '100%' }}
-                  />
-                </Form.Item>
+                {(chart.stackMode === 'stacked' || chart.stackMode === 'percent') && (
+                  <Form.Item label="分组字段" style={{ marginBottom: 0 }}>
+                    <Select
+                      value={chart.group_field || 'none'}
+                      onChange={(v) => updateChart(chart.id, { group_field: v === 'none' ? null : v })}
+                      options={[{ label: '无', value: 'none' }, ...DIMENSION_FIELDS.filter(f => f.value !== chart.x_field)]}
+                      style={{ width: '100%' }}
+                    />
+                  </Form.Item>
+                )}
               </>
             )}
             {chart.type === 'pie' && (

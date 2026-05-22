@@ -252,19 +252,21 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
           <>
             <Form.Item label="展示形式" style={{ marginBottom: 0 }}>
               <Select size="small" value={config.stackMode || 'none'}
-                onChange={(v) => onUpdate?.(config.id, { stackMode: v === 'none' ? undefined : v })}
+                onChange={(v) => onUpdate?.(config.id, { stackMode: v === 'none' ? undefined : v, group_field: v === 'none' ? null : config.group_field })}
                 options={[
                   { label: '默认分组', value: 'none' },
                   { label: '堆积', value: 'stacked' },
                   { label: '百分比堆积', value: 'percent' },
                 ]} style={{ width: '100%' }} />
             </Form.Item>
-            <Form.Item label="分组字段" style={{ marginBottom: 0 }}>
-              <Select size="small" value={config.group_field || 'none'}
-                onChange={(v) => onUpdate?.(config.id, { group_field: v === 'none' ? null : v })}
-                options={[{ label: '无', value: 'none' }, ...DIMENSION_FIELDS.filter(f => f.value !== config.x_field)]}
-                style={{ width: '100%' }} />
-            </Form.Item>
+            {(config.stackMode === 'stacked' || config.stackMode === 'percent') && (
+              <Form.Item label="分组字段" style={{ marginBottom: 0 }}>
+                <Select size="small" value={config.group_field || 'none'}
+                  onChange={(v) => onUpdate?.(config.id, { group_field: v === 'none' ? null : v })}
+                  options={[{ label: '无', value: 'none' }, ...DIMENSION_FIELDS.filter(f => f.value !== config.x_field)]}
+                  style={{ width: '100%' }} />
+              </Form.Item>
+            )}
           </>
         )}
         {config.type === 'pie' && (
