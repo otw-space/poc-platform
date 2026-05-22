@@ -35,6 +35,20 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
 
   const filtersKey = JSON.stringify({ f: config.filters, g: config.group_field, s: config.stackMode, t: config.type });
 
+  // Pre-compute percent-normalized data for percent stacked charts
+  const chartData = (() => {
+    if (config.stackMode !== 'percent' || !config.group_field) return data;
+    const groups: Record<string, number> = {};
+    for (const d of data) {
+      const key = String(d.x);
+      groups[key] = (groups[key] || 0) + Number(d.y);
+    }
+    return data.map(d => {
+      const total = groups[String(d.x)] || 1;
+      return { ...d, y: Number(d.y) / total };
+    });
+  })();
+
   const fetchData = useCallback(() => {
     setLoading(true);
     const payload: any = {
@@ -176,7 +190,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
       return (
         <Pie
           key={`${renderKey}-${data.length}`}
-          data={data}
+          data={config.stackMode === 'percent' ? chartData : data}
           angleField="y"
           colorField="x"
           radius={0.8}
@@ -193,7 +207,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
     }
 
     const categoryBase: any = {
-      data,
+      data: config.stackMode === 'percent' ? chartData : data,
       xField: 'x',
       yField: 'y',
       height: config.h || 300,
@@ -205,7 +219,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
     switch (config.type) {
       case 'column': return <Column key={renderKey} {...categoryBase} stack={config.stackMode === 'stacked' || config.stackMode === 'percent'} normalize={config.stackMode === 'percent'} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
       case 'bar': return <Bar key={renderKey} {...categoryBase} stack={config.stackMode === 'stacked' || config.stackMode === 'percent'} normalize={config.stackMode === 'percent'} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
-      case 'line': return <Line key={renderKey} data={data} xField="x" yField="y" height={config.h || 300} autoFit shape={config.smoothLine ? 'smooth' : undefined} scale={{ color: { range: [gradientColors[0]] } }} tooltip={tooltipFn} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
+      case 'line': return <Line key={renderKey} data={config.stackMode === 'percent' ? chartData : data} xField="x" yField="y" height={config.h || 300} autoFit shape={config.smoothLine ? 'smooth' : undefined} scale={{ color: { range: [gradientColors[0]] } }} tooltip={tooltipFn} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
       case 'dual-axes':
         return <DualAxes key={renderKey} {...categoryBase} legend={{ position: 'top' as const }} geometryOptions={[{ geometry: 'column' }, { geometry: 'line' }]} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
       default: return <Column key={renderKey} {...categoryBase} legend={{ position: 'top' as const }} onReady={(chart: any) => setChartInstance(chart)} onEvent={handleChartClick} />;
