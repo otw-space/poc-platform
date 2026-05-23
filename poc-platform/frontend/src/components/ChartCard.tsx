@@ -332,6 +332,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
   const menuBtnStyle: React.CSSProperties = {
     display: 'block', width: '100%', padding: '8px 16px', border: 'none', background: 'none',
     cursor: 'pointer', textAlign: 'left', fontSize: 14, lineHeight: '22px', borderRadius: 0,
+    color: dark ? '#e8e8e8' : undefined,
   };
 
   return (
@@ -351,6 +352,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
         onOpenChange={(open) => { if (!open) doFinishEdit(); }}
         placement="bottomLeft"
         overlayStyle={{ maxWidth: '90vw' }}
+        styles={dark ? { body: { background: '#1f1f1f' }, header: { background: '#1f1f1f', color: '#e8e8e8' } } : undefined}
       >
         <div style={{ flex: 1 }}>
           <Card
@@ -365,8 +367,10 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
                 {menuOpen && (
                   <div style={{
                     position: 'absolute', top: '100%', right: 0, zIndex: 1050,
-                    background: '#fff', borderRadius: 8, boxShadow: '0 6px 16px rgba(0,0,0,0.12)',
-                    minWidth: 140, padding: '4px 0', border: '1px solid #f0f0f0',
+                    background: dark ? '#1f1f1f' : '#fff', borderRadius: 8,
+                    boxShadow: dark ? '0 6px 16px rgba(0,0,0,0.4)' : '0 6px 16px rgba(0,0,0,0.12)',
+                    minWidth: 140, padding: '4px 0',
+                    border: dark ? '1px solid #333' : '1px solid #f0f0f0',
                   }}>
                     <button type="button" style={menuBtnStyle} onClick={doRefresh}>
                       <ReloadOutlined style={{ marginRight: 8 }} />刷新数据

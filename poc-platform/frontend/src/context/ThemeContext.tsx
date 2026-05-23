@@ -24,13 +24,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       <ConfigProvider
         theme={{
           algorithm: dark ? theme.darkAlgorithm : theme.defaultAlgorithm,
-          token: dark ? {
-            colorBgElevated: '#1f1f1f',
-            colorBgContainer: '#141414',
-            colorBgLayout: '#000000',
-            colorBgSpotlight: '#1f1f1f',
-          } : {},
         }}
+        modal={dark ? { styles: { content: { background: '#1f1f1f' }, header: { background: 'transparent' } } } : undefined}
       >
         {children}
       </ConfigProvider>
