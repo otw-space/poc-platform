@@ -1,15 +1,9 @@
-import { useEffect, useState } from 'react';
-import { Card, Spin, Tag } from 'antd';
+import { useEffect, useState, useRef } from 'react';
+import { Card, Spin, Tag, message } from 'antd';
 import { EnvironmentOutlined } from '@ant-design/icons';
-import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import { getProjects } from '../api/projects';
 import { getOptions } from '../api/options';
-
-// Register map from built-in China GeoJSON
-import chinaMap from '../assets/china.json';
-
-let mapRegistered = false;
 
 // City → [lng, lat]
 const CITY_COORDS: Record<string, [number, number]> = {
@@ -29,7 +23,6 @@ const CITY_COORDS: Record<string, [number, number]> = {
   '佛山': [113.1, 23.0], '珠海': [113.6, 22.3],
 };
 
-// Region-level coordinates (approximate centers)
 const REGION_COORDS: Record<string, [number, number]> = {
   '华东': [118.8, 32.1], '华南': [113.3, 23.1], '华中': [114.3, 30.6],
   '华北': [116.4, 39.9], '西北': [108.9, 34.3], '西南': [104.1, 30.6],
@@ -37,13 +30,10 @@ const REGION_COORDS: Record<string, [number, number]> = {
 };
 
 function getCoord(city: string, region: string): [number, number] | null {
-  // Try direct city match
   for (const [key, coord] of Object.entries(CITY_COORDS)) {
     if (city.includes(key) || key.includes(city)) return coord;
   }
-  // Try region
   if (REGION_COORDS[region]) return REGION_COORDS[region];
-  // Fuzzy city match
   if (city.length >= 2) {
     const short = city.substring(0, 2);
     for (const [key, coord] of Object.entries(CITY_COORDS)) {
@@ -56,127 +46,126 @@ function getCoord(city: string, region: string): [number, number] | null {
 export default function DispatchMap() {
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<any[]>([]);
-  const [options, setOptions] = useState<Record<string, string>>({});
+  const [statusLabels, setStatusLabels] = useState<Record<string, string>>({});
+  const chartRef = useRef<HTMLDivElement>(null);
+  const chartInstance = useRef<echarts.ECharts | null>(null);
 
   useEffect(() => {
     Promise.all([
       getProjects({ page: 1, page_size: 200 }),
       getOptions('status'),
-    ]).then(([projRes, statusRes]) => {
+      fetch('/src/assets/china.json').then(r => r.json()),
+    ]).then(([projRes, statusRes, geoJson]) => {
       setProjects(projRes.data.items);
-      const statusMap: Record<string, string> = {};
-      statusRes.data.forEach((o: any) => { statusMap[o.id] = o.label; });
-      setOptions(statusMap);
+      const sm: Record<string, string> = {};
+      statusRes.data.forEach((o: any) => { sm[o.id] = o.label; });
+      setStatusLabels(sm);
+
+      // Register map
+      echarts.registerMap('china', geoJson);
+
+      setLoading(false);
+    }).catch((err) => {
+      console.error('DispatchMap load error:', err);
+      message.error('地图数据加载失败');
       setLoading(false);
     });
   }, []);
 
-  // Register map on first load
-  if (!mapRegistered) {
-    echarts.registerMap('china', chinaMap as any);
-    mapRegistered = true;
-  }
+  useEffect(() => {
+    if (loading || !chartRef.current || projects.length === 0) return;
 
-  const projectMarkers: any[] = [];
-  const regionCounts: Record<string, { lat: number; lng: number; count: number; projects: string[]; cities: Set<string> }> = {};
+    if (chartInstance.current) chartInstance.current.dispose();
+    const chart = echarts.init(chartRef.current);
+    chartInstance.current = chart;
 
-  projects.forEach((p: any) => {
-    const coord = getCoord(p.city, p.region);
-    if (coord) {
-      projectMarkers.push({
-        name: p.name,
-        value: [...coord, p],
-      });
-      // Aggregate by city for scatter effect
-      const key = `${coord[0].toFixed(2)},${coord[1].toFixed(2)}`;
-      if (!regionCounts[key]) {
-        regionCounts[key] = { lat: coord[1], lng: coord[0], count: 0, projects: [], cities: new Set() };
+    // Build scatter data
+    const regionCounts: Record<string, { lat: number; lng: number; count: number; projects: string[]; cities: Set<string> }> = {};
+
+    projects.forEach((p: any) => {
+      const coord = getCoord(p.city, p.region);
+      if (coord) {
+        const key = `${coord[0].toFixed(2)},${coord[1].toFixed(2)}`;
+        if (!regionCounts[key]) {
+          regionCounts[key] = { lat: coord[1], lng: coord[0], count: 0, projects: [], cities: new Set() };
+        }
+        regionCounts[key].count++;
+        regionCounts[key].projects.push(p.name);
+        regionCounts[key].cities.add(p.city);
       }
-      regionCounts[key].count++;
-      regionCounts[key].projects.push(p.name);
-      regionCounts[key].cities.add(p.city);
-    }
-  });
+    });
 
-  const scatterData = Object.values(regionCounts).map((r) => ({
-    name: Array.from(r.cities).join('/'),
-    value: [r.lng, r.lat, r.count],
-    projects: r.projects,
-  }));
+    const scatterData = Object.values(regionCounts).map((r) => ({
+      name: Array.from(r.cities).join('/'),
+      value: [r.lng, r.lat, r.count],
+      projects: r.projects,
+    }));
 
-  const mapOption = {
-    tooltip: {
-      trigger: 'item',
-      formatter: (params: any) => {
-        if (params.seriesType === 'scatter' || params.componentSubType === 'scatter') {
-          const projList = (params.data?.projects || []).slice(0, 8).join('<br/>');
-          const more = params.data?.projects?.length > 8 ? `<br/>...共 ${params.data.projects.length} 个项目` : '';
-          return `<strong>${params.name}</strong><br/>项目数：${params.value?.[2] || 0}<br/>${projList}${more}`;
-        }
-        if (params.seriesType === 'map' || params.seriesName === 'projects') {
-          return `${params.name}`;
-        }
-        return `${params.name}`;
+    chart.setOption({
+      tooltip: {
+        trigger: 'item',
+        formatter: (params: any) => {
+          if (params.componentSubType === 'scatter') {
+            const projList = (params.data?.projects || []).slice(0, 8).join('<br/>');
+            const more = params.data?.projects?.length > 8 ? `<br/>...共 ${params.data.projects.length} 个项目` : '';
+            return `<strong>${params.name}</strong><br/>项目数：${params.value?.[2] || 0}<br/>${projList}${more}`;
+          }
+          return params.name;
+        },
       },
-    },
-    geo: {
-      map: 'china',
-      roam: true,
-      zoom: 1.2,
-      center: [104.4, 37.5],
-      label: { show: false },
-      itemStyle: {
-        areaColor: '#e6f4ff',
-        borderColor: '#1677ff',
-        borderWidth: 0.5,
+      geo: {
+        map: 'china',
+        roam: true,
+        zoom: 1.2,
+        center: [104.4, 37.5],
+        label: { show: false },
+        itemStyle: {
+          areaColor: '#e6f4ff',
+          borderColor: '#1677ff',
+          borderWidth: 0.5,
+        },
+        emphasis: {
+          label: { show: true },
+          itemStyle: { areaColor: '#bae0ff' },
+        },
       },
-      emphasis: {
-        label: { show: true },
-        itemStyle: { areaColor: '#bae0ff' },
-      },
-    },
-    series: [
-      {
+      series: [{
         name: 'projects',
         type: 'scatter',
         coordinateSystem: 'geo',
         data: scatterData,
         symbolSize: (val: number[]) => Math.min(Math.max(val[2] * 10, 16), 48),
-        itemStyle: {
-          color: '#ff4d4f',
-          shadowBlur: 8,
-          shadowColor: 'rgba(255,77,79,0.3)',
-        },
-        label: {
-          show: true,
-          formatter: '{b}',
-          position: 'right',
-          fontSize: 11,
-          color: '#333',
-        },
-        emphasis: {
-          scale: 1.4,
-          label: { fontSize: 13, fontWeight: 'bold' },
-        },
-      },
-    ],
-  };
+        itemStyle: { color: '#ff4d4f', shadowBlur: 8, shadowColor: 'rgba(255,77,79,0.3)' },
+        label: { show: true, formatter: '{b}', position: 'right', fontSize: 11, color: '#333' },
+        emphasis: { scale: 1.4 },
+      }],
+    });
+
+    const handleResize = () => chart.resize();
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      chart.dispose();
+    };
+  }, [loading, projects]);
 
   if (loading) return <Spin style={{ display: 'block', margin: '100px auto' }} />;
+
+  const cities = new Set<string>();
+  projects.forEach((p: any) => {
+    const c = getCoord(p.city, p.region);
+    if (c) cities.add(p.city);
+  });
 
   return (
     <div>
       <h2 style={{ marginBottom: 24 }}>派遣地图</h2>
       <Card>
-        <ReactECharts option={mapOption} style={{ height: 600 }} />
+        <div ref={chartRef} style={{ width: '100%', height: 600 }} />
         <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           <Tag color="blue" icon={<EnvironmentOutlined />}>
-            共 {projects.length} 个项目覆盖 {new Set(scatterData.map(d => d.name)).size} 个区域
+            共 {projects.length} 个项目，覆盖 {cities.size || 0} 个城市
           </Tag>
-          {scatterData.slice(0, 8).map((d, i) => (
-            <Tag key={i} color="red">📍 {d.name} ({d.value[2]})</Tag>
-          ))}
-          {scatterData.length > 8 && <Tag>...</Tag>}
         </div>
       </Card>
     </div>
