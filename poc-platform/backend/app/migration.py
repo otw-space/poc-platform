@@ -15,6 +15,7 @@ def run_migrations(engine):
         "dashboards": [("deleted_charts", "JSON DEFAULT '[]'")],
         "sop_test_cases": [("category_id", "VARCHAR(36)")],
         "users": [("role_id", "VARCHAR(36)")],
+        "poc_projects": [("webhook_url", "VARCHAR(500)")],
     }
 
     with engine.connect() as conn:
