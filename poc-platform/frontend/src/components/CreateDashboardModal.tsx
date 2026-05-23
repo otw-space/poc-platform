@@ -141,9 +141,9 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
           style={{
             marginBottom: 12,
             padding: 12,
-            border: '1px solid #f0f0f0',
+            border: dark ? '1px solid #333' : '1px solid #f0f0f0',
             borderRadius: 8,
-            background: '#fafafa',
+            background: dark ? '#1a1a1a' : '#fafafa',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
