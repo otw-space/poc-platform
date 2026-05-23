@@ -51,25 +51,40 @@ export default function DispatchMap() {
   const chartInstance = useRef<echarts.ECharts | null>(null);
 
   useEffect(() => {
-    Promise.all([
-      getProjects({ page: 1, page_size: 200 }),
-      getOptions('status'),
-      import('../assets/china.json').then(m => m.default),
-    ]).then(([projRes, statusRes, geoJson]) => {
-      setProjects(projRes.data.items);
-      const sm: Record<string, string> = {};
-      statusRes.data.forEach((o: any) => { sm[o.id] = o.label; });
-      setStatusLabels(sm);
+    (async () => {
+      try {
+        const [projRes, statusRes, geoJsonMod] = await Promise.all([
+          getProjects({ page: 1, page_size: 100 }),
+          getOptions('status'),
+          import('../assets/china.json'),
+        ]);
+        const geoJson = (geoJsonMod as any).default || geoJsonMod;
 
-      // Register map
-      echarts.registerMap('china', geoJson);
+        let allProjects = projRes.data.items;
+        const total = projRes.data.total;
+        // Fetch remaining pages if needed
+        if (total > 100) {
+          const pages = Math.ceil(total / 100);
+          const extraReqs = [];
+          for (let p = 2; p <= pages; p++) {
+            extraReqs.push(getProjects({ page: p, page_size: 100 }));
+          }
+          const extraResults = await Promise.all(extraReqs);
+          extraResults.forEach(r => { allProjects = allProjects.concat(r.data.items); });
+        }
 
-      setLoading(false);
-    }).catch((err) => {
-      console.error('DispatchMap load error:', err);
-      message.error('地图数据加载失败');
-      setLoading(false);
-    });
+        setProjects(allProjects);
+        const sm: Record<string, string> = {};
+        statusRes.data.forEach((o: any) => { sm[o.id] = o.label; });
+        setStatusLabels(sm);
+        echarts.registerMap('china', geoJson);
+        setLoading(false);
+      } catch (err) {
+        console.error('DispatchMap load error:', err);
+        message.error('地图数据加载失败');
+        setLoading(false);
+      }
+    })();
   }, []);
 
   useEffect(() => {
