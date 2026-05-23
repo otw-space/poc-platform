@@ -25,12 +25,13 @@ export default function Layout() {
   const { token } = theme.useToken();
   const [collapsed, setCollapsed] = useState(false);
 
-  // Lock body-level scroll — each panel scrolls independently via overflow:auto
+  // Lock body-level scroll and sync body background with theme
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    document.body.style.background = dark ? '#141414' : '#fff';
     return () => { document.body.style.overflow = prev; };
-  }, []);
+  }, [dark]);
 
   const menuItems = [
     ...(hasPermission('project', 'view') ? [{ key: '/', icon: <HomeOutlined />, label: '数据概览' }] : []),
@@ -50,7 +51,7 @@ export default function Layout() {
   };
 
   return (
-    <AntLayout style={{ height: '100vh', overflow: 'hidden' }}>
+    <AntLayout style={{ height: '100vh', overflow: 'hidden', background: dark ? '#141414' : undefined }}>
       {/* Top Header Bar — fixed, never scrolls */}
       <Header style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
