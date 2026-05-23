@@ -48,6 +48,7 @@ export interface PocProject {
   result: string | null;
   plan_file: FileMetadata | null;
   report_file: FileMetadata | null;
+  webhook_url: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -118,4 +119,8 @@ export function updateProjectLog(projectId: string, logId: string, data: Project
 
 export function deleteProjectLog(projectId: string, logId: string) {
   return client.delete(`/projects/${projectId}/logs/${logId}`);
+}
+
+export function pushProjectLog(projectId: string, logId: string) {
+  return client.post(`/projects/${projectId}/logs/${logId}/push`);
 }

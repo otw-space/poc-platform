@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Drawer, Descriptions, Tag, Button, Space, Popconfirm, message, Spin, Tabs, Timeline, Empty, Modal } from 'antd';
+import { Drawer, Descriptions, Tag, Button, Space, Popconfirm, message, Spin, Tabs, Timeline, Empty, Modal, Input } from 'antd';
 import { UploadOutlined, DownloadOutlined, EyeOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import MDEditor from '@uiw/react-md-editor';
-import { getProject, updateProject, getProjectLogs, createProjectLog, updateProjectLog, deleteProjectLog, uploadProjectFile, type PocProject, type ProjectLog, type ProjectLogCreate, type ProjectLogUpdate } from '../api/projects';
+import { getProject, updateProject, getProjectLogs, createProjectLog, updateProjectLog, deleteProjectLog, pushProjectLog, uploadProjectFile, type PocProject, type ProjectLog, type ProjectLogCreate, type ProjectLogUpdate } from '../api/projects';
 import { getOptions, type PocOption } from '../api/options';
 import LogEntryModal from './LogEntryModal';
 import FileUpload from './FileUpload';
@@ -114,9 +114,10 @@ export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDele
 
   const handleLogCreate = async (data: ProjectLogCreate | ProjectLogUpdate) => {
     if (!projectId) return;
-    await createProjectLog(projectId, data as ProjectLogCreate);
+    const r = await createProjectLog(projectId, data as ProjectLogCreate);
     message.success('日志已添加');
     fetchLogs();
+    return r.data.id;
   };
 
   const handleLogUpdate = async (data: ProjectLogCreate | ProjectLogUpdate) => {
@@ -125,6 +126,13 @@ export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDele
     message.success('日志已更新');
     setEditingLog(undefined);
     fetchLogs();
+    return editingLog.id;
+  };
+
+  const handlePushLog = async (logId: string) => {
+    if (!projectId) return;
+    await pushProjectLog(projectId, logId);
+    message.success('推送成功');
   };
 
   const handleLogDelete = async (logId: string) => {
@@ -223,8 +231,16 @@ export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDele
       label: '日志记录',
       children: (
         <div>
-          <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
             <Button type="primary" onClick={() => { setEditingLog(undefined); setLogModalOpen(true); }}>新增日志</Button>
+            <Input
+              style={{ flex: 1, minWidth: 240 }}
+              size="small"
+              placeholder="企业微信 Webhook URL（可选）"
+              value={project?.webhook_url || ''}
+              onChange={(e) => updateProject(projectId!, { webhook_url: e.target.value }).then(fetchProject)}
+              allowClear
+            />
           </div>
           {logs.length === 0 ? (
             <Empty description="暂无日志" />
@@ -239,6 +255,9 @@ export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDele
                       <Popconfirm title="确认删除？" onConfirm={() => handleLogDelete(log.id)}>
                         <Button size="small" type="link" danger>删除</Button>
                       </Popconfirm>
+                      {project?.webhook_url && (
+                        <Button size="small" type="link" onClick={() => handlePushLog(log.id)}>推送</Button>
+                      )}
                     </Space>
                   </div>
                   <div style={{ marginBottom: 6 }}><strong>进度：</strong><MDEditor.Markdown source={log.progress || '暂无'} style={{ backgroundColor: 'transparent', fontSize: 13 }} /></div>
@@ -291,6 +310,8 @@ export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDele
         onClose={() => { setLogModalOpen(false); setEditingLog(undefined); }}
         onSubmit={editingLog ? handleLogUpdate : handleLogCreate}
         initialValues={editingLog}
+        onPush={handlePushLog}
+        webhookUrl={project?.webhook_url}
       />
     </Drawer>
   );

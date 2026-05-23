@@ -1,3 +1,5 @@
+import json
+import urllib.request
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -80,3 +82,49 @@ def delete_log(
     db.commit()
     log_operation(db, current_user, "delete", "project_log", log.log_date.isoformat())
     return {"ok": True}
+
+
+@router.post("/{log_id}/push")
+def push_log(project_id: str, log_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    project = db.query(PocProject).filter(PocProject.id == project_id, PocProject.is_deleted == False).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if not project.webhook_url:
+        raise HTTPException(status_code=400, detail="项目未配置企业微信 Webhook 地址")
+
+    log_entry = db.query(PocProjectLog).filter(
+        PocProjectLog.id == log_id, PocProjectLog.project_id == project_id
+    ).first()
+    if not log_entry:
+        raise HTTPException(status_code=404, detail="Log not found")
+
+    # Build markdown message
+    lines = [
+        f"## 📋 {project.name} - 项目日志",
+        f"**日期**：{log_entry.log_date.isoformat()}",
+        f"**进度**：{log_entry.progress or '（无）'}",
+        f"**问题与风险**：{log_entry.issues or '（无）'}",
+        f"**下一步计划**：{log_entry.plan or '（无）'}",
+        f"",
+        f"> 推送人：{current_user.display_name or current_user.username}",
+    ]
+    payload = {
+        "msgtype": "markdown",
+        "markdown": {"content": "\n".join(lines)},
+    }
+
+    try:
+        req = urllib.request.Request(
+            project.webhook_url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+        if result.get("errcode") != 0:
+            raise HTTPException(status_code=502, detail=f"企业微信返回错误: {result.get('errmsg', '未知错误')}")
+        return {"ok": True, "msg": "推送成功"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"推送失败: {str(e)}")

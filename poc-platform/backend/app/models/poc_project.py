@@ -23,6 +23,7 @@ class PocProject(Base):
     result: Mapped[str | None] = mapped_column(Text, nullable=True)
     plan_file: Mapped[str | None] = mapped_column(Text, nullable=True)
     report_file: Mapped[str | None] = mapped_column(Text, nullable=True)
+    webhook_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Modal, Form, DatePicker, message } from 'antd';
+import { Modal, Form, DatePicker, Button, Space, message } from 'antd';
 import MDEditor from '@uiw/react-md-editor';
 import dayjs from 'dayjs';
 import type { ProjectLog, ProjectLogCreate, ProjectLogUpdate } from '../api/projects';
@@ -7,16 +7,19 @@ import type { ProjectLog, ProjectLogCreate, ProjectLogUpdate } from '../api/proj
 interface Props {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: ProjectLogCreate | ProjectLogUpdate) => Promise<void>;
+  onSubmit: (data: ProjectLogCreate | ProjectLogUpdate) => Promise<string | undefined>; // returns logId
   initialValues?: ProjectLog;
+  onPush?: (logId: string) => Promise<void>;
+  webhookUrl?: string | null;
 }
 
-export default function LogEntryModal({ open, onClose, onSubmit, initialValues }: Props) {
+export default function LogEntryModal({ open, onClose, onSubmit, initialValues, onPush, webhookUrl }: Props) {
   const [logDate, setLogDate] = useState<dayjs.Dayjs>(dayjs());
   const [progress, setProgress] = useState('');
   const [issues, setIssues] = useState('');
   const [plan, setPlan] = useState('');
   const [saving, setSaving] = useState(false);
+  const [pushing, setPushing] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -34,15 +37,20 @@ export default function LogEntryModal({ open, onClose, onSubmit, initialValues }
     }
   }, [open, initialValues]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (pushAfter = false) => {
     setSaving(true);
     try {
-      await onSubmit({
+      const logId = await onSubmit({
         log_date: logDate.format('YYYY-MM-DD'),
         progress,
         issues,
         plan,
       });
+      if (pushAfter && logId && onPush) {
+        setPushing(true);
+        try { await onPush(logId); } catch { message.error('推送失败'); }
+        setPushing(false);
+      }
       onClose();
     } catch {
       message.error('保存失败');
@@ -58,10 +66,20 @@ export default function LogEntryModal({ open, onClose, onSubmit, initialValues }
       title={initialValues ? '编辑日志' : '新增日志'}
       open={open}
       onCancel={onClose}
-      onOk={handleSubmit}
-      confirmLoading={saving}
       width={700}
       destroyOnClose
+      footer={
+        <Space>
+          <Button onClick={onClose}>取消</Button>
+          <Button loading={saving && !pushing} onClick={() => handleSubmit(false)}>保存</Button>
+          {!initialValues && onPush && webhookUrl && (
+            <Button type="primary" loading={saving} onClick={() => handleSubmit(true)}>保存并推送</Button>
+          )}
+          {initialValues && (
+            <Button type="primary" loading={saving} onClick={() => handleSubmit(false)}>保存</Button>
+          )}
+        </Space>
+      }
     >
       <Form layout="vertical">
         <Form.Item label="日期">

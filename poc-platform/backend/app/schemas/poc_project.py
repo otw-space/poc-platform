@@ -31,6 +31,7 @@ class PocProjectUpdate(BaseModel):
     result: str | None = None
     plan_file: dict | None = None
     report_file: dict | None = None
+    webhook_url: str | None = None
 
 
 class PocProjectOut(BaseModel):
@@ -49,6 +50,7 @@ class PocProjectOut(BaseModel):
     result: str | None
     plan_file: dict | None = None
     report_file: dict | None = None
+    webhook_url: str | None = None
     created_by: str
     created_at: datetime
     updated_at: datetime
