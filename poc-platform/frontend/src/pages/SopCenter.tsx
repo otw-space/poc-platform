@@ -15,6 +15,7 @@ import { Card, Tabs, Button, Table, Tag, Modal, Input, Select, Space, Popconfirm
 import { PlusOutlined, UploadOutlined, DownloadOutlined, ImportOutlined, ExportOutlined, DeleteOutlined, FileTextOutlined, EyeOutlined, DownOutlined, PictureOutlined, EditOutlined } from '@ant-design/icons';
 import MDEditor from '@uiw/react-md-editor';
 import dayjs from 'dayjs';
+import { useTheme } from '../context/ThemeContext';
 import UploadProgressBar from '../components/UploadProgressBar';
 import {
   listDocuments, createDocument, updateDocument, deleteDocument,
@@ -179,8 +180,8 @@ function EditorTab({ category, title }: { category: string; title: string }) {
             onClick={() => { setSelectedId(d.id); setEditing(false); }}
             style={{
               padding: '8px 12px', cursor: 'pointer',
-              background: selectedId === d.id ? '#e6f4ff' : 'transparent',
-              borderBottom: '1px solid #fafafa',
+              background: selectedId === d.id ? 'var(--active-bg)' : 'transparent',
+              borderBottom: '1px solid var(--border-color)',
             }}
           >
             <div style={{ fontWeight: 500, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -540,12 +541,12 @@ function TestCaseTab() {
         </div>
         <div
           onClick={() => setActiveCategory(null)}
-          style={{ padding: '6px 12px', cursor: 'pointer', background: !activeCategory ? '#e6f4ff' : 'transparent', fontWeight: !activeCategory ? 600 : 400 }}>
+          style={{ padding: '6px 12px', cursor: 'pointer', background: !activeCategory ? 'var(--active-bg)' : 'transparent', fontWeight: !activeCategory ? 600 : 400 }}>
           全部 ({allTotal})
         </div>
         {(Array.isArray(categories) ? categories : []).map(c => (
           <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '6px 12px', cursor: 'pointer', background: activeCategory === c.id ? '#e6f4ff' : 'transparent',
+            padding: '6px 12px', cursor: 'pointer', background: activeCategory === c.id ? 'var(--active-bg)' : 'transparent',
             fontWeight: activeCategory === c.id ? 600 : 400 }}>
             <span onClick={() => setActiveCategory(c.id)} style={{ flex: 1 }}>{c.name} ({c.case_count})</span>
             <Space size={0}>

@@ -30,6 +30,10 @@ export default function Layout() {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     document.body.style.background = dark ? '#141414' : '#fff';
+    // CSS variables for theme-aware inline styles
+    const root = document.documentElement;
+    root.style.setProperty('--active-bg', dark ? 'rgba(23,125,220,0.25)' : '#e6f4ff');
+    root.style.setProperty('--border-color', dark ? 'rgba(255,255,255,0.06)' : '#fafafa');
     return () => { document.body.style.overflow = prev; };
   }, [dark]);
 
