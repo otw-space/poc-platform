@@ -352,7 +352,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
         onOpenChange={(open) => { if (!open) doFinishEdit(); }}
         placement="bottomLeft"
         overlayStyle={{ maxWidth: '90vw' }}
-        styles={dark ? { body: { background: '#1f1f1f' }, header: { background: '#1f1f1f', color: '#e8e8e8' } } : undefined}
+        styles={dark ? { body: { background: '#1f1f1f' } } : undefined}
       >
         <div style={{ flex: 1 }}>
           <Card

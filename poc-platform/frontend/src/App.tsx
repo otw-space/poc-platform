@@ -12,6 +12,7 @@ import SopCenter from './pages/SopCenter';
 import DashboardHome from './pages/DashboardHome';
 import RecycleBin from './pages/RecycleBin';
 import Settings from './pages/Settings';
+import DispatchMap from './pages/DispatchMap';
 import Profile from './pages/Profile';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="profile" element={<Profile />} />
         <Route path="sop" element={<SopCenter />} />
         <Route path="recycle-bin" element={<RecycleBin />} />
+        <Route path="dispatch-map" element={<DispatchMap />} />
         <Route
           path="settings"
           element={
