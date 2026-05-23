@@ -104,7 +104,7 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
       open={open}
       onCancel={handleCancel}
       width={680}
-      styles={dark ? { content: { background: '#1f1f1f' }, header: { background: 'transparent' } } : undefined}
+      styles={dark ? { content: { background: '#1f1f1f' }, body: { background: '#141414' }, header: { background: 'transparent' } } : undefined}
       footer={[
         <Button key="cancel" onClick={handleCancel}>取消</Button>,
         <Button key="create" type="primary" loading={saving} onClick={handleCreate}>创建并查看</Button>,
