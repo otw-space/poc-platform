@@ -34,6 +34,7 @@ export default function ProjectDetail() {
   const [previewUrl, setPreviewUrl] = useState('');
   const [previewTitle, setPreviewTitle] = useState('');
   const [webhookInput, setWebhookInput] = useState('');
+  const [webhookEditing, setWebhookEditing] = useState<string | undefined>();
 
   const fetchProject = useCallback(() => {
     if (!id) return;
@@ -258,10 +259,16 @@ export default function ProjectDetail() {
               style={{ flex: 1, minWidth: 260 }}
               size="small"
               placeholder="企业微信 Webhook URL（可选）"
-              value={project?.webhook_url || ''}
+              value={webhookInput}
               onChange={(e: any) => setWebhookInput(e.target.value)}
-              allowClear
+              disabled={webhookEditing === undefined && !!webhookInput}
+              allowClear={webhookEditing !== undefined}
             />
+            {webhookEditing !== undefined || !webhookInput ? (
+              <Button size="small" type="primary" onClick={() => updateProject(id!, { webhook_url: webhookInput }).then(() => { fetchProject(); message.success('Webhook 已保存'); setWebhookEditing(undefined); })}>保存</Button>
+            ) : (
+              <Button size="small" onClick={() => setWebhookEditing(webhookInput)}>编辑</Button>
+            )}
             <Button size="small" type="primary" onClick={() => updateProject(id!, { webhook_url: webhookInput }).then(() => { fetchProject(); message.success('Webhook 已保存'); })}>保存</Button>
           </div>
           {logs.length === 0 ? (

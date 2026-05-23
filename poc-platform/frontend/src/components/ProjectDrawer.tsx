@@ -40,6 +40,7 @@ export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDele
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
   const [webhookInput, setWebhookInput] = useState('');
+  const [webhookEditing, setWebhookEditing] = useState<string | undefined>();
   const [previewTitle, setPreviewTitle] = useState('');
 
   const fetchProject = useCallback(() => {
@@ -240,9 +241,14 @@ export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDele
               placeholder="企业微信 Webhook URL（可选）"
               value={webhookInput}
               onChange={(e: any) => setWebhookInput(e.target.value)}
-              allowClear
+              disabled={webhookEditing === undefined && !!webhookInput}
+              allowClear={webhookEditing !== undefined}
             />
-            <Button size="small" type="primary" onClick={() => updateProject(projectId!, { webhook_url: webhookInput }).then(() => { fetchProject(); message.success('Webhook 已保存'); })}>保存</Button>
+            {webhookEditing !== undefined || !webhookInput ? (
+              <Button size="small" type="primary" onClick={() => updateProject(projectId!, { webhook_url: webhookInput }).then(() => { fetchProject(); message.success('Webhook 已保存'); setWebhookEditing(undefined); })}>保存</Button>
+            ) : (
+              <Button size="small" onClick={() => setWebhookEditing(webhookInput)}>编辑</Button>
+            )}
           </div>
           {logs.length === 0 ? (
             <Empty description="暂无日志" />
