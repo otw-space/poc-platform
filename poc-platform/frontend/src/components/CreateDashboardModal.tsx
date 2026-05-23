@@ -5,6 +5,7 @@ import { createDashboard, updateDashboard, type ChartConfig, type Dashboard } fr
 import ColorSchemePicker from './ColorSchemePicker';
 import ChartFilterBuilder from './ChartFilterBuilder';
 import { CHART_TYPES, DIMENSION_FIELDS, METRIC_FIELDS } from '../constants/chart';
+import { useTheme } from '../context/ThemeContext';
 
 function generateId() {
   return Math.random().toString(36).substring(2, 10);
@@ -19,6 +20,7 @@ interface Props {
 
 export default function CreateDashboardModal({ open, onClose, onCreated, existingDashboards }: Props) {
   const [name, setName] = useState('');
+  const { dark } = useTheme();
   const [isPublic, setIsPublic] = useState(false);
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
   const [charts, setCharts] = useState<ChartConfig[]>([
@@ -102,6 +104,7 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
       open={open}
       onCancel={handleCancel}
       width={680}
+      styles={dark ? { content: { background: '#1f1f1f' }, header: { background: 'transparent' } } : undefined}
       footer={[
         <Button key="cancel" onClick={handleCancel}>取消</Button>,
         <Button key="create" type="primary" loading={saving} onClick={handleCreate}>创建并查看</Button>,
