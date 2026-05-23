@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Spin } from 'antd';
 import { useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import ProjectList from './pages/ProjectList';
@@ -30,6 +31,7 @@ function PermissionRoute({ children, module, action = 'view' }: { children: Reac
 
 export default function App() {
   return (
+    <ThemeProvider>
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route
@@ -59,5 +61,6 @@ export default function App() {
         />
       </Route>
     </Routes>
+    </ThemeProvider>
   );
 }

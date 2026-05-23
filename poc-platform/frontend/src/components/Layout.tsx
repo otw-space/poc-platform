@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout as AntLayout, Menu, Button, theme, Dropdown } from 'antd';
+import { Layout as AntLayout, Menu, Button, theme, Dropdown, Switch } from 'antd';
 import {
   HomeOutlined,
   ProjectOutlined,
@@ -10,13 +10,16 @@ import {
   DeleteOutlined,
   LogoutOutlined,
   UserOutlined,
+  BulbOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 const { Sider, Content, Header } = AntLayout;
 
 export default function Layout() {
   const { user, setUser, hasPermission } = useAuth();
+  const { dark, toggle: toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const { token } = theme.useToken();
@@ -60,6 +63,8 @@ export default function Layout() {
           PoC 管理平台
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <BulbOutlined style={{ fontSize: 16 }} />
+          <Switch size="small" checked={dark} onChange={toggleTheme} />
           <Dropdown
             menu={{
               items: [
