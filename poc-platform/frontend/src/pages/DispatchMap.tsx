@@ -54,7 +54,7 @@ export default function DispatchMap() {
     Promise.all([
       getProjects({ page: 1, page_size: 200 }),
       getOptions('status'),
-      fetch('/src/assets/china.json').then(r => r.json()),
+      import('../assets/china.json').then(m => m.default),
     ]).then(([projRes, statusRes, geoJson]) => {
       setProjects(projRes.data.items);
       const sm: Record<string, string> = {};
