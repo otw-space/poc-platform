@@ -33,10 +33,11 @@ export default function ProjectDetail() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
   const [previewTitle, setPreviewTitle] = useState('');
+  const [webhookInput, setWebhookInput] = useState('');
 
   const fetchProject = useCallback(() => {
     if (!id) return;
-    getProject(id).then((r) => setProject(r.data));
+    getProject(id).then((r) => { setProject(r.data); setWebhookInput(r.data.webhook_url || ''); });
   }, [id]);
 
   const fetchLogs = useCallback(() => {
@@ -258,9 +259,10 @@ export default function ProjectDetail() {
               size="small"
               placeholder="企业微信 Webhook URL（可选）"
               value={project?.webhook_url || ''}
-              onChange={(e: any) => updateProject(id!, { webhook_url: e.target.value }).then(fetchProject)}
+              onChange={(e: any) => setWebhookInput(e.target.value)}
               allowClear
             />
+            <Button size="small" type="primary" onClick={() => updateProject(id!, { webhook_url: webhookInput }).then(() => { fetchProject(); message.success('Webhook 已保存'); })}>保存</Button>
           </div>
           {logs.length === 0 ? (
             <Empty description="暂无日志" />

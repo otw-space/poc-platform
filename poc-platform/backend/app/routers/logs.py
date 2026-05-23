@@ -101,11 +101,20 @@ def push_log(project_id: str, log_id: str, db: Session = Depends(get_db), curren
 
     # Build markdown message
     lines = [
-        f"## 📋 {project.name} - 项目日志",
-        f"**日期**：{log_entry.log_date.isoformat()}",
-        f"**进度**：{log_entry.progress or '（无）'}",
-        f"**问题与风险**：{log_entry.issues or '（无）'}",
-        f"**下一步计划**：{log_entry.plan or '（无）'}",
+        f"## 📋 {project.name}",
+        f"**日志日期**：{log_entry.log_date.isoformat()}",
+        f"",
+        f"---",
+        f"### 📊 进度",
+        f"{log_entry.progress or '（无）'}",
+        f"",
+        f"---",
+        f"### ⚠️ 问题与风险",
+        f"{log_entry.issues or '（无）'}",
+        f"",
+        f"---",
+        f"### 📝 下一步计划",
+        f"{log_entry.plan or '（无）'}",
         f"",
         f"> 推送人：{current_user.display_name or current_user.username}",
     ]
