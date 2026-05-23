@@ -4,9 +4,12 @@ import { ProjectOutlined, PlayCircleOutlined, PlusCircleOutlined, ClockCircleOut
 import { Column, Pie } from '@ant-design/charts';
 import { getProjects } from '../api/projects';
 import { getOptions } from '../api/options';
+import { useTheme } from '../context/ThemeContext';
 import dayjs from 'dayjs';
 
 export default function DashboardHome() {
+  const { dark } = useTheme();
+  const chartTheme = dark ? 'dark' : 'classic';
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, inProgress: 0, thisMonth: 0, avgDuration: 0 });
   const [statusData, setStatusData] = useState<{ x: string; y: number }[]>([]);
@@ -62,7 +65,7 @@ export default function DashboardHome() {
       <Row gutter={16}>
         <Col span={12}>
           <Card title="项目状态分布">
-            <Pie data={statusData} angleField="y" colorField="x" radius={0.8} height={300} autoFit
+            <Pie theme={chartTheme} data={statusData} angleField="y" colorField="x" radius={0.8} height={300} autoFit
               scale={{ color: { range: ['#1677FF', '#52C41A', '#FA8C16', '#F5222D', '#722ED1'] } }}
               label={{ text: 'y', position: 'outside', style: { fontWeight: 500 } }}
               tooltip={{ title: (d: any) => d.x, items: [(d: any) => ({ name: '项目数量', value: String(d.y) })] }} />
@@ -70,7 +73,7 @@ export default function DashboardHome() {
         </Col>
         <Col span={12}>
           <Card title="区域分布">
-            <Column data={regionData} xField="x" yField="y" height={300} autoFit
+            <Column theme={chartTheme} data={regionData} xField="x" yField="y" height={300} autoFit
               scale={{ color: { range: ['#1677FF', '#4096FF', '#69B1FF', '#91CAFF', '#BAE7FF'] } }}
               legend={false}
               tooltip={(d: any) => ({ name: '项目数量', value: String(d.y) })} />
