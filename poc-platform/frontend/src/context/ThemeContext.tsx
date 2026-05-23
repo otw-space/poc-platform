@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { ConfigProvider, theme } from 'antd';
+import { ConfigProvider, App, theme } from 'antd';
 
 interface ThemeCtx {
   dark: boolean;
@@ -19,12 +19,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const toggle = () => setDark((v) => !v);
 
+  const themeConfig = { algorithm: dark ? theme.darkAlgorithm : theme.defaultAlgorithm };
+
   return (
     <ThemeContext.Provider value={{ dark, toggle }}>
-      <ConfigProvider theme={{ algorithm: dark ? theme.darkAlgorithm : theme.defaultAlgorithm }}>
-        <div id="theme-root" style={{ minHeight: '100vh', background: dark ? '#141414' : undefined }}>
+      <ConfigProvider theme={themeConfig}>
+        <App>
           {children}
-        </div>
+        </App>
       </ConfigProvider>
     </ThemeContext.Provider>
   );

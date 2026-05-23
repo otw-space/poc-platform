@@ -34,29 +34,6 @@ export default function Layout() {
     const root = document.documentElement;
     root.style.setProperty('--active-bg', dark ? 'rgba(23,125,220,0.25)' : '#e6f4ff');
     root.style.setProperty('--border-color', dark ? 'rgba(255,255,255,0.06)' : '#fafafa');
-
-    // Override popover/modal backgrounds in dark mode (portal rendering bypasses theme)
-    const styleId = 'dark-theme-overrides';
-    let styleEl = document.getElementById(styleId) as HTMLStyleElement;
-    if (dark) {
-      if (!styleEl) {
-        styleEl = document.createElement('style');
-        styleEl.id = styleId;
-        document.head.appendChild(styleEl);
-      }
-      styleEl.textContent = `
-        .ant-popover .ant-popover-inner { background:#1f1f1f !important; }
-        .ant-popover .ant-popover-arrow:before { background:#1f1f1f !important; }
-        .ant-popover .ant-popover-title { color:#e8e8e8 !important; }
-        .ant-modal .ant-modal-content { background:#1f1f1f !important; }
-        .ant-modal .ant-modal-header { background:transparent !important; }
-        .ant-modal .ant-modal-title { color:#e8e8e8 !important; }
-        .ant-dropdown .ant-dropdown-menu { background:#1f1f1f !important; }
-        .ant-select-dropdown { background:#1f1f1f !important; }
-      `;
-    } else if (styleEl) {
-      styleEl.remove();
-    }
     return () => { document.body.style.overflow = prev; };
   }, [dark]);
 
