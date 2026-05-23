@@ -1,4 +1,5 @@
 import json
+import ssl
 import urllib.request
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
@@ -114,12 +115,15 @@ def push_log(project_id: str, log_id: str, db: Session = Depends(get_db), curren
     }
 
     try:
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
         req = urllib.request.Request(
             project.webhook_url,
             data=json.dumps(payload).encode("utf-8"),
             headers={"Content-Type": "application/json"},
         )
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
             result = json.loads(resp.read().decode("utf-8"))
         if result.get("errcode") != 0:
             raise HTTPException(status_code=502, detail=f"企业微信返回错误: {result.get('errmsg', '未知错误')}")
