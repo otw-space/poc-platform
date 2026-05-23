@@ -19,7 +19,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const toggle = () => setDark((v) => !v);
 
-  const themeConfig = { algorithm: dark ? theme.darkAlgorithm : theme.defaultAlgorithm };
+  const themeConfig = { cssVar: true, algorithm: dark ? theme.darkAlgorithm : theme.defaultAlgorithm };
 
   return (
     <ThemeContext.Provider value={{ dark, toggle }}>
