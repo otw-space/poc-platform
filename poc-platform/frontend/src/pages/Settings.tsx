@@ -397,6 +397,7 @@ function AuditLogs({ refreshKey }: { refreshKey?: number }) {
     role: '系统设置-角色管理',
     recycle_bin: '回收站',
     sop: 'SOP中心',
+    diagram: '绘图工具',
   };
 
   const handleBatchDelete = async () => {

@@ -7,11 +7,11 @@ import { getRecycleBin, restoreItem, permanentDeleteItem, type RecycleBinItem } 
 const TYPE_LABELS: Record<string, string> = {
   project: '项目', dashboard: '仪表盘', log: '日志', option: '选项', chart: '图表',
   sop_sop: 'PoC实施SOP', sop_plan: 'PoC实施方案', sop_report: 'PoC汇报报告',
-  test_case: '测试用例', script: '脚本', sop_category: '客户端',
+  test_case: '测试用例', script: '脚本', sop_category: '客户端', diagram: '绘图',
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  project: 'blue', dashboard: 'purple', log: 'cyan', option: 'orange', chart: 'geekblue',
+  project: 'blue', dashboard: 'purple', log: 'cyan', option: 'orange', chart: 'geekblue', diagram: 'volcano',
   sop_sop: 'green', sop_plan: 'cyan', sop_report: 'blue',
   test_case: 'lime', script: 'gold', sop_category: 'volcano',
 };

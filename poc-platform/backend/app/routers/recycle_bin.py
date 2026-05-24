@@ -7,6 +7,7 @@ from ..models.dashboard import Dashboard
 from ..models.poc_project_log import PocProjectLog
 from ..models.poc_option import PocOption
 from ..models.sop import SopDocument, TestCase, ScriptFile, TestCaseCategory
+from ..models.diagram import Diagram
 from ..models.user import User
 from ..schemas.recycle_bin import RecycleBinItem, RecycleBinResponse
 from ..middleware.auth import get_current_user, require_permission
@@ -23,6 +24,7 @@ TYPE_MAP = {
     "test_case": TestCase,
     "script": ScriptFile,
     "sop_category": TestCaseCategory,
+    "diagram": Diagram,
 }
 
 

@@ -25,6 +25,10 @@ export function updateDiagram(id: string, data: { name?: string; data?: string }
   return client.put<Diagram>(`/diagrams/${id}`, data);
 }
 
+export function copyDiagram(id: string) {
+  return client.post<Diagram>(`/diagrams/${id}/copy`);
+}
+
 export function deleteDiagram(id: string) {
   return client.delete(`/diagrams/${id}`);
 }

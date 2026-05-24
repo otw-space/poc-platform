@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { Card, Button, Space, Input, Table, Popconfirm, message } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, PictureOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, PictureOutlined, CopyOutlined } from '@ant-design/icons';
 import { DrawIoEmbed } from 'react-drawio';
-import { listDiagrams, createDiagram, updateDiagram, deleteDiagram, getDiagram, type Diagram } from '../api/diagrams';
+import { listDiagrams, createDiagram, updateDiagram, deleteDiagram, copyDiagram, getDiagram, type Diagram } from '../api/diagrams';
 import dayjs from 'dayjs';
 
 export default function Diagrams() {
@@ -53,6 +53,11 @@ export default function Diagrams() {
     editingIdRef.current = d.id; editingNameRef.current = d.name;
   };
 
+  const handleCopy = async (id: string) => {
+    try { await copyDiagram(id); message.success('已复制'); fetch(); }
+    catch { message.error('复制失败'); }
+  };
+
   const handleDelete = async (id: string) => {
     try { await deleteDiagram(id); if (editingId === id) setEditingId(null); message.success('已删除'); fetch(); }
     catch { message.error('删除失败'); }
@@ -95,10 +100,11 @@ export default function Diagrams() {
       render: (v: string, r: Diagram) => <a onClick={() => handleEdit(r)}>{v}</a> },
     { title: '更新时间', dataIndex: 'updated_at', key: 'updated_at', width: 140,
       render: (v: string) => dayjs(v).format('MM-DD HH:mm') },
-    { title: '操作', key: 'actions', width: 100,
+    { title: '操作', key: 'actions', width: 140,
       render: (_: any, r: Diagram) => (
         <Space>
           <a onClick={() => handleEdit(r)}><EditOutlined /></a>
+          <a onClick={() => handleCopy(r.id)}><CopyOutlined /></a>
           <Popconfirm title="确认删除？" onConfirm={() => handleDelete(r.id)}>
             <a style={{ color: '#ff4d4f' }}><DeleteOutlined /></a>
           </Popconfirm>

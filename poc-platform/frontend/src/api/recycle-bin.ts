@@ -2,7 +2,7 @@ import client from './client';
 
 export interface RecycleBinItem {
   id: string;
-  type: 'project' | 'dashboard' | 'log' | 'option';
+  type: 'project' | 'dashboard' | 'log' | 'option' | 'diagram' | 'chart' | 'sop_document' | 'test_case' | 'script' | 'sop_category';
   name: string;
   deleted_at: string;
   deleted_by: string | null;
