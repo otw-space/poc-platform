@@ -1109,7 +1109,12 @@ def import_test_cases(
     except ImportError:
         raise HTTPException(status_code=500, detail="openpyxl not installed on server")
 
-    wb = openpyxl.load_workbook(file.file, read_only=True)
+    try:
+        from io import BytesIO
+        contents = BytesIO(file.file.read())
+        wb = openpyxl.load_workbook(contents, read_only=True)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"无法解析文件: {str(e)}")
     ws = wb.active
     rows = list(ws.iter_rows(values_only=True))
     if len(rows) < 2:
@@ -1134,43 +1139,47 @@ def import_test_cases(
     # Reverse status mapping
     rev_status = {"草稿": "draft", "就绪": "ready", "废弃": "deprecated", "draft": "draft", "ready": "ready", "deprecated": "deprecated"}
 
-    count = 0
-    for row in rows[1:]:
-        if all(v is None for v in row):
-            continue
-        values: dict[str, Any] = {}
-        category_name = None
-        for i, field in idx_map.items():
-            val = row[i] if i < len(row) else None
-            if val is not None:
-                v = str(val).strip()
-                if field == "category":
-                    category_name = v
-                elif field == "status":
-                    values["status"] = rev_status.get(v, "draft")
-                else:
-                    values[field] = v
-        if not values.get("title"):
-            continue
-        values.setdefault("priority", "P2")
-        values.setdefault("status", "draft")
+    try:
+        count = 0
+        for row in rows[1:]:
+            if all(v is None for v in row):
+                continue
+            values: dict[str, Any] = {}
+            category_name = None
+            for i, field in idx_map.items():
+                val = row[i] if i < len(row) else None
+                if val is not None:
+                    v = str(val).strip()
+                    if field == "category":
+                        category_name = v
+                    elif field == "status":
+                        values["status"] = rev_status.get(v, "draft")
+                    else:
+                        values[field] = v
+            if not values.get("title"):
+                continue
+            values.setdefault("priority", "P2")
+            values.setdefault("status", "draft")
 
-        # Resolve category name → category_id
-        if category_name:
-            cat = db.query(TestCaseCategory).filter(TestCaseCategory.name == category_name).first()
-            if not cat:
-                cat = TestCaseCategory(name=category_name, created_by=current_user.id)
-                db.add(cat)
-                db.flush()
-            values["category_id"] = cat.id
+            # Resolve category name → category_id
+            if category_name:
+                cat = db.query(TestCaseCategory).filter(TestCaseCategory.name == category_name).first()
+                if not cat:
+                    cat = TestCaseCategory(name=category_name, created_by=current_user.id)
+                    db.add(cat)
+                    db.flush()
+                values["category_id"] = cat.id
 
-        tc = TestCase(**values, created_by=current_user.id)
-        db.add(tc)
-        count += 1
+            tc = TestCase(**values, created_by=current_user.id)
+            db.add(tc)
+            count += 1
 
-    db.commit()
-    log_operation(db, current_user, "import", "test_case", f"{count} cases")
-    return {"ok": True, "count": count}
+        db.commit()
+        log_operation(db, current_user, "import", "test_case", f"{count} cases")
+        return {"ok": True, "count": count}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"导入失败: {str(e)}")
 
 
 @router.get("/test-cases/export")
