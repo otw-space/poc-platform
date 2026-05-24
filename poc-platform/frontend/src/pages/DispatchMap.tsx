@@ -105,7 +105,6 @@ export default function DispatchMap() {
     const cityLabelColor = dark ? '#1a1a2e' : 'rgba(0,0,0,0.6)';
     const labelShadow = dark ? '0 0 4px rgba(0,0,0,0.8)' : 'none';
     const scatterRed = dark ? '#ff6b6b' : '#e53e3e';
-    const borderBase = dark ? 'rgba(255,255,255,' : 'rgba(0,0,0,';
 
     // Province label markers at correct GeoJSON center positions
     // Manual overrides for provinces where geometric centroid is visually off
@@ -152,8 +151,8 @@ export default function DispatchMap() {
         name,
         itemStyle: {
           areaColor: 'transparent',
-          borderColor: `${borderBase}${0.1 + cityAlpha * 0.4})`,
-          borderWidth: 0.3,
+          borderColor: dark ? '#3a4a6a' : `rgba(0,0,0,${0.05 + cityAlpha * 0.25})`,
+          borderWidth: 0.4,
         },
         label: {
           show: showCityLabel,
