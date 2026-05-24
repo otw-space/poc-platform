@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Input, Select, Space, Tag, Popconfirm, message, Card, DatePicker, Popover, Segmented, Spin } from 'antd';
+import { Table, Button, Input, Select, Space, Tag, Popconfirm, message, Card, DatePicker, Popover, Dropdown, Spin } from 'antd';
 import { PlusOutlined, SearchOutlined, DownloadOutlined, AppstoreOutlined, UnorderedListOutlined, TableOutlined, CalendarOutlined } from '@ant-design/icons';
 import { Resizable } from 'react-resizable';
 import 'react-resizable/css/styles.css';
@@ -81,7 +81,29 @@ export default function ProjectList() {
     setPage, setFilters, fetchProjects,
     statusOptions, typeOptions, implOptions, getOptionLabel,
   } = useProjectData();
-  const [view, setView] = useState<string>('table');
+  // View management — stored in localStorage
+  type ViewConfig = { id: string; name: string; type: 'table' | 'kanban' | 'gallery' | 'calendar' };
+  const [views, setViews] = useState<ViewConfig[]>(() => {
+    try { const saved = JSON.parse(localStorage.getItem('project_views') || 'null'); if (saved?.length) return saved; } catch {}
+    return [{ id: 'default', name: '表格视图', type: 'table' }];
+  });
+  const [activeViewId, setActiveViewId] = useState(views[0].id);
+  const activeView = views.find(v => v.id === activeViewId) || views[0];
+
+  useEffect(() => { localStorage.setItem('project_views', JSON.stringify(views)); }, [views]);
+
+  const addView = (type: ViewConfig['type']) => {
+    const nameMap = { table: '表格', kanban: '看板', gallery: '画廊', calendar: '日历' };
+    const newView: ViewConfig = { id: Date.now().toString(), name: `${nameMap[type]}视图 ${views.length + 1}`, type };
+    setViews(prev => [...prev, newView]);
+    setActiveViewId(newView.id);
+  };
+
+  const removeView = (id: string) => {
+    if (views.length <= 1) return;
+    setViews(prev => prev.filter(v => v.id !== id));
+    if (activeViewId === id) setActiveViewId(views[0].id === id ? views[1]?.id || 'default' : views[0].id);
+  };
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => ({
     ...DEFAULT_WIDTHS,
     ...loadWidths(),
@@ -204,16 +226,28 @@ export default function ProjectList() {
   return (
     <Card>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-        <Segmented
-          value={view}
-          onChange={v => setView(v as string)}
-          options={[
-            { label: <><TableOutlined /> 表格</>, value: 'table' },
-            { label: <><AppstoreOutlined /> 看板</>, value: 'kanban' },
-            { label: <><UnorderedListOutlined /> 画廊</>, value: 'gallery' },
-            { label: <><CalendarOutlined /> 日历</>, value: 'calendar' },
-          ]}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflow: 'auto', flex: 1 }}>
+          {views.map(v => {
+            const icons: Record<string, React.ReactNode> = { table: <TableOutlined />, kanban: <AppstoreOutlined />, gallery: <UnorderedListOutlined />, calendar: <CalendarOutlined /> };
+            return (
+              <div key={v.id} style={{ display: 'flex', alignItems: 'center', border: activeViewId === v.id ? '2px solid #1677ff' : '2px solid transparent', borderRadius: 6, padding: '2px 2px 2px 10px', cursor: 'pointer', background: activeViewId === v.id ? '#e6f4ff' : 'transparent' }}
+                onClick={() => setActiveViewId(v.id)}>
+                <span style={{ fontSize: 13, whiteSpace: 'nowrap' }}>{icons[v.type]} {v.name}</span>
+                {views.length > 1 && (
+                  <Button size="small" type="text" style={{ minWidth: 20, padding: 0, color: '#999' }} onClick={e => { e.stopPropagation(); removeView(v.id); }}>×</Button>
+                )}
+              </div>
+            );
+          })}
+          <Dropdown menu={{ items: [
+            { key: 'table', icon: <TableOutlined />, label: '表格视图', onClick: () => addView('table') },
+            { key: 'kanban', icon: <AppstoreOutlined />, label: '看板视图', onClick: () => addView('kanban') },
+            { key: 'gallery', icon: <UnorderedListOutlined />, label: '画廊视图', onClick: () => addView('gallery') },
+            { key: 'calendar', icon: <CalendarOutlined />, label: '日历视图', onClick: () => addView('calendar') },
+          ] }}>
+            <Button size="small" type="text" icon={<PlusOutlined />} style={{ fontSize: 16, marginLeft: 4 }} />
+          </Dropdown>
+        </div>
         <Space>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/projects/new')}>新建项目</Button>
           <Button icon={<DownloadOutlined />} onClick={exportXLSX}>导出 Excel</Button>
@@ -224,7 +258,7 @@ export default function ProjectList() {
         <div style={{ marginBottom: 12 }}>{/* spacers are fine */}</div>
       )}
 
-      {view === 'table' && (
+      {activeView.type === 'table' && (
         <div>
           <Space style={{ marginBottom: 16, flexWrap: 'wrap' }}>
             <Input placeholder="项目名称" prefix={<SearchOutlined />} allowClear style={{ width: 180 }}
@@ -258,7 +292,7 @@ export default function ProjectList() {
         </div>
       )}
 
-      {view === 'kanban' && (
+      {activeView.type === 'kanban' && (
         <ProjectKanbanView projects={projects} statusOptions={statusOptions} typeOptions={typeOptions}
           loading={loading} onStatusChange={handleStatusChange} />
       )}

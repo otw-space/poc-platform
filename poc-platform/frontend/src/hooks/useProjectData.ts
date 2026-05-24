@@ -31,19 +31,33 @@ export function useProjectData() {
 
   const fetchProjects = useCallback(() => {
     setLoading(true);
-    const params: Record<string, any> = { page, page_size: 200 };
-    if (filters.name) params.name = filters.name;
-    if (filters.region) params.region = filters.region;
-    if (filters.city) params.city = filters.city;
-    if (filters.sales) params.sales = filters.sales;
-    if (filters.status_id) params.status_id = filters.status_id;
-    if (filters.poc_type_id) params.poc_type_id = filters.poc_type_id;
-    if (filters.date_from) params.date_from = filters.date_from;
-    if (filters.date_to) params.date_to = filters.date_to;
-    getProjects(params)
-      .then(r => { setProjects(r.data.items); setTotal(r.data.total); })
+    const baseParams: Record<string, any> = { page_size: 100 };
+    if (filters.name) baseParams.name = filters.name;
+    if (filters.region) baseParams.region = filters.region;
+    if (filters.city) baseParams.city = filters.city;
+    if (filters.sales) baseParams.sales = filters.sales;
+    if (filters.status_id) baseParams.status_id = filters.status_id;
+    if (filters.poc_type_id) baseParams.poc_type_id = filters.poc_type_id;
+    if (filters.date_from) baseParams.date_from = filters.date_from;
+    if (filters.date_to) baseParams.date_to = filters.date_to;
+
+    // Fetch first page to get total
+    getProjects({ ...baseParams, page: 1 })
+      .then(async (r1) => {
+        let all = r1.data.items;
+        const total = r1.data.total;
+        if (total > 100) {
+          const pages = Math.ceil(total / 100);
+          const reqs = [];
+          for (let p = 2; p <= pages; p++) reqs.push(getProjects({ ...baseParams, page: p }));
+          const results = await Promise.all(reqs);
+          results.forEach(r => { all = all.concat(r.data.items); });
+        }
+        setProjects(all);
+        setTotal(total);
+      })
       .finally(() => setLoading(false));
-  }, [page, filters]);
+  }, [filters]);
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
