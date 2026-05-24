@@ -3,6 +3,7 @@ import json
 import re
 import uuid as uuid_lib
 from datetime import datetime
+from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -1119,6 +1120,10 @@ def import_test_cases(
         "title": "title", "module": "module", "priority": "priority",
         "precondition": "precondition", "steps": "steps", "expected_result": "expected_result",
         "status": "status", "remarks": "remarks",
+        # Chinese headers (from export)
+        "标题": "title", "客户端": "category", "模块": "module", "优先级": "priority",
+        "前置条件": "precondition", "测试步骤": "steps", "预期结果": "expected_result",
+        "状态": "status", "备注": "remarks",
     }
     idx_map = {}
     for i, h in enumerate(headers):
@@ -1126,19 +1131,39 @@ def import_test_cases(
         if key:
             idx_map[i] = key
 
+    # Reverse status mapping
+    rev_status = {"草稿": "draft", "就绪": "ready", "废弃": "deprecated", "draft": "draft", "ready": "ready", "deprecated": "deprecated"}
+
     count = 0
     for row in rows[1:]:
         if all(v is None for v in row):
             continue
-        values = {}
+        values: dict[str, Any] = {}
+        category_name = None
         for i, field in idx_map.items():
             val = row[i] if i < len(row) else None
             if val is not None:
-                values[field] = str(val).strip()
+                v = str(val).strip()
+                if field == "category":
+                    category_name = v
+                elif field == "status":
+                    values["status"] = rev_status.get(v, "draft")
+                else:
+                    values[field] = v
         if not values.get("title"):
             continue
         values.setdefault("priority", "P2")
         values.setdefault("status", "draft")
+
+        # Resolve category name → category_id
+        if category_name:
+            cat = db.query(TestCaseCategory).filter(TestCaseCategory.name == category_name).first()
+            if not cat:
+                cat = TestCaseCategory(name=category_name)
+                db.add(cat)
+                db.flush()
+            values["category_id"] = cat.id
+
         tc = TestCase(**values, created_by=current_user.id)
         db.add(tc)
         count += 1
