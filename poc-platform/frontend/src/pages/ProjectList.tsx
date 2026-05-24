@@ -357,9 +357,10 @@ export default function ProjectList() {
 
       {activeView.type === 'kanban' && (
         <div>
-          <ProjectToolbar value={toolbar} onChange={updateToolbar} statusOptions={statusOptions} typeOptions={typeOptions} />
-          <ProjectKanbanView projects={sorted} statusOptions={statusOptions} typeOptions={typeOptions}
-            loading={loading} onStatusChange={handleStatusChange} />
+          <ProjectToolbar value={toolbar} onChange={updateToolbar} statusOptions={statusOptions} typeOptions={typeOptions} showGroup={false} />
+          <ProjectKanbanView projects={sorted} statusOptions={statusOptions} typeOptions={typeOptions} implOptions={implOptions}
+            loading={loading} groupBy={toolbar.groupBy[0] || 'status_id'}
+            groupOptions={[]} onGroupByChange={v => updateToolbar({ groupBy: [v] })} onStatusChange={handleStatusChange} />
         </div>
       )}
 
