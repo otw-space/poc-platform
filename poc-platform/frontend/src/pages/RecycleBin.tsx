@@ -121,7 +121,7 @@ export default function RecycleBin() {
     { title: '类型', dataIndex: 'type', key: 'type', width: 120,
       render: (v: string) => <Tag color={TYPE_COLORS[v] || 'default'}>{TYPE_LABELS[v] || v}</Tag> },
     { title: '删除时间', dataIndex: 'deleted_at', key: 'deleted_at', width: 180,
-      render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm:ss') },
+      render: (v: string) => v ? dayjs.utc(v).local().format('YYYY-MM-DD HH:mm') : '-' },
     { title: '删除人员', dataIndex: 'deleted_by', key: 'deleted_by', width: 120 },
     { title: '操作', key: 'actions', width: 200,
       render: (_: any, record: RecycleBinItem) => (
