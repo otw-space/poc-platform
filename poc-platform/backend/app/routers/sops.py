@@ -1174,13 +1174,17 @@ def export_test_cases(
         cats = db.query(TestCaseCategory).filter(TestCaseCategory.id.in_(cat_ids)).all()
         cat_names = {c.id: c.name for c in cats}
 
+    # Status mapping to Chinese
+    status_map = {"draft": "草稿", "ready": "就绪", "deprecated": "废弃"}
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "test_cases"
+    # Same order as frontend display: 标题, 客户端, 模块, 优先级, 前置条件, 测试步骤, 预期结果, 状态, 备注
     headers = ["标题", "客户端", "模块", "优先级", "前置条件", "测试步骤", "预期结果", "状态", "备注"]
     ws.append(headers)
     for tc in items:
-        ws.append([tc.title, cat_names.get(tc.category_id or '', ''), tc.module, tc.priority, tc.precondition, tc.steps, tc.expected_result, tc.status, tc.remarks])
+        ws.append([tc.title, cat_names.get(tc.category_id or '', ''), tc.module, tc.priority, tc.precondition, tc.steps, tc.expected_result, status_map.get(tc.status, tc.status), tc.remarks])
 
     from io import BytesIO
     from fastapi.responses import StreamingResponse
