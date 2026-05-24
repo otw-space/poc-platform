@@ -120,29 +120,29 @@ export default function DispatchMap() {
       projects: r.projs,
     }));
 
-    // Label position fixes for provinces with bad centroids
+    // Pixel offset fixes for province labels rendered at wrong centroids
     const labelFixes: Record<string, [number, number]> = {
-      '甘肃省': [103, 37.5],
-      '内蒙古自治区': [114, 44.5],
-      '黑龙江省': [128, 48],
-      '新疆维吾尔自治区': [84, 41.5],
-      '青海省': [95, 35.5],
-      '四川省': [102.5, 30.5],
-      '云南省': [101, 25.5],
-      '河北省': [115, 38],
-      '海南省': [109.5, 19],
-      '台湾省': [121, 24],
-      '西藏自治区': [91, 31.5],
+      '甘肃省': [-60, 20],
+      '内蒙古自治区': [30, -40],
+      '黑龙江省': [-40, -30],
+      '新疆维吾尔自治区': [40, 20],
+      '青海省': [40, 10],
+      '四川省': [30, 20],
+      '云南省': [10, 30],
+      '河北省': [20, 0],
+      '海南省': [0, 30],
+      '台湾省': [-20, 0],
+      '西藏自治区': [20, 30],
     };
 
     function buildRegions(cityAlpha: number, cityLabelSize: number): any[] {
       const result: any[] = provinces.map(name => ({
         name,
         itemStyle: { areaColor: PROVINCE_COLORS[name] || '#e8f0f8' },
-        label: { color: labelColor, position: labelFixes[name] || undefined },
+        label: { color: labelColor, offset: labelFixes[name] || undefined },
       }));
       // Cities: transparent fill, border + label appears with zoom
-      const showCityLabel = cityAlpha > 0.1;
+      const showCityLabel = cityAlpha > 0.2;
       result.push(...cities.map(name => ({
         name,
         itemStyle: {
@@ -234,8 +234,23 @@ export default function DispatchMap() {
       const z = (g.zoom as number) || 1.2;
       if (Math.abs(z - zoom.current) < 0.05) return;
       zoom.current = z;
-      // Full replace to avoid merge issues with regions
-      chart.setOption(buildOpt(z), true);
+      const cfg = zCfg(z);
+
+      chart.setOption({
+        geo: [{
+          label: { show: cfg.provAlpha > 0, fontSize: cfg.provSize },
+          emphasis: { label: { fontSize: cfg.provSize + 2 } },
+          regions: buildRegions(cfg.cityAlpha, cfg.citySize),
+        }],
+        series: [
+          {
+            data: cfg.cityAlpha > 0 ? cityLabels : [],
+            itemStyle: { color: `rgba(${dark ? '255,255,255' : '0,0,0'},${cfg.cityAlpha * 0.3})` },
+            label: { show: cfg.cityAlpha > 0, fontSize: cfg.citySize },
+          },
+          { symbolSize: (v: number[]) => Math.min(Math.max(v[2] * cfg.scatterScale, cfg.scatterScale * 2), 48) },
+        ],
+      });
     });
 
     const hr = () => chart.resize();
