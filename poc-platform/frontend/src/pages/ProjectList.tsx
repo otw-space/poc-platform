@@ -117,55 +117,59 @@ export default function ProjectList() {
   const { dark } = useTheme();
 
   // Toolbar state
-  const [toolbar, setToolbar] = useState<ToolbarState>({ search: '', filters: [], filterMode: 'and', sortBy: '', sortOrder: 'desc', groupBy: '' });
+  const [toolbar, setToolbar] = useState<ToolbarState>({ searchField: 'name', search: '', filters: [], filterMode: 'and', sortBy: '', sortOrder: 'desc', groupBy: [] });
   const updateToolbar = (v: Partial<ToolbarState>) => setToolbar(prev => ({ ...prev, ...v }));
 
-  // Apply client-side filters, sort, group, search
+  const fieldVal = (p: any, field: string) => {
+    if (field === 'status_id') return getOptionLabel(statusOptions, p.status_id);
+    if (field === 'poc_type_id') return getOptionLabel(typeOptions, p.poc_type_id);
+    if (field === 'impl_method_id') return getOptionLabel(implOptions, p.impl_method_id);
+    return String(p[field as keyof typeof p] || '');
+  };
+
+  // Apply client-side filters, sort, search
   const filtered = projects.filter(p => {
-    if (toolbar.search && !p.name.toLowerCase().includes(toolbar.search.toLowerCase())) return false;
+    // Search on selected field (fuzzy match)
+    if (toolbar.search) {
+      const fv = fieldVal(p, toolbar.searchField || 'name').toLowerCase();
+      if (!fv.includes(toolbar.search.toLowerCase())) return false;
+    }
+    // Filters
     if (toolbar.filters.length === 0) return true;
-    const fieldToVal = (p: any, field: string) => {
-      if (field === 'status_id') return String(p.status_id);
-      if (field === 'poc_type_id') return String(p.poc_type_id);
-      return String(p[field as keyof typeof p] || '');
+    const rawVal = (pp: any, field: string) => {
+      if (field === 'status_id') return String(pp.status_id);
+      if (field === 'poc_type_id') return String(pp.poc_type_id);
+      if (field === 'impl_method_id') return String(pp.impl_method_id);
+      return String(pp[field as keyof typeof pp] || '');
     };
-    const results = toolbar.filters.filter(f => f.value).map(f => fieldToVal(p, f.field) === f.value);
+    const results = toolbar.filters.filter(f => f.value).map(f => rawVal(p, f.field) === f.value);
     return toolbar.filterMode === 'and' ? results.every(Boolean) : results.some(Boolean);
   });
 
   const sorted = [...filtered].sort((a, b) => {
     if (!toolbar.sortBy) return 0;
-    const va = String(a[toolbar.sortBy as keyof typeof a] || '');
-    const vb = String(b[toolbar.sortBy as keyof typeof b] || '');
+    const va = fieldVal(a, toolbar.sortBy);
+    const vb = fieldVal(b, toolbar.sortBy);
     return toolbar.sortOrder === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
   });
 
-  // Highlight matching text
-  const highlightText = (text: string) => {
-    if (!toolbar.search) return text;
-    const idx = text.toLowerCase().indexOf(toolbar.search.toLowerCase());
-    if (idx === -1) return text;
-    return (
-      <span>
-        {text.slice(0, idx)}<mark style={{ background: '#ffd666', padding: 0 }}>{text.slice(idx, idx + toolbar.search.length)}</mark>{text.slice(idx + toolbar.search.length)}
-      </span>
-    );
-  };
-
-  // Group data
-  const grouped = (() => {
-    if (!toolbar.groupBy) return null;
-    const groups: Record<string, typeof sorted> = {};
-    sorted.forEach(p => {
-      const key = toolbar.groupBy === 'status_id' ? getOptionLabel(statusOptions, p.status_id)
-        : toolbar.groupBy === 'poc_type_id' ? getOptionLabel(typeOptions, p.poc_type_id)
-        : toolbar.groupBy === 'impl_method_id' ? getOptionLabel(implOptions, p.impl_method_id)
-        : String(p[toolbar.groupBy as keyof typeof p] || '未分组');
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(p);
+  // Multi-level grouping
+  const buildGroups = (items: typeof sorted, level: number): any[] => {
+    if (level >= toolbar.groupBy.length) return items;
+    const field = toolbar.groupBy[level];
+    const map = new Map<string, typeof sorted>();
+    items.forEach(p => {
+      const key = fieldVal(p, field) || '未分组';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(p);
     });
-    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-  })();
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([key, groupItems]) => ({
+      key,
+      count: groupItems.length,
+      items: buildGroups(groupItems, level + 1),
+    }));
+  };
+  const grouped = toolbar.groupBy.length > 0 ? buildGroups(sorted, 0) : null;
 
   const handleStatusChange = async (projectId: string, statusId: number) => {
     await updateProject(projectId, { status_id: statusId });
