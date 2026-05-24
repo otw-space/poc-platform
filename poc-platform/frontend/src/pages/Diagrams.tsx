@@ -1,8 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Card, Button, Space, message, Modal, Input, Table, Popconfirm, Spin } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, PictureOutlined } from '@ant-design/icons';
-import { Excalidraw } from '@excalidraw/excalidraw';
-import { listDiagrams, createDiagram, updateDiagram, deleteDiagram, type Diagram } from '../api/diagrams';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { Card, Button, Space, message, Input, Table, Popconfirm, Spin } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, PictureOutlined, FullscreenOutlined } from '@ant-design/icons';
+import { listDiagrams, createDiagram, updateDiagram, deleteDiagram, getDiagram, type Diagram } from '../api/diagrams';
 import { useTheme } from '../context/ThemeContext';
 import dayjs from 'dayjs';
 
@@ -11,8 +10,9 @@ export default function Diagrams() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [newName, setNewName] = useState('');
   const [saving, setSaving] = useState(false);
-  const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const { dark } = useTheme();
 
   const fetch = useCallback(() => {
@@ -22,27 +22,46 @@ export default function Diagrams() {
 
   useEffect(() => { fetch(); }, [fetch]);
 
-  const handleNew = async () => {
-    const name = `未命名图表_${dayjs().format('MMDD_HHmm')}`;
+  // Listen for save events from draw.io iframe
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data?.length > 0 && e.data[0] === 'export') {
+        // draw.io export event - auto-save
+        const xml = e.data[1];
+        handleAutoSave(xml);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [editingId, editingName]);
+
+  const handleAutoSave = async (xml: string) => {
+    if (!editingId) return;
     try {
-      const r = await createDiagram({ name, data: '{"type":"excalidraw","version":2,"source":"","elements":[],"appState":{"viewBackgroundColor":"#ffffff"}}' });
+      await updateDiagram(editingId, { name: editingName, data: xml });
+      fetch();
+    } catch { /* silent */ }
+  };
+
+  const handleNew = async () => {
+    const name = newName.trim() || `未命名图表_${dayjs().format('MMDD_HHmm')}`;
+    try {
+      const r = await createDiagram({ name, data: '' });
       setEditingId(r.data.id);
       setEditingName(r.data.name);
+      setNewName('');
       message.success('已创建');
       fetch();
     } catch { message.error('创建失败'); }
   };
 
   const handleSave = async () => {
-    if (!editingId || !excalidrawAPI) return;
+    if (!editingId || !iframeRef.current) return;
     setSaving(true);
     try {
-      const elements = excalidrawAPI.getSceneElements();
-      const appState = excalidrawAPI.getAppState();
-      const data = JSON.stringify({ type: 'excalidraw', version: 2, source: '', elements, appState });
-      await updateDiagram(editingId, { name: editingName, data });
+      // Request XML export from draw.io
+      iframeRef.current.contentWindow?.postMessage(JSON.stringify({ action: 'export', format: 'xmlpng' }), '*');
       message.success('已保存');
-      fetch();
     } catch { message.error('保存失败'); }
     finally { setSaving(false); }
   };
@@ -61,17 +80,41 @@ export default function Diagrams() {
     } catch { message.error('删除失败'); }
   };
 
-  // Parse initial data for excalidraw
-  const getInitialData = (d: Diagram) => {
-    try {
-      const parsed = JSON.parse(d.data || '{}');
-      return { elements: parsed.elements || [], appState: { ...parsed.appState, viewBackgroundColor: dark ? '#1e1e1e' : '#ffffff' } };
-    } catch {
-      return { elements: [], appState: { viewBackgroundColor: dark ? '#1e1e1e' : '#ffffff' } };
-    }
+  // Build draw.io embed URL
+  const getDrawioUrl = () => {
+    if (!editingId) return '';
+    const base = 'https://embed.diagrams.net/';
+    const params = new URLSearchParams({
+      embed: '1',
+      ui: dark ? 'dark' : 'kennedy',
+      spin: '1',
+      modified: 'unsavedChanges',
+      proto: 'json',
+    });
+    return `${base}?${params.toString()}`;
   };
 
-  const activeDiagram = diagrams.find(d => d.id === editingId);
+  // Load diagram XML into iframe
+  useEffect(() => {
+    if (!editingId || !iframeRef.current) return;
+    (async () => {
+      try {
+        const r = await getDiagram(editingId);
+        const xml = r.data.data;
+        if (xml && iframeRef.current) {
+          // Wait for iframe to load, then send diagram data
+          const sendXml = () => {
+            iframeRef.current?.contentWindow?.postMessage(
+              JSON.stringify({ action: 'load', autosave: 1, xml }), '*'
+            );
+          };
+          // Try immediately, also set a retry
+          setTimeout(sendXml, 1000);
+          setTimeout(sendXml, 3000);
+        }
+      } catch { /* diagram might be new */ }
+    })();
+  }, [editingId]);
 
   const columns = [
     { title: '名称', dataIndex: 'name', key: 'name', ellipsis: true,
@@ -96,19 +139,24 @@ export default function Diagrams() {
         title={<span><PictureOutlined style={{ marginRight: 8 }} />绘图工具</span>}
         extra={
           <Space>
-            {editingId && (
-              <Button type="primary" loading={saving} onClick={handleSave}>保存</Button>
-            )}
+            <Input
+              size="small"
+              placeholder="图表名称"
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              onPressEnter={handleNew}
+              style={{ width: 160 }}
+            />
             <Button icon={<PlusOutlined />} onClick={handleNew}>新建图表</Button>
           </Space>
         }
         style={{ marginBottom: 16 }}
       >
         <Table rowKey="id" columns={columns} dataSource={diagrams} loading={loading}
-          pagination={false} size="small" locale={{ emptyText: '暂无图表，点击右上角"新建图表"开始' }} />
+          pagination={false} size="small" locale={{ emptyText: '暂无图表，输入名称后点击"新建图表"开始' }} />
       </Card>
 
-      {editingId && activeDiagram && (
+      {editingId && (
         <Card
           title={
             <Input
@@ -116,20 +164,25 @@ export default function Diagrams() {
               onChange={e => setEditingName(e.target.value)}
               style={{ width: 300 }}
               bordered={false}
-              onBlur={handleSave}
             />
           }
           extra={
-            <Button onClick={() => setEditingId(null)}>关闭</Button>
+            <Space>
+              <Button type="primary" loading={saving} onClick={handleSave}>保存</Button>
+              <Button onClick={() => setEditingId(null)}>关闭</Button>
+            </Space>
           }
           bodyStyle={{ padding: 0 }}
         >
-          <div style={{ height: 650 }}>
-            <Excalidraw
-              initialData={getInitialData(activeDiagram)}
-              excalidrawAPI={api => setExcalidrawAPI(api)}
-              theme={dark ? 'dark' : 'light'}
-            />
+          <div style={{ width: '100%', height: 'calc(100vh - 280px)', minHeight: 600 }}>
+            {editingId && (
+              <iframe
+                ref={iframeRef}
+                src={getDrawioUrl()}
+                style={{ width: '100%', height: '100%', border: 'none' }}
+                title="绘图编辑器"
+              />
+            )}
           </div>
         </Card>
       )}
