@@ -138,7 +138,13 @@ export default function Diagrams() {
           }
           styles={{ body: { padding: 0 } }}
         >
-          <div style={{ width: '100%', height: 'calc(100vh - 260px)', minHeight: 600 }}>
+          <div style={{ width: '100%', height: 'calc(100vh - 260px)', minHeight: 600 }}
+            onMouseDown={() => {
+              // Click inside container → focus iframe for keyboard shortcuts
+              const iframe = document.querySelector('iframe[title="draw.io embed"]') as HTMLIFrameElement;
+              iframe?.focus();
+            }}
+          >
             <DrawIoEmbed
               key={editingId}
               ref={drawioRef}
@@ -146,6 +152,11 @@ export default function Diagrams() {
               autosave
               onAutoSave={handleAutoSave}
               onExport={handleExport}
+              onLoad={() => {
+                // Focus iframe to enable keyboard shortcuts
+                const iframe = document.querySelector('iframe[title="draw.io embed"]') as HTMLIFrameElement;
+                iframe?.focus();
+              }}
               urlParameters={{ spin: true, libraries: false, noSaveBtn: true, noExitBtn: true }}
             />
           </div>
