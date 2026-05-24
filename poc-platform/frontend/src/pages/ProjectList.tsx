@@ -4,12 +4,13 @@ import { Table, Button, Input, Select, Space, Tag, Popconfirm, message, Card, Da
 import { PlusOutlined, SearchOutlined, DownloadOutlined } from '@ant-design/icons';
 import { Resizable } from 'react-resizable';
 import 'react-resizable/css/styles.css';
+import * as XLSX from 'xlsx';
 import dayjs from 'dayjs';
 import { getProjects, deleteProject, updateProject, type PocProject } from '../api/projects';
 import { getOptions, type PocOption } from '../api/options';
 import ProjectDrawer from '../components/ProjectDrawer';
 
-function generateCSV(projects: PocProject[], typeOptions: PocOption[], implOptions: PocOption[], statusOptions: PocOption[]): string {
+function generateXLSX(projects: PocProject[], typeOptions: PocOption[], implOptions: PocOption[], statusOptions: PocOption[]): Blob {
   const getLabel = (opts: PocOption[], id: number) => opts.find(o => o.id === id)?.label || '';
   const headers = ['项目名称', '区域', '城市', '销售', '项目经理', '开始日期', '完成日期', '工期', 'PoC类型', '实施方式', '状态'];
   const rows = projects.map(p => [
@@ -20,8 +21,12 @@ function generateCSV(projects: PocProject[], typeOptions: PocOption[], implOptio
     getLabel(implOptions, p.impl_method_id),
     getLabel(statusOptions, p.status_id),
   ]);
-  const escape = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
-  return [headers.map(escape).join(','), ...rows.map(r => r.map(escape).join(','))].join('\n');
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = headers.map((_, i) => ({ wch: i === 0 ? 25 : i >= 4 && i <= 7 ? 12 : 10 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '项目列表');
+  const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  return new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -247,16 +252,15 @@ export default function ProjectList() {
           新建项目
         </Button>
         <Button icon={<DownloadOutlined />} onClick={() => {
-          const csv = '﻿' + generateCSV(projects, typeOptions, implOptions, statusOptions);
-          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          const blob = generateXLSX(projects, typeOptions, implOptions, statusOptions);
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `项目列表_${dayjs().format('YYYY-MM-DD')}.csv`;
+          a.download = `项目列表_${dayjs().format('YYYY-MM-DD')}.xlsx`;
           a.click();
           URL.revokeObjectURL(url);
           message.success('导出成功');
-        }}>导出</Button>
+        }}>导出 Excel</Button>
       </Space>
 
       <Table
