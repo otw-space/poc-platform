@@ -141,18 +141,19 @@ export default function DispatchMap() {
         itemStyle: { areaColor: PROVINCE_COLORS[name] || '#e8f0f8' },
         label: { color: labelColor, position: labelFixes[name] || undefined },
       }));
-      // Cities: transparent fill, border appears, labels appear at high zoom
+      // Cities: transparent fill, border + label appears with zoom
+      const showCityLabel = cityAlpha > 0.2;
       result.push(...cities.map(name => ({
         name,
         itemStyle: {
           areaColor: 'transparent',
-          borderColor: `${borderBase}${0.15 + cityAlpha * 0.45})`,
-          borderWidth: 0.4,
+          borderColor: `${borderBase}${0.1 + cityAlpha * 0.4})`,
+          borderWidth: 0.3,
         },
         label: {
-          show: cityAlpha > 0.5,
-          fontSize: cityLabelSize,
-          color: `${borderBase}${0.3 + cityAlpha * 0.5})`,
+          show: showCityLabel,
+          fontSize: Math.max(cityLabelSize, 8),
+          color: labelColor,
           position: 'center',
         },
       })));
