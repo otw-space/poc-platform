@@ -138,8 +138,10 @@ export function importTestCases(file: File, onProgress?: (pct: number) => void, 
   });
 }
 
-export function exportTestCases() {
-  return client.get('/sops/test-cases/export', { responseType: 'blob' });
+export function exportTestCases(categoryId?: string | null) {
+  const params: Record<string, string> = {};
+  if (categoryId) params.category_id = categoryId;
+  return client.get('/sops/test-cases/export', { params, responseType: 'blob' });
 }
 
 // ── ScriptFile ──

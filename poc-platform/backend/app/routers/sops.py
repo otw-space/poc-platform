@@ -1150,6 +1150,7 @@ def import_test_cases(
 
 @router.get("/test-cases/export")
 def export_test_cases(
+    category_id: str | None = None,
     db: Session = Depends(get_db),
     _=Depends(require_permission("sop", "view")),
     current_user: User = Depends(get_current_user),
@@ -1162,15 +1163,24 @@ def export_test_cases(
     query = db.query(TestCase).filter(TestCase.is_deleted == False)
     if current_user.role != "admin":
         query = query.filter(TestCase.created_by == current_user.id)
+    if category_id:
+        query = query.filter(TestCase.category_id == category_id)
     items = query.order_by(TestCase.module, TestCase.priority, TestCase.title).all()
+
+    # Resolve category names
+    cat_names: dict[str, str] = {}
+    cat_ids = {tc.category_id for tc in items if tc.category_id}
+    if cat_ids:
+        cats = db.query(TestCaseCategory).filter(TestCaseCategory.id.in_(cat_ids)).all()
+        cat_names = {c.id: c.name for c in cats}
 
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "test_cases"
-    headers = ["title", "module", "priority", "precondition", "steps", "expected_result", "status", "remarks"]
+    headers = ["标题", "客户端", "模块", "优先级", "前置条件", "测试步骤", "预期结果", "状态", "备注"]
     ws.append(headers)
     for tc in items:
-        ws.append([tc.title, tc.module, tc.priority, tc.precondition, tc.steps, tc.expected_result, tc.status, tc.remarks])
+        ws.append([tc.title, cat_names.get(tc.category_id or '', ''), tc.module, tc.priority, tc.precondition, tc.steps, tc.expected_result, tc.status, tc.remarks])
 
     from io import BytesIO
     from fastapi.responses import StreamingResponse

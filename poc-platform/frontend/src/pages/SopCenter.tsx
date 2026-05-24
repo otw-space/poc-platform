@@ -471,9 +471,9 @@ function TestCaseTab() {
   };
 
   const handleExport = async () => {
-    const r = await exportTestCases();
+    const r = await exportTestCases(activeCategory);
     downloadBlob(r.data, `测试用例_${dayjs().format('YYYY-MM-DD')}.xlsx`);
-    message.success('导出成功');
+    message.success(activeCategory ? '已导出当前客户端案例' : '已导出全部案例');
   };
 
   const handleImport = async (file: File) => {
