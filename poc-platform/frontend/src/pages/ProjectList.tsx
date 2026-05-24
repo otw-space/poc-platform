@@ -254,7 +254,7 @@ export default function ProjectList() {
         </Space>
       </div>
 
-      {(view === 'kanban' || view === 'gallery' || view === 'calendar') && (
+      {(activeView.type !== 'table') && (
         <div style={{ marginBottom: 12 }}>{/* spacers are fine */}</div>
       )}
 
@@ -297,12 +297,12 @@ export default function ProjectList() {
           loading={loading} onStatusChange={handleStatusChange} />
       )}
 
-      {view === 'gallery' && (
+      {activeView.type === 'gallery' && (
         <ProjectGalleryView projects={projects} statusOptions={statusOptions} typeOptions={typeOptions}
           implOptions={implOptions} loading={loading} onSelect={id => { setSelectedProjectId(id); setDrawerOpen(true); }} />
       )}
 
-      {view === 'calendar' && (
+      {activeView.type === 'calendar' && (
         <ProjectCalendarView projects={projects} statusOptions={statusOptions} typeOptions={typeOptions}
           loading={loading} onSelect={id => { setSelectedProjectId(id); setDrawerOpen(true); }} />
       )}
