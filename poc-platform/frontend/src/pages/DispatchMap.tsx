@@ -1,11 +1,11 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Card, Spin, Tag, message } from 'antd';
 import { EnvironmentOutlined } from '@ant-design/icons';
 import * as echarts from 'echarts';
 import { getProjects } from '../api/projects';
 import { getOptions } from '../api/options';
+import { useTheme } from '../context/ThemeContext';
 
-// City → [lng, lat]
 const CITY_COORDS: Record<string, [number, number]> = {
   '北京': [116.4, 39.9], '上海': [121.5, 31.2], '广州': [113.3, 23.1],
   '深圳': [114.1, 22.5], '杭州': [120.2, 30.3], '成都': [104.1, 30.6],
@@ -43,12 +43,24 @@ function getCoord(city: string, region: string): [number, number] | null {
   return null;
 }
 
+// Province color palette — alternating warm/cool tones
+const PROVINCE_COLORS = [
+  '#e8f4f8', '#fef9e7', '#eaf7ee', '#fdf2f0', '#f3e8ff',
+  '#e6f7ff', '#fff7e6', '#f0fdf4', '#fff1f0', '#f9f0ff',
+  '#e3f2fd', '#fff8e1', '#e8f5e9', '#fce4ec', '#ede7f6',
+  '#dcedc8', '#fff9c4', '#e1f5fe', '#f3e5f5', '#ffebee',
+  '#c8e6c9', '#ffe0b2', '#b3e5fc', '#e1bee7', '#ffcdd2',
+  '#d7ccc8', '#cfd8dc', '#f0f4c3', '#d1c4e9', '#ffccbc',
+  '#b2dfdb', '#fff3e0', '#c5cae9', '#f8bbd0',
+];
+
 export default function DispatchMap() {
   const [loading, setLoading] = useState(true);
   const [projects, setProjects] = useState<any[]>([]);
   const [statusLabels, setStatusLabels] = useState<Record<string, string>>({});
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts | null>(null);
+  const { dark } = useTheme();
 
   useEffect(() => {
     (async () => {
@@ -62,7 +74,6 @@ export default function DispatchMap() {
 
         let allProjects = projRes.data.items;
         const total = projRes.data.total;
-        // Fetch remaining pages if needed
         if (total > 100) {
           const pages = Math.ceil(total / 100);
           const extraReqs = [];
@@ -87,14 +98,19 @@ export default function DispatchMap() {
     })();
   }, []);
 
-  useEffect(() => {
-    if (loading || !chartRef.current || projects.length === 0) return;
+  const buildOption = useCallback((zoom: number) => {
+    // Zoom levels: <2 → province labels, 2-4 → city labels, >4 → detailed
+    const showProvince = zoom < 4;
+    const showDetail = zoom >= 4;
 
-    if (chartInstance.current) chartInstance.current.dispose();
-    const chart = echarts.init(chartRef.current);
-    chartInstance.current = chart;
+    const bg = dark ? '#1a1a2e' : '#f0f5ff';
+    const borderColor = dark ? '#2a2a4a' : '#b8d4e8';
+    const textColor = dark ? '#888' : '#555';
+    const emphasisBg = dark ? '#2a3a5e' : '#cde0f5';
+    const emphasisBorder = dark ? '#4a6fa5' : '#7baed4';
+    const labelColor = dark ? '#ccc' : '#333';
+    const scatterColor = dark ? '#ff6b6b' : '#ff4d4f';
 
-    // Build scatter data
     const regionCounts: Record<string, { lat: number; lng: number; count: number; projects: string[]; cities: Set<string> }> = {};
 
     projects.forEach((p: any) => {
@@ -116,9 +132,13 @@ export default function DispatchMap() {
       projects: r.projects,
     }));
 
-    chart.setOption({
+    return {
+      backgroundColor: bg,
       tooltip: {
         trigger: 'item',
+        backgroundColor: dark ? '#2a2a2a' : '#fff',
+        borderColor: dark ? '#444' : '#ddd',
+        textStyle: { color: dark ? '#ddd' : '#333' },
         formatter: (params: any) => {
           if (params.componentSubType === 'scatter') {
             const projList = (params.data?.projects || []).slice(0, 8).join('<br/>');
@@ -133,27 +153,81 @@ export default function DispatchMap() {
         roam: true,
         zoom: 1.2,
         center: [104.4, 37.5],
-        label: { show: false },
+        scaleLimit: { min: 1, max: 10 },
+        label: {
+          show: showProvince,
+          fontSize: showDetail ? 9 : 11,
+          color: labelColor,
+          formatter: showDetail ? '{b}' : undefined,
+        },
         itemStyle: {
-          areaColor: '#e6f4ff',
-          borderColor: '#1677ff',
-          borderWidth: 0.5,
+          areaColor: '#e8f4f8',
+          borderColor: borderColor,
+          borderWidth: 1,
+          shadowColor: dark ? 'rgba(0,0,0,0.5)' : 'rgba(167,189,210,0.3)',
+          shadowBlur: 3,
+          shadowOffsetY: 1,
         },
         emphasis: {
-          label: { show: true },
-          itemStyle: { areaColor: '#bae0ff' },
+          label: { show: true, color: dark ? '#fff' : '#333', fontSize: 13 },
+          itemStyle: {
+            areaColor: emphasisBg,
+            borderColor: emphasisBorder,
+            borderWidth: 1.5,
+          },
         },
+        regions: scatterData.map((d, i) => ({
+          name: d.name,
+          itemStyle: {
+            areaColor: PROVINCE_COLORS[i % PROVINCE_COLORS.length],
+          },
+        })),
       },
       series: [{
         name: 'projects',
         type: 'scatter',
         coordinateSystem: 'geo',
         data: scatterData,
-        symbolSize: (val: number[]) => Math.min(Math.max(val[2] * 10, 16), 48),
-        itemStyle: { color: '#ff4d4f', shadowBlur: 8, shadowColor: 'rgba(255,77,79,0.3)' },
-        label: { show: true, formatter: '{b}', position: 'right', fontSize: 11, color: '#333' },
-        emphasis: { scale: 1.4 },
+        symbolSize: (val: number[]) => Math.min(Math.max(val[2] * 10, 16), 52),
+        itemStyle: {
+          color: scatterColor,
+          shadowBlur: 10,
+          shadowColor: dark ? 'rgba(255,107,107,0.5)' : 'rgba(255,77,79,0.3)',
+        },
+        label: {
+          show: scatterData.length <= 15 || zoom >= 2,
+          formatter: '{b}',
+          position: 'right',
+          fontSize: 10,
+          color: labelColor,
+          distance: 6,
+        },
+        emphasis: {
+          scale: 1.6,
+          label: { fontSize: 12, fontWeight: 'bold' },
+          itemStyle: { shadowBlur: 20 },
+        },
       }],
+    };
+  }, [projects, dark]);
+
+  useEffect(() => {
+    if (loading || !chartRef.current || projects.length === 0) return;
+
+    if (chartInstance.current) chartInstance.current.dispose();
+    const chart = echarts.init(chartRef.current, dark ? 'dark' : undefined);
+    chartInstance.current = chart;
+
+    let currentZoom = 1.2;
+    chart.setOption(buildOption(currentZoom));
+
+    chart.on('georoam', (params: any) => {
+      const opt = chart.getOption();
+      const geo = (opt as any).geo?.[0];
+      if (geo?.zoom && geo.zoom !== currentZoom) {
+        currentZoom = geo.zoom;
+        chart.setOption(buildOption(currentZoom));
+      }
     });
 
     const handleResize = () => chart.resize();
@@ -162,7 +236,7 @@ export default function DispatchMap() {
       window.removeEventListener('resize', handleResize);
       chart.dispose();
     };
-  }, [loading, projects]);
+  }, [loading, projects, buildOption]);
 
   if (loading) return <Spin style={{ display: 'block', margin: '100px auto' }} />;
 
