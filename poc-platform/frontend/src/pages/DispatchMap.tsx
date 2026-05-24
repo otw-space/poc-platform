@@ -54,20 +54,22 @@ export default function DispatchMap() {
   const cr = useRef<HTMLDivElement>(null);
   const ci = useRef<echarts.ECharts | null>(null);
   const projs = useRef<any[]>([]);
-  const mapInfo = useRef<{ provinces: string[]; cities: string[] }>({ provinces: [], cities: [] });
+  const mapInfo = useRef<{ provinces: string[]; cities: string[]; provCenters: Record<string, [number, number]> }>({ provinces: [], cities: [], provCenters: {} });
   const zoom = useRef(1.2);
   const { dark } = useTheme();
 
   useEffect(() => {
     (async () => {
       try {
-        const [projRes, gj, infoMod] = await Promise.all([
+        const [projRes, gj, infoMod, centersMod] = await Promise.all([
           getProjects({ page: 1, page_size: 100 }),
           import('../assets/china_merged.json'),
           import('../assets/china_map_data.json'),
+          import('../assets/china_prov_centers.json'),
         ]);
         const mapData = ((infoMod as any).default || infoMod) as { provinces: string[]; cities: string[] };
-        mapInfo.current = mapData;
+        const provCenters = ((centersMod as any).default || centersMod) as Record<string, [number, number]>;
+        mapInfo.current = { ...mapData, provCenters };
         const geo = (gj as any).default || gj;
 
         // Assign colors to provinces
@@ -98,10 +100,19 @@ export default function DispatchMap() {
     const chart = echarts.init(cr.current, dark ? 'dark' : undefined);
     ci.current = chart;
 
-    const { provinces, cities } = mapInfo.current;
+    const { provinces, cities, provCenters } = mapInfo.current;
     const labelColor = dark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.7)';
     const scatterRed = dark ? '#ff6b6b' : '#e53e3e';
     const borderBase = dark ? 'rgba(255,255,255,' : 'rgba(0,0,0,';
+
+    // Province label markers at correct GeoJSON center positions
+    const provLabelMarkers = Object.entries(provCenters).map(([name, c]) => ({
+      name: shortName(name),
+      value: [c[0], c[1]],
+    }));
+
+    // City label markers at GeoJSON city centers (extract from the cities list)
+    const cityLabelMarkers: { name: string; value: [number, number] }[] = [];
 
     const rcs: Record<string, { lat: number; lng: number; cnt: number; projs: string[]; cities: Set<string> }> = {};
     const pc = new Set<string>();
@@ -120,26 +131,11 @@ export default function DispatchMap() {
       projects: r.projs,
     }));
 
-    // Pixel offset fixes for province labels rendered at wrong centroids
-    const labelFixes: Record<string, [number, number]> = {
-      '甘肃省': [-60, 20],
-      '内蒙古自治区': [30, -40],
-      '黑龙江省': [-40, -30],
-      '新疆维吾尔自治区': [40, 20],
-      '青海省': [40, 10],
-      '四川省': [30, 20],
-      '云南省': [10, 30],
-      '河北省': [20, 0],
-      '海南省': [0, 30],
-      '台湾省': [-20, 0],
-      '西藏自治区': [20, 30],
-    };
-
     function buildRegions(cityAlpha: number, cityLabelSize: number): any[] {
       const result: any[] = provinces.map(name => ({
         name,
         itemStyle: { areaColor: PROVINCE_COLORS[name] || '#e8f0f8' },
-        label: { color: labelColor, offset: labelFixes[name] || undefined },
+        label: { show: false }, // labels now handled by scatter overlay
       }));
       // Cities: transparent fill, border + label appears with zoom
       const showCityLabel = cityAlpha > 0.2;
@@ -194,10 +190,7 @@ export default function DispatchMap() {
           center: [104.4, 37.5],
           scaleLimit: { min: 1.0, max: 10 },
           label: {
-            show: cfg.provAlpha > 0,
-            fontSize: cfg.provSize,
-            color: labelColor,
-            formatter: (p: any) => shortName(p.name || ''),
+            show: false, // Labels rendered via scatter overlay for correct positioning
           },
           itemStyle: {
             areaColor: '#e8f0f8',
@@ -211,6 +204,39 @@ export default function DispatchMap() {
           regions: buildRegions(cfg.cityAlpha, cfg.citySize),
         },
         series: [
+          // Province labels as scatter overlay at correct GeoJSON center positions
+          {
+            name: 'prov_labels',
+            type: 'scatter',
+            coordinateSystem: 'geo',
+            data: cfg.provAlpha > 0 ? provLabelMarkers : [],
+            symbolSize: 0,
+            label: {
+              show: cfg.provAlpha > 0,
+              formatter: '{b}',
+              fontSize: cfg.provSize,
+              color: labelColor,
+              position: 'inside',
+            },
+            silent: true,
+          },
+          // City labels as scatter overlay
+          {
+            name: 'city_labels',
+            type: 'scatter',
+            coordinateSystem: 'geo',
+            data: cfg.cityAlpha > 0 ? cityLabelMarkers : [],
+            symbolSize: 0,
+            label: {
+              show: cfg.cityAlpha > 0,
+              formatter: '{b}',
+              fontSize: Math.max(cfg.citySize, 8),
+              color: labelColor,
+              position: 'inside',
+            },
+            silent: true,
+          },
+          // Project markers
           {
             name: 'projects',
             type: 'scatter',
@@ -238,16 +264,15 @@ export default function DispatchMap() {
 
       chart.setOption({
         geo: [{
-          label: { show: cfg.provAlpha > 0, fontSize: cfg.provSize },
           emphasis: { label: { fontSize: cfg.provSize + 2 } },
           regions: buildRegions(cfg.cityAlpha, cfg.citySize),
         }],
         series: [
-          {
-            data: cfg.cityAlpha > 0 ? cityLabels : [],
-            itemStyle: { color: `rgba(${dark ? '255,255,255' : '0,0,0'},${cfg.cityAlpha * 0.3})` },
-            label: { show: cfg.cityAlpha > 0, fontSize: cfg.citySize },
-          },
+          // prov_labels
+          { data: cfg.provAlpha > 0 ? provLabelMarkers : [], label: { show: cfg.provAlpha > 0, fontSize: cfg.provSize } },
+          // city_labels
+          { data: cfg.cityAlpha > 0 ? cityLabelMarkers : [], label: { show: cfg.cityAlpha > 0, fontSize: Math.max(cfg.citySize, 8) } },
+          // projects
           { symbolSize: (v: number[]) => Math.min(Math.max(v[2] * cfg.scatterScale, cfg.scatterScale * 2), 48) },
         ],
       });
