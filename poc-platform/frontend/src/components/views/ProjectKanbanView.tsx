@@ -4,7 +4,8 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type D
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useTheme } from '../../context/ThemeContext';
-import type { PocProject, PocOption } from '../../api/projects';
+import type { PocProject } from '../../api/projects';
+import type { PocOption } from '../../api/options';
 
 interface Props {
   projects: PocProject[];

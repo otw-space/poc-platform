@@ -1,6 +1,7 @@
 import { Card, Tag, Spin, Empty } from 'antd';
 import { ProjectOutlined, EnvironmentOutlined, ClockCircleOutlined } from '@ant-design/icons';
-import type { PocProject, PocOption } from '../../api/projects';
+import type { PocProject } from '../../api/projects';
+import type { PocOption } from '../../api/options';
 
 interface Props {
   projects: PocProject[];
