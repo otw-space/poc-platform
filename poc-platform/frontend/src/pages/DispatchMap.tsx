@@ -101,7 +101,7 @@ export default function DispatchMap() {
     ci.current = chart;
 
     const { provinces, cities, provCenters } = mapInfo.current;
-    const labelColor = dark ? '#fff' : 'rgba(0,0,0,0.7)';
+    const labelColor = dark ? '#e8f0ff' : 'rgba(0,0,0,0.7)';
     const labelShadow = dark ? '0 0 4px rgba(0,0,0,0.8)' : 'none';
     const scatterRed = dark ? '#ff6b6b' : '#e53e3e';
     const borderBase = dark ? 'rgba(255,255,255,' : 'rgba(0,0,0,';
@@ -224,8 +224,8 @@ export default function DispatchMap() {
               formatter: '{b}',
               fontSize: cfg.provSize,
               color: labelColor,
-              textShadowColor: dark ? 'rgba(0,0,0,0.7)' : 'transparent',
-              textShadowBlur: dark ? 3 : 0,
+              textShadowColor: dark ? 'rgba(0,0,0,0.85)' : 'transparent',
+              textShadowBlur: dark ? 4 : 0,
             },
             silent: true,
           },
@@ -241,8 +241,8 @@ export default function DispatchMap() {
               formatter: '{b}',
               fontSize: Math.max(cfg.citySize, 8),
               color: labelColor,
-              textShadowColor: dark ? 'rgba(0,0,0,0.7)' : 'transparent',
-              textShadowBlur: dark ? 3 : 0,
+              textShadowColor: dark ? 'rgba(0,0,0,0.85)' : 'transparent',
+              textShadowBlur: dark ? 4 : 0,
             },
             silent: true,
           },
@@ -279,9 +279,9 @@ export default function DispatchMap() {
         }],
         series: [
           // prov_labels
-          { data: cfg.provAlpha > 0 ? provLabelMarkers : [], label: { show: cfg.provAlpha > 0, fontSize: cfg.provSize, color: labelColor, textShadowColor: dark ? 'rgba(0,0,0,0.7)' : 'transparent', textShadowBlur: dark ? 3 : 0 } },
+          { data: cfg.provAlpha > 0 ? provLabelMarkers : [], label: { show: cfg.provAlpha > 0, fontSize: cfg.provSize, color: labelColor, textShadowColor: dark ? 'rgba(0,0,0,0.85)' : 'transparent', textShadowBlur: dark ? 4 : 0 } },
           // city_labels
-          { data: cfg.cityAlpha > 0 ? cityLabelMarkers : [], label: { show: cfg.cityAlpha > 0, fontSize: Math.max(cfg.citySize, 8), color: labelColor, textShadowColor: dark ? 'rgba(0,0,0,0.7)' : 'transparent', textShadowBlur: dark ? 3 : 0 } },
+          { data: cfg.cityAlpha > 0 ? cityLabelMarkers : [], label: { show: cfg.cityAlpha > 0, fontSize: Math.max(cfg.citySize, 8), color: labelColor, textShadowColor: dark ? 'rgba(0,0,0,0.85)' : 'transparent', textShadowBlur: dark ? 4 : 0 } },
           // projects
           { symbolSize: (v: number[]) => Math.min(Math.max(v[2] * cfg.scatterScale, cfg.scatterScale * 2), 48) },
         ],
