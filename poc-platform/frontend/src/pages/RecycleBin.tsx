@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Card, Table, Tag, Popconfirm, message, Button, Space, Empty, Select, Modal } from 'antd';
 import { UndoOutlined, DeleteOutlined, ClearOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+dayjs.extend(utc);
 import { getRecycleBin, restoreItem, permanentDeleteItem, type RecycleBinItem } from '../api/recycle-bin';
 
 const TYPE_LABELS: Record<string, string> = {
