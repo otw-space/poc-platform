@@ -13,6 +13,7 @@ import {
   SunOutlined,
   MoonOutlined,
   EnvironmentOutlined,
+  PictureOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -45,6 +46,7 @@ export default function Layout() {
     ...(hasPermission('dashboard', 'view') ? [{ key: '/dashboards', icon: <DashboardOutlined />, label: '数据仪表盘' }] : []),
     ...(hasPermission('sop', 'view') ? [{ key: '/sop', icon: <BookOutlined />, label: 'SOP中心' }] : []),
     ...(hasPermission('project', 'view') ? [{ key: '/dispatch-map', icon: <EnvironmentOutlined />, label: '派遣地图' }] : []),
+    ...(hasPermission('project', 'view') ? [{ key: '/diagrams', icon: <PictureOutlined />, label: '绘图工具' }] : []),
     ...(hasPermission('recycle_bin', 'view') ? [{ key: '/recycle-bin', icon: <DeleteOutlined />, label: '回收站' }] : []),
     ...(hasPermission('settings', 'view') ? [{ key: '/settings', icon: <SettingOutlined />, label: '系统设置' }] : []),
   ];

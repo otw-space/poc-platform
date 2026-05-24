@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from .database import engine, Base
-from .routers import auth, projects, options, dashboards, users, logs, audit_logs, sops, recycle_bin, roles
+from .routers import auth, projects, options, dashboards, users, logs, audit_logs, sops, recycle_bin, roles, diagrams
 from .migration import run_migrations
 
 
@@ -26,6 +26,7 @@ app.include_router(logs.router)
 app.include_router(audit_logs.router)
 app.include_router(recycle_bin.router)
 app.include_router(sops.router)
+app.include_router(diagrams.router)
 app.include_router(roles.router)
 
 frontend_dist = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")

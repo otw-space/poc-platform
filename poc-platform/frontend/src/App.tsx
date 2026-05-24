@@ -13,6 +13,7 @@ import DashboardHome from './pages/DashboardHome';
 import RecycleBin from './pages/RecycleBin';
 import Settings from './pages/Settings';
 import DispatchMap from './pages/DispatchMap';
+import Diagrams from './pages/Diagrams';
 import Profile from './pages/Profile';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="sop" element={<SopCenter />} />
         <Route path="recycle-bin" element={<RecycleBin />} />
         <Route path="dispatch-map" element={<DispatchMap />} />
+        <Route path="diagrams" element={<Diagrams />} />
         <Route
           path="settings"
           element={

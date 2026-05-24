@@ -6,3 +6,4 @@ from .dashboard import Dashboard
 from .operation_log import OperationLog
 from .role import Role, RolePermission
 from .sop import SopDocument, TestCaseCategory, TestCase, ScriptFile
+from .diagram import Diagram
