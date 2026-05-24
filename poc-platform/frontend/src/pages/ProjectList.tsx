@@ -320,11 +320,38 @@ export default function ProjectList() {
       {activeView.type === 'table' && (
         <div>
           <ProjectToolbar value={toolbar} onChange={updateToolbar} statusOptions={statusOptions} typeOptions={typeOptions} />
-          <Table
-            rowKey="id" columns={columns} dataSource={sorted} loading={loading}
-            scroll={{ x: 'max-content' }} components={{ header: { cell: ResizableTitle } }}
-            pagination={{ current: page, total, pageSize: 20, showTotal: t => `共 ${t} 条`, showSizeChanger: false, onChange: setPage }}
-          />
+          {grouped ? (
+            grouped.map((g: any) => {
+              const isLeaf = !Array.isArray(g.items[0]?.items);
+              return (
+                <div key={g.key} style={{ marginBottom: 16 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, padding: '8px 12px', background: dark ? '#1f1f1f' : '#f5f5f5', borderRadius: '6px 6px 0 0', borderBottom: '2px solid #1677ff' }}>
+                    {g.key} <span style={{ color: '#999', fontWeight: 400, fontSize: 12 }}>({g.count} 个项目)</span>
+                  </div>
+                  {isLeaf ? (
+                    <Table rowKey="id" columns={columns} dataSource={g.items} loading={loading}
+                      scroll={{ x: 'max-content' }} pagination={false} size="small" showHeader={true} />
+                  ) : (
+                    g.items.map((sg: any) => (
+                      <div key={sg.key} style={{ marginTop: 8 }}>
+                        <div style={{ fontWeight: 500, fontSize: 13, padding: '6px 12px', background: dark ? '#252525' : '#fafafa', borderLeft: '3px solid #1677ff' }}>
+                          {sg.key} <span style={{ color: '#999', fontWeight: 400, fontSize: 11 }}>({sg.count} 个项目)</span>
+                        </div>
+                        <Table rowKey="id" columns={columns} dataSource={sg.items} loading={loading}
+                          scroll={{ x: 'max-content' }} pagination={false} size="small" showHeader={false} />
+                      </div>
+                    ))
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <Table
+              rowKey="id" columns={columns} dataSource={sorted} loading={loading}
+              scroll={{ x: 'max-content' }} components={{ header: { cell: ResizableTitle } }}
+              pagination={{ current: page, total, pageSize: 20, showTotal: t => `共 ${t} 条`, showSizeChanger: false, onChange: setPage }}
+            />
+          )}
         </div>
       )}
 
