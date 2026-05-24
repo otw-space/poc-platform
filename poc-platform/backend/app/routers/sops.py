@@ -1165,7 +1165,7 @@ def export_test_cases(
         query = query.filter(TestCase.created_by == current_user.id)
     if category_id:
         query = query.filter(TestCase.category_id == category_id)
-    items = query.order_by(TestCase.module, TestCase.priority, TestCase.title).all()
+    items = query.order_by(TestCase.updated_at.desc()).all()
 
     # Resolve category names
     cat_names: dict[str, str] = {}
