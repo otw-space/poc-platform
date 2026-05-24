@@ -47,25 +47,33 @@ function getCoord(city: string, region: string): [number, number] | null {
   return null;
 }
 
-let cityGeoRegistered = false;
+const PROVINCE_COLORS: Record<string, string> = {};
 
 export default function DispatchMap() {
   const [loading, setLoading] = useState(true);
   const cr = useRef<HTMLDivElement>(null);
   const ci = useRef<echarts.ECharts | null>(null);
   const projs = useRef<any[]>([]);
+  const mapInfo = useRef<{ provinces: string[]; cities: string[] }>({ provinces: [], cities: [] });
   const zoom = useRef(1.2);
   const { dark } = useTheme();
 
-  // Load province GeoJSON + projects
   useEffect(() => {
     (async () => {
       try {
-        const [projRes, gj] = await Promise.all([
+        const [projRes, gj, infoMod] = await Promise.all([
           getProjects({ page: 1, page_size: 100 }),
-          import('../assets/china.json'),
+          import('../assets/china_merged.json'),
+          import('../assets/china_map_data.json'),
         ]);
+        const mapData = ((infoMod as any).default || infoMod) as { provinces: string[]; cities: string[] };
+        mapInfo.current = mapData;
         const geo = (gj as any).default || gj;
+
+        // Assign colors to provinces
+        const colors = ['#f0f7ff','#fef9f0','#f1f9f1','#fff4f4','#f5f0ff','#eaf6ff','#fdf6e3','#e6f9e8','#fff0f0','#ede4ff','#e0f2ff','#fef3e0','#daf5dc','#ffe8e8','#e1d4f7','#d6ecff','#fcecd0','#cef0d0','#ffdde0','#d5c4f0','#cce6ff','#fae6c0','#c2ebc4','#ffd2d5','#c9b4e9','#c2dfff','#f8dfb0','#b7e6b8','#ffc8cc','#bda4e2','#b8d8ff','#f6d8a0','#ace0ac','#ffbdc2','#b194db'];
+        mapData.provinces.forEach((p, i) => { PROVINCE_COLORS[p] = colors[i % colors.length]; });
+
         let all = projRes.data.items;
         const tot = projRes.data.total;
         if (tot > 100) {
@@ -74,7 +82,7 @@ export default function DispatchMap() {
           (await Promise.all(ps)).forEach(r => { all = all.concat(r.data.items); });
         }
         projs.current = all;
-        echarts.registerMap('china', geo);
+        echarts.registerMap('china_full', geo);
         setLoading(false);
       } catch (err) {
         console.error(err);
@@ -84,27 +92,16 @@ export default function DispatchMap() {
     })();
   }, []);
 
-  // Preload city boundary GeoJSON (only borders, no fill)
   useEffect(() => {
-    if (loading) return;
-    (async () => {
-      try {
-        const m = await import('../assets/china_cities_filtered.json');
-        const data = (m as any).default || m;
-        echarts.registerMap('china_cities', data);
-        cityGeoRegistered = true;
-      } catch (e) { /* city layer optional */ }
-    })();
-  }, [loading]);
-
-  useEffect(() => {
-    if (loading || !cr.current || projs.current.length === 0) return;
+    if (loading || !cr.current) return;
     if (ci.current) ci.current.dispose();
     const chart = echarts.init(cr.current, dark ? 'dark' : undefined);
     ci.current = chart;
 
-    const labelColor = dark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.7)';
+    const { provinces, cities } = mapInfo.current;
+    const labelColor = dark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.7)';
     const scatterRed = dark ? '#ff6b6b' : '#e53e3e';
+    const borderBase = dark ? 'rgba(255,255,255,' : 'rgba(0,0,0,';
 
     const rcs: Record<string, { lat: number; lng: number; cnt: number; projs: string[]; cities: Set<string> }> = {};
     const pc = new Set<string>();
@@ -127,10 +124,30 @@ export default function DispatchMap() {
       .filter(([n]) => !pc.has(n.replace(/市$/, '')))
       .map(([n, c]) => ({ name: n.replace(/市$/, ''), value: [c[0], c[1]] }));
 
+    // Build regions array for ALL features
+    function buildRegions(cityAlpha: number): any[] {
+      const result: any[] = provinces.map(name => ({
+        name,
+        itemStyle: { areaColor: PROVINCE_COLORS[name] || '#e8f0f8' },
+        label: { color: labelColor },
+      }));
+      // Cities: transparent fill, border appears with zoom
+      result.push(...cities.map(name => ({
+        name,
+        itemStyle: {
+          areaColor: 'transparent',
+          borderColor: `${borderBase}${0.15 + cityAlpha * 0.45})`,
+          borderWidth: 0.5,
+        },
+        label: { show: false },
+      })));
+      return result;
+    }
+
     function zCfg(z: number) {
-      const provAlpha = Math.max(0, Math.min(1, (z - 1.2) / 0.6));
-      const cityAlpha = Math.max(0, Math.min(1, (z - 2) / 2));
-      const provSize = Math.round(11 + provAlpha * 5);
+      const provAlpha = Math.max(0, Math.min(1, (z - 1.1) / 0.5));
+      const cityAlpha = Math.max(0, Math.min(1, (z - 2) / 3));
+      const provSize = Math.round(10 + provAlpha * 6);
       const citySize = Math.round(8 + cityAlpha * 4);
       const scatterScale = z < 1.5 ? 4 : z < 2 ? 6 : z < 3 ? 8 : 10;
       return { provAlpha, cityAlpha, provSize, citySize, scatterScale };
@@ -138,8 +155,6 @@ export default function DispatchMap() {
 
     function buildOpt(z: number) {
       const cfg = zCfg(z);
-      const showCityBorders = cityGeoRegistered && cfg.cityAlpha > 0;
-
       return {
         backgroundColor: dark ? '#1a1a2e' : '#f8faff',
         tooltip: {
@@ -157,7 +172,7 @@ export default function DispatchMap() {
           },
         },
         geo: {
-          map: 'china',
+          map: 'china_full',
           roam: true,
           zoom: z,
           center: [104.4, 37.5],
@@ -169,38 +184,17 @@ export default function DispatchMap() {
             formatter: (p: any) => shortName(p.name || ''),
           },
           itemStyle: {
-            areaColor: dark ? '#1a2a4a' : '#e8f0f8',
+            areaColor: '#e8f0f8',
             borderColor: dark ? '#3a4a6a' : '#b0c8e0',
             borderWidth: 0.7,
           },
           emphasis: {
             label: { fontSize: cfg.provSize + 2, fontWeight: 'bold', color: dark ? '#fff' : '#000' },
-            itemStyle: { areaColor: dark ? '#253560' : '#d0e5f5', borderColor: '#1677ff', borderWidth: 1.5 },
+            itemStyle: { borderColor: '#1677ff', borderWidth: 2 },
           },
+          regions: buildRegions(cfg.cityAlpha),
         },
         series: [
-          // City boundary overlay — transparent fill, visible borders only at zoom 2+
-          {
-            name: 'city_borders',
-            type: 'map',
-            map: 'china_cities',
-            geoIndex: 0,
-            itemStyle: {
-              areaColor: 'transparent',
-              borderColor: dark
-                ? `rgba(200,210,230,${0.15 + cfg.cityAlpha * 0.35})`
-                : `rgba(80,100,140,${0.1 + cfg.cityAlpha * 0.4})`,
-              borderWidth: 0.4,
-            },
-            label: { show: false },
-            emphasis: {
-              label: { show: true, fontSize: cfg.citySize, color: dark ? '#ddd' : '#333' },
-              itemStyle: { areaColor: dark ? 'rgba(30,144,255,0.15)' : 'rgba(30,144,255,0.08)' },
-            },
-            silent: true,
-            zlevel: 0,
-          },
-          // City labels
           {
             name: 'city_labels',
             type: 'scatter',
@@ -218,7 +212,6 @@ export default function DispatchMap() {
             },
             silent: true,
           },
-          // Project markers
           {
             name: 'projects',
             type: 'scatter',
@@ -246,25 +239,15 @@ export default function DispatchMap() {
 
       chart.setOption({
         geo: [{
-          label: {
-            show: cfg.provAlpha > 0,
-            fontSize: cfg.provSize,
-            color: labelColor,
-          },
+          label: { show: cfg.provAlpha > 0, fontSize: cfg.provSize },
           emphasis: { label: { fontSize: cfg.provSize + 2 } },
+          regions: buildRegions(cfg.cityAlpha),
         }],
         series: [
           {
-            itemStyle: {
-              borderColor: dark
-                ? `rgba(200,210,230,${0.15 + cfg.cityAlpha * 0.35})`
-                : `rgba(80,100,140,${0.1 + cfg.cityAlpha * 0.4})`,
-            },
-          },
-          {
             data: cfg.cityAlpha > 0 ? cityLabels : [],
             itemStyle: { color: `rgba(${dark ? '255,255,255' : '0,0,0'},${cfg.cityAlpha * 0.3})` },
-            label: { show: cfg.cityAlpha > 0, fontSize: cfg.citySize, color: `rgba(${dark ? '255,255,255' : '0,0,0'},${cfg.cityAlpha * 0.55})` },
+            label: { show: cfg.cityAlpha > 0, fontSize: cfg.citySize },
           },
           { symbolSize: (v: number[]) => Math.min(Math.max(v[2] * cfg.scatterScale, cfg.scatterScale * 2), 48) },
         ],
