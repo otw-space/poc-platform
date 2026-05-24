@@ -27,8 +27,13 @@ export default function Diagrams() {
   const handleNew = async () => {
     const name = newName.trim() || `未命名_${dayjs().format('MMDD_HHmm')}`;
     try {
-      const r = await createDiagram({ name, data: '{"nodes":[],"edges":[]}' });
-      setNodes([]); setEdges([]);
+      const initNodes = [
+        { id: '1', type: 'input', position: { x: 250, y: 50 }, data: { label: '开始' } },
+        { id: '2', position: { x: 250, y: 180 }, data: { label: '双击画布添加节点' } },
+      ];
+      const initEdges = [{ id: 'e1-2', source: '1', target: '2', markerEnd: { type: MarkerType.ArrowClosed } }];
+      const r = await createDiagram({ name, data: JSON.stringify({ nodes: initNodes, edges: initEdges }) });
+      setNodes(initNodes); setEdges(initEdges);
       setEditingId(r.data.id); setEditingName(r.data.name); setNewName('');
       message.success('已创建');
       fetch();
