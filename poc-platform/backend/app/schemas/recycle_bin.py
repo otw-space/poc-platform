@@ -6,7 +6,7 @@ class RecycleBinItem(BaseModel):
     id: str
     type: str
     name: str
-    deleted_at: datetime
+    deleted_at: datetime | None
     deleted_by: str | None
     extra: dict | None = None
 
