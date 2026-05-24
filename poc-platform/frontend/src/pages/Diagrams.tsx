@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState, useRef } from 'react';
 import { Card, Button, Space, Input, Table, Popconfirm, message } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, PictureOutlined } from '@ant-design/icons';
 import { DrawIoEmbed } from 'react-drawio';
-import type { EventExport, EventSave } from 'react-drawio';
 import { listDiagrams, createDiagram, updateDiagram, deleteDiagram, getDiagram, type Diagram } from '../api/diagrams';
 import dayjs from 'dayjs';
 
@@ -26,11 +25,11 @@ export default function Diagrams() {
   useEffect(() => { fetch(); }, [fetch]);
 
   const doSave = async (id: string, name: string, xml: string) => {
-    if (!id || !xml) return;
+    if (!id || !xml) { message.warning('暂无数据可保存'); return; }
     try {
       await updateDiagram(id, { name, data: xml });
       fetch();
-    } catch (e) { /* silent */ }
+    } catch (e) { message.error('保存失败'); }
   };
 
   const handleNew = async () => {
@@ -59,8 +58,17 @@ export default function Diagrams() {
     catch { message.error('删除失败'); }
   };
 
-  // draw.io export event — captures the diagram data
-  const handleExport = (e: EventExport) => {
+  // draw.io autosave — fires on every edit, keeps xmlRef current
+  const handleAutoSave = (e: any) => {
+    const xml = e.xml || e.data || '';
+    if (xml && xml.includes('<mxfile')) {
+      xmlRef.current = xml;
+      setXmlData(xml);
+    }
+  };
+
+  // draw.io export event — triggered by our manual exportDiagram call
+  const handleExport = (e: any) => {
     const xml = e.data || e.xml || '';
     if (xml && xml.includes('<mxfile')) {
       xmlRef.current = xml;
@@ -68,27 +76,20 @@ export default function Diagrams() {
     }
   };
 
-  // draw.io save event — also captures data
-  const handleDrawioSave = (e: EventSave) => {
-    const xml = e.xml || '';
-    if (xml && xml.includes('<mxfile')) {
-      xmlRef.current = xml;
-      setXmlData(xml);
-      doSave(editingIdRef.current!, editingNameRef.current!, xml);
+  // Manual save — uses latest autosaved data (always current)
+  const handleSave = async () => {
+    if (!editingIdRef.current) return;
+    const id = editingIdRef.current;
+    const name = editingNameRef.current;
+    if (xmlRef.current) {
+      await doSave(id, name, xmlRef.current);
+      message.success('已保存');
+    } else if (xmlData) {
+      await doSave(id, name, xmlData);
+      message.success('已保存');
+    } else {
+      message.warning('请先在画布中绘制内容');
     }
-  };
-
-  // Manual save button
-  const handleSave = () => {
-    if (!drawioRef.current || !editingIdRef.current) return;
-    // Request export from draw.io, then save
-    drawioRef.current.exportDiagram({ action: 'export', format: 'xmlsvg' });
-    setTimeout(() => {
-      if (xmlRef.current && editingIdRef.current) {
-        doSave(editingIdRef.current, editingNameRef.current, xmlRef.current);
-        message.success('已保存');
-      }
-    }, 800);
   };
 
   const columns = [
@@ -142,8 +143,9 @@ export default function Diagrams() {
               key={editingId}
               ref={drawioRef}
               xml={xmlData}
+              autosave
+              onAutoSave={handleAutoSave}
               onExport={handleExport}
-              onSave={handleDrawioSave}
               urlParameters={{ spin: true, libraries: false, noSaveBtn: true, noExitBtn: true }}
             />
           </div>
