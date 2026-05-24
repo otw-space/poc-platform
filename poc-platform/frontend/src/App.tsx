@@ -1,4 +1,3 @@
-import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Spin } from 'antd';
 import { useAuth } from './context/AuthContext';
@@ -13,9 +12,9 @@ import SopCenter from './pages/SopCenter';
 import DashboardHome from './pages/DashboardHome';
 import RecycleBin from './pages/RecycleBin';
 import Settings from './pages/Settings';
-import DispatchMap from './pages/DispatchMap';
-const Diagrams = lazy(() => import('./pages/Diagrams'));
 import Profile from './pages/Profile';
+import DispatchMap from './pages/DispatchMap';
+import Diagrams from './pages/Diagrams';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -55,7 +54,7 @@ export default function App() {
         <Route path="sop" element={<SopCenter />} />
         <Route path="recycle-bin" element={<RecycleBin />} />
         <Route path="dispatch-map" element={<DispatchMap />} />
-        <Route path="diagrams" element={<Suspense fallback={<Spin style={{ display: 'block', margin: '100px auto' }} />}><Diagrams /></Suspense>} />
+        <Route path="diagrams" element={<Diagrams />} />
         <Route
           path="settings"
           element={
