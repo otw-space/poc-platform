@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { Card, Button, Space, Input, Table, Popconfirm, message } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, PictureOutlined, SaveOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, PictureOutlined } from '@ant-design/icons';
 import { DrawIoEmbed } from 'react-drawio';
+import type { EventExport, EventSave } from 'react-drawio';
 import { listDiagrams, createDiagram, updateDiagram, deleteDiagram, getDiagram, type Diagram } from '../api/diagrams';
 import dayjs from 'dayjs';
 
@@ -12,9 +13,11 @@ export default function Diagrams() {
   const [editingName, setEditingName] = useState('');
   const [newName, setNewName] = useState('');
   const [xmlData, setXmlData] = useState('');
-  const drawioRef = useRef<any>(null);
+
   const editingIdRef = useRef<string | null>(null);
   const editingNameRef = useRef('');
+  const drawioRef = useRef<any>(null);
+  const xmlRef = useRef('');
 
   const fetch = useCallback(() => {
     setLoading(true);
@@ -22,36 +25,31 @@ export default function Diagrams() {
   }, []);
   useEffect(() => { fetch(); }, [fetch]);
 
+  const doSave = async (id: string, name: string, xml: string) => {
+    if (!id || !xml) return;
+    try {
+      await updateDiagram(id, { name, data: xml });
+      fetch();
+    } catch (e) { /* silent */ }
+  };
+
   const handleNew = async () => {
     const name = newName.trim() || `未命名_${dayjs().format('MMDD_HHmm')}`;
     try {
-      const emptyXml = '<mxfile><diagram name="Page-1" id="1"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/></root></mxGraphModel></diagram></mxfile>';
+      const emptyXml = '<mxfile host="app" modified="2024-01-01T00:00:00.000Z" agent="poc"><diagram name="Page-1" id="1"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/></root></mxGraphModel></diagram></mxfile>';
       const r = await createDiagram({ name, data: emptyXml });
       setEditingId(r.data.id); setEditingName(r.data.name); setXmlData(emptyXml); setNewName('');
-      editingIdRef.current = r.data.id; editingNameRef.current = r.data.name;
+      editingIdRef.current = r.data.id; editingNameRef.current = r.data.name; xmlRef.current = emptyXml;
       message.success('已创建'); fetch();
     } catch { message.error('创建失败'); }
-  };
-
-  const handleSave = async () => {
-    if (!editingIdRef.current) return;
-    try {
-      // Export current diagram XML from draw.io
-      if (drawioRef.current) {
-        drawioRef.current.exportDiagram({ format: 'xmlsvg' });
-      }
-      // Small delay to let export callback fire
-      await new Promise(r => setTimeout(r, 500));
-      await updateDiagram(editingIdRef.current, { name: editingNameRef.current, data: xmlData });
-      message.success('已保存'); fetch();
-    } catch { message.error('保存失败'); }
   };
 
   const handleEdit = async (d: Diagram) => {
     try {
       const r = await getDiagram(d.id);
-      setXmlData(r.data.data || '');
-    } catch { setXmlData(''); }
+      const xml = r.data.data || '';
+      setXmlData(xml); xmlRef.current = xml;
+    } catch { setXmlData(''); xmlRef.current = ''; }
     setEditingId(d.id); setEditingName(d.name);
     editingIdRef.current = d.id; editingNameRef.current = d.name;
   };
@@ -61,13 +59,37 @@ export default function Diagrams() {
     catch { message.error('删除失败'); }
   };
 
-  // Capture exported XML from draw.io
-  const handleExport = useCallback((data: any) => {
-    const xml = typeof data === 'string' ? data : data?.data || data?.xml || '';
-    if (typeof xml === 'string' && xml.includes('<mxfile')) {
+  // draw.io export event — captures the diagram data
+  const handleExport = (e: EventExport) => {
+    const xml = e.data || e.xml || '';
+    if (xml && xml.includes('<mxfile')) {
+      xmlRef.current = xml;
       setXmlData(xml);
     }
-  }, []);
+  };
+
+  // draw.io save event — also captures data
+  const handleDrawioSave = (e: EventSave) => {
+    const xml = e.xml || '';
+    if (xml && xml.includes('<mxfile')) {
+      xmlRef.current = xml;
+      setXmlData(xml);
+      doSave(editingIdRef.current!, editingNameRef.current!, xml);
+    }
+  };
+
+  // Manual save button
+  const handleSave = () => {
+    if (!drawioRef.current || !editingIdRef.current) return;
+    // Request export from draw.io, then save
+    drawioRef.current.exportDiagram({ action: 'export', format: 'xmlsvg' });
+    setTimeout(() => {
+      if (xmlRef.current && editingIdRef.current) {
+        doSave(editingIdRef.current, editingNameRef.current, xmlRef.current);
+        message.success('已保存');
+      }
+    }, 800);
+  };
 
   const columns = [
     { title: '名称', dataIndex: 'name', key: 'name', ellipsis: true,
@@ -105,10 +127,11 @@ export default function Diagrams() {
 
       {editingId && (
         <Card
-          title={<Input value={editingName} onChange={e => setEditingName(e.target.value)} style={{ width: 240 }} bordered={false} />}
+          title={<Input value={editingName} onChange={e => { setEditingName(e.target.value); editingNameRef.current = e.target.value; }}
+            style={{ width: 240 }} bordered={false} />}
           extra={
             <Space>
-              <Button type="primary" icon={<SaveOutlined />} onClick={handleSave}>保存</Button>
+              <Button type="primary" onClick={handleSave}>保存</Button>
               <Button onClick={() => { setEditingId(null); }}>关闭</Button>
             </Space>
           }
@@ -116,10 +139,12 @@ export default function Diagrams() {
         >
           <div style={{ width: '100%', height: 'calc(100vh - 260px)', minHeight: 600 }}>
             <DrawIoEmbed
+              key={editingId}
               ref={drawioRef}
               xml={xmlData}
               onExport={handleExport}
-              urlParameters={{ ui: 'min', spin: true, libraries: false, saveAndExit: false, noSaveBtn: true, noExitBtn: true }}
+              onSave={handleDrawioSave}
+              urlParameters={{ spin: true, libraries: false, noSaveBtn: true, noExitBtn: true }}
             />
           </div>
         </Card>
