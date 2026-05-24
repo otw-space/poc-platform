@@ -299,16 +299,14 @@ export default function DispatchMap() {
   });
 
   return (
-    <div>
-      <h2 style={{ marginBottom: 24 }}>派遣地图</h2>
-      <Card>
-        <div ref={cr} style={{ width: '100%', height: 600 }} />
-        <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          <Tag color="blue" icon={<EnvironmentOutlined />}>
-            共 {projs.current.length} 个项目，覆盖 {cities.size || 0} 个城市
-          </Tag>
-        </div>
-      </Card>
-    </div>
+    <Card
+      title={
+        <Tag color="blue" icon={<EnvironmentOutlined />}>
+          共 {projs.current.length} 个项目，覆盖 {cities.size || 0} 个城市
+        </Tag>
+      }
+    >
+      <div ref={cr} style={{ width: '100%', height: 600 }} />
+    </Card>
   );
 }
