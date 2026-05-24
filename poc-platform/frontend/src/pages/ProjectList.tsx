@@ -1,14 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Input, Select, Space, Tag, Popconfirm, message, Card, DatePicker, Popover } from 'antd';
-import { PlusOutlined, SearchOutlined, DownloadOutlined } from '@ant-design/icons';
+import { Table, Button, Input, Select, Space, Tag, Popconfirm, message, Card, DatePicker, Popover, Segmented, Spin } from 'antd';
+import { PlusOutlined, SearchOutlined, DownloadOutlined, AppstoreOutlined, UnorderedListOutlined, TableOutlined, CalendarOutlined } from '@ant-design/icons';
 import { Resizable } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 import * as XLSX from 'xlsx';
 import dayjs from 'dayjs';
-import { getProjects, deleteProject, updateProject, type PocProject } from '../api/projects';
-import { getOptions, type PocOption } from '../api/options';
+import { useProjectData } from '../hooks/useProjectData';
+import { deleteProject, updateProject, type PocProject, type PocOption } from '../api/projects';
 import ProjectDrawer from '../components/ProjectDrawer';
+import ProjectKanbanView from '../components/views/ProjectKanbanView';
+import ProjectGalleryView from '../components/views/ProjectGalleryView';
+import ProjectCalendarView from '../components/views/ProjectCalendarView';
 
 function generateXLSX(projects: PocProject[], typeOptions: PocOption[], implOptions: PocOption[], statusOptions: PocOption[]): Blob {
   const getLabel = (opts: PocOption[], id: number) => opts.find(o => o.id === id)?.label || '';
@@ -73,14 +76,12 @@ function ResizableTitle(props: any) {
 }
 
 export default function ProjectList() {
-  const [projects, setProjects] = useState<PocProject[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState<Record<string, any>>({});
-  const [statusOptions, setStatusOptions] = useState<PocOption[]>([]);
-  const [typeOptions, setTypeOptions] = useState<PocOption[]>([]);
-  const [implOptions, setImplOptions] = useState<PocOption[]>([]);
+  const {
+    projects, total, page, loading, filters,
+    setPage, setFilters, fetchProjects,
+    statusOptions, typeOptions, implOptions, getOptionLabel,
+  } = useProjectData();
+  const [view, setView] = useState<string>('table');
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => ({
     ...DEFAULT_WIDTHS,
     ...loadWidths(),
@@ -89,26 +90,10 @@ export default function ProjectList() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    getOptions('status').then((r) => setStatusOptions(r.data));
-    getOptions('poc_type').then((r) => setTypeOptions(r.data));
-    getOptions('impl_method').then((r) => setImplOptions(r.data));
-  }, []);
-
-  const fetchProjects = useCallback(() => {
-    setLoading(true);
-    getProjects({ page, page_size: 20, ...filters })
-      .then((r) => {
-        setProjects(r.data.items);
-        setTotal(r.data.total);
-      })
-      .finally(() => setLoading(false));
-  }, [page, filters]);
-
-  useEffect(() => { fetchProjects(); }, [fetchProjects]);
-
-  const getOptionLabel = (options: PocOption[], id: number) =>
-    options.find((o) => o.id === id)?.label || '';
+  const handleStatusChange = async (projectId: string, statusId: number) => {
+    await updateProject(projectId, { status_id: statusId });
+    fetchProjects();
+  };
 
   const handleDelete = async (id: string) => {
     await deleteProject(id);
@@ -205,93 +190,94 @@ export default function ProjectList() {
     },
   ];
 
+  const exportXLSX = () => {
+    const blob = generateXLSX(projects, typeOptions, implOptions, statusOptions);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `项目列表_${dayjs().format('YYYY-MM-DD')}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+    message.success('导出成功');
+  };
+
   return (
     <Card>
-      <Space style={{ marginBottom: 16, flexWrap: 'wrap' }}>
-        <Input
-          placeholder="项目名称"
-          prefix={<SearchOutlined />}
-          allowClear
-          style={{ width: 180 }}
-          onChange={(e) => setFilters((f) => ({ ...f, name: e.target.value || undefined }))}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+        <Segmented
+          value={view}
+          onChange={v => setView(v as string)}
+          options={[
+            { label: <><TableOutlined /> 表格</>, value: 'table' },
+            { label: <><AppstoreOutlined /> 看板</>, value: 'kanban' },
+            { label: <><UnorderedListOutlined /> 画廊</>, value: 'gallery' },
+            { label: <><CalendarOutlined /> 日历</>, value: 'calendar' },
+          ]}
         />
-        <Input placeholder="区域" allowClear style={{ width: 120 }} onChange={(e) => setFilters((f) => ({ ...f, region: e.target.value || undefined }))} />
-        <Input placeholder="城市" allowClear style={{ width: 120 }} onChange={(e) => setFilters((f) => ({ ...f, city: e.target.value || undefined }))} />
-        <Input placeholder="销售" allowClear style={{ width: 120 }} onChange={(e) => setFilters((f) => ({ ...f, sales: e.target.value || undefined }))} />
-        <Select
-          placeholder="状态"
-          allowClear
-          style={{ width: 120 }}
-          options={statusOptions.map((o) => ({ label: o.label, value: o.id }))}
-          onChange={(v) => setFilters((f) => ({ ...f, status_id: v || undefined }))}
-        />
-        <Select
-          placeholder="PoC类型"
-          allowClear
-          style={{ width: 120 }}
-          options={typeOptions.map((o) => ({ label: o.label, value: o.id }))}
-          onChange={(v) => setFilters((f) => ({ ...f, poc_type_id: v || undefined }))}
-        />
-        <DatePicker.RangePicker
-          style={{ width: 240 }}
-          placeholder={['开始日期', '结束日期']}
-          onChange={(dates) => {
-            if (dates && dates[0] && dates[1]) {
-              setFilters(f => ({ ...f, date_from: dates[0]!.format('YYYY-MM-DD'), date_to: dates[1]!.format('YYYY-MM-DD') }));
-            } else {
-              setFilters(f => {
-                const nf = { ...f };
-                delete nf.date_from;
-                delete nf.date_to;
-                return nf;
-              });
-            }
-          }}
-        />
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/projects/new')}>
-          新建项目
-        </Button>
-        <Button icon={<DownloadOutlined />} onClick={() => {
-          const blob = generateXLSX(projects, typeOptions, implOptions, statusOptions);
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `项目列表_${dayjs().format('YYYY-MM-DD')}.xlsx`;
-          a.click();
-          URL.revokeObjectURL(url);
-          message.success('导出成功');
-        }}>导出 Excel</Button>
-      </Space>
+        <Space>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/projects/new')}>新建项目</Button>
+          <Button icon={<DownloadOutlined />} onClick={exportXLSX}>导出 Excel</Button>
+        </Space>
+      </div>
 
-      <Table
-        rowKey="id"
-        columns={columns}
-        dataSource={projects}
-        loading={loading}
-        scroll={{ x: 'max-content' }}
-        components={{ header: { cell: ResizableTitle } }}
-        pagination={{
-          current: page,
-          total,
-          pageSize: 20,
-          showTotal: (t) => `共 ${t} 条`,
-          showSizeChanger: false,
-          onChange: setPage,
-        }}
-      />
+      {(view === 'kanban' || view === 'gallery' || view === 'calendar') && (
+        <div style={{ marginBottom: 12 }}>{/* spacers are fine */}</div>
+      )}
 
-      <ProjectDrawer
-        projectId={selectedProjectId}
-        open={drawerOpen}
+      {view === 'table' && (
+        <div>
+          <Space style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+            <Input placeholder="项目名称" prefix={<SearchOutlined />} allowClear style={{ width: 180 }}
+              onChange={(e) => setFilters(f => ({ ...f, name: e.target.value || undefined }))} />
+            <Input placeholder="区域" allowClear style={{ width: 100 }}
+              onChange={(e) => setFilters(f => ({ ...f, region: e.target.value || undefined }))} />
+            <Input placeholder="城市" allowClear style={{ width: 100 }}
+              onChange={(e) => setFilters(f => ({ ...f, city: e.target.value || undefined }))} />
+            <Input placeholder="销售" allowClear style={{ width: 100 }}
+              onChange={(e) => setFilters(f => ({ ...f, sales: e.target.value || undefined }))} />
+            <Select placeholder="状态" allowClear style={{ width: 110 }}
+              options={statusOptions.map(o => ({ label: o.label, value: o.id }))}
+              onChange={(v) => setFilters(f => ({ ...f, status_id: v || undefined }))} />
+            <Select placeholder="PoC类型" allowClear style={{ width: 110 }}
+              options={typeOptions.map(o => ({ label: o.label, value: o.id }))}
+              onChange={(v) => setFilters(f => ({ ...f, poc_type_id: v || undefined }))} />
+            <DatePicker.RangePicker style={{ width: 240 }} placeholder={['开始日期', '结束日期']}
+              onChange={(dates) => {
+                if (dates && dates[0] && dates[1]) {
+                  setFilters(f => ({ ...f, date_from: dates[0]!.format('YYYY-MM-DD'), date_to: dates[1]!.format('YYYY-MM-DD') }));
+                } else {
+                  setFilters(f => { const nf = { ...f }; delete nf.date_from; delete nf.date_to; return nf; });
+                }
+              }} />
+          </Space>
+          <Table
+            rowKey="id" columns={columns} dataSource={projects} loading={loading}
+            scroll={{ x: 'max-content' }} components={{ header: { cell: ResizableTitle } }}
+            pagination={{ current: page, total, pageSize: 20, showTotal: t => `共 ${t} 条`, showSizeChanger: false, onChange: setPage }}
+          />
+        </div>
+      )}
+
+      {view === 'kanban' && (
+        <ProjectKanbanView projects={projects} statusOptions={statusOptions} typeOptions={typeOptions}
+          loading={loading} onStatusChange={handleStatusChange} />
+      )}
+
+      {view === 'gallery' && (
+        <ProjectGalleryView projects={projects} statusOptions={statusOptions} typeOptions={typeOptions}
+          implOptions={implOptions} loading={loading} onSelect={id => { setSelectedProjectId(id); setDrawerOpen(true); }} />
+      )}
+
+      {view === 'calendar' && (
+        <ProjectCalendarView projects={projects} statusOptions={statusOptions} typeOptions={typeOptions}
+          loading={loading} onSelect={id => { setSelectedProjectId(id); setDrawerOpen(true); }} />
+      )}
+
+      <ProjectDrawer projectId={selectedProjectId} open={drawerOpen}
         onClose={() => { setDrawerOpen(false); setSelectedProjectId(null); }}
-        onEdit={(id) => navigate(`/projects/${id}/edit`)}
-        onDelete={async (id) => {
-          await deleteProject(id);
-          message.success('删除成功');
-          fetchProjects();
-        }}
-        onFileChanged={fetchProjects}
-      />
+        onEdit={id => navigate(`/projects/${id}/edit`)}
+        onDelete={async id => { await deleteProject(id); message.success('删除成功'); fetchProjects(); }}
+        onFileChanged={fetchProjects} />
     </Card>
   );
 }

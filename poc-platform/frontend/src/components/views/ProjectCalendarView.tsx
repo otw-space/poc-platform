@@ -1,0 +1,62 @@
+import { Badge, Calendar, Spin, Empty, Tag } from 'antd';
+import type { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
+import type { PocProject, PocOption } from '../../api/projects';
+
+interface Props {
+  projects: PocProject[];
+  statusOptions: PocOption[];
+  typeOptions: PocOption[];
+  loading: boolean;
+  onSelect: (id: string) => void;
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  '未开始': 'default', '准备中': 'blue', '进行中': 'processing', '已完成': 'success', '搁置': 'warning',
+};
+
+export default function ProjectCalendarView({ projects, statusOptions, typeOptions, loading, onSelect }: Props) {
+  const getLabel = (opts: PocOption[], id: number) => opts.find(o => o.id === id)?.label || '';
+
+  const dateCellRender = (date: Dayjs) => {
+    const dayStr = date.format('YYYY-MM-DD');
+    const matched = projects.filter(p => p.start_date === dayStr || p.end_date === dayStr);
+    if (matched.length === 0) return null;
+    return (
+      <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+        {matched.slice(0, 3).map(p => {
+          const status = getLabel(statusOptions, p.status_id);
+          const color = STATUS_COLORS[status] || 'default';
+          const isStart = p.start_date === dayStr;
+          return (
+            <li key={p.id} style={{ marginBottom: 2 }}>
+              <a onClick={(e) => { e.stopPropagation(); onSelect(p.id); }} style={{ fontSize: 11 }}>
+                <Badge color={isStart ? (color === 'processing' ? '#1677ff' : '#52c41a') : '#ff4d4f'} text={
+                  <span style={{ fontSize: 11 }}>{p.name}</span>
+                } />
+              </a>
+            </li>
+          );
+        })}
+        {matched.length > 3 && <li style={{ fontSize: 11, color: '#999' }}>+{matched.length - 3} 更多</li>}
+      </ul>
+    );
+  };
+
+  const monthCellRender = (date: Dayjs) => {
+    const monthStr = date.format('YYYY-MM');
+    const count = projects.filter(p => p.start_date?.startsWith(monthStr) || p.end_date?.startsWith(monthStr)).length;
+    if (count === 0) return null;
+    return <div style={{ fontSize: 12, color: '#999', textAlign: 'center' }}>{count} 个项目</div>;
+  };
+
+  if (loading) return <Spin style={{ display: 'block', margin: '60px auto' }} />;
+  if (projects.length === 0) return <Empty description="暂无项目" />;
+
+  return (
+    <Calendar
+      dateCellRender={dateCellRender}
+      monthCellRender={monthCellRender}
+    />
+  );
+}
