@@ -34,7 +34,7 @@ const REGION_COORDS: Record<string, [number, number]> = {
 };
 
 function shortName(n: string): string {
-  return n.replace(/省|市|壮族自治区|回族自治区|维吾尔自治区|自治区|特别行政区/g, '');
+  return n.replace(/省|壮族自治区|回族自治区|维吾尔自治区|自治区|特别行政区/g, '');
 }
 
 function getCoord(city: string, region: string): [number, number] | null {
@@ -71,7 +71,7 @@ export default function DispatchMap() {
         const geo = (gj as any).default || gj;
 
         // Assign colors to provinces
-        const colors = ['#f0f7ff','#fef9f0','#f1f9f1','#fff4f4','#f5f0ff','#eaf6ff','#fdf6e3','#e6f9e8','#fff0f0','#ede4ff','#e0f2ff','#fef3e0','#daf5dc','#ffe8e8','#e1d4f7','#d6ecff','#fcecd0','#cef0d0','#ffdde0','#d5c4f0','#cce6ff','#fae6c0','#c2ebc4','#ffd2d5','#c9b4e9','#c2dfff','#f8dfb0','#b7e6b8','#ffc8cc','#bda4e2','#b8d8ff','#f6d8a0','#ace0ac','#ffbdc2','#b194db'];
+        const colors = ['#f0f7ff','#fef9f0','#f1f9f1','#fff4f4','#f5f0ff','#eaf6ff','#fdf6e3','#e6f9e8','#fff0f0','#ede4ff','#e0f2ff','#fef3e0','#daf5dc','#ffe8e8','#e1d4f7','#d6ecff','#fcecd0','#cef0d0','#ffdde0','#d5c4f0','#cce6ff','#fae6c0','#c2ebc4','#ffd2d5','#c9b4e9','#c2dfff','#f8dfb0','#b7e6b8','#ffc8cc','#bda4e2','#b8d8ff','#f6d8a0','#ace0ac','#ffbdc2','#b194db','#aed1ff','#f4d290','#e8f5e9','#fff3e0','#e3f2fd'];
         mapData.provinces.forEach((p, i) => { PROVINCE_COLORS[p] = colors[i % colors.length]; });
 
         let all = projRes.data.items;
@@ -124,22 +124,41 @@ export default function DispatchMap() {
       .filter(([n]) => !pc.has(n.replace(/市$/, '')))
       .map(([n, c]) => ({ name: n.replace(/市$/, ''), value: [c[0], c[1]] }));
 
-    // Build regions array for ALL features
-    function buildRegions(cityAlpha: number): any[] {
+    // Label position fixes for provinces with bad centroids
+    const labelFixes: Record<string, [number, number]> = {
+      '甘肃省': [103, 37.5],
+      '内蒙古自治区': [114, 44.5],
+      '黑龙江省': [128, 48],
+      '新疆维吾尔自治区': [84, 41.5],
+      '青海省': [95, 35.5],
+      '四川省': [102.5, 30.5],
+      '云南省': [101, 25.5],
+      '河北省': [115, 38],
+      '海南省': [109.5, 19],
+      '台湾省': [121, 24],
+      '西藏自治区': [91, 31.5],
+    };
+
+    function buildRegions(cityAlpha: number, cityLabelSize: number): any[] {
       const result: any[] = provinces.map(name => ({
         name,
         itemStyle: { areaColor: PROVINCE_COLORS[name] || '#e8f0f8' },
-        label: { color: labelColor },
+        label: { color: labelColor, position: labelFixes[name] || undefined },
       }));
-      // Cities: transparent fill, border appears with zoom
+      // Cities: transparent fill, border appears, labels appear at high zoom
       result.push(...cities.map(name => ({
         name,
         itemStyle: {
           areaColor: 'transparent',
           borderColor: `${borderBase}${0.15 + cityAlpha * 0.45})`,
-          borderWidth: 0.5,
+          borderWidth: 0.4,
         },
-        label: { show: false },
+        label: {
+          show: cityAlpha > 0.5,
+          fontSize: cityLabelSize,
+          color: `${borderBase}${0.3 + cityAlpha * 0.5})`,
+          position: 'center',
+        },
       })));
       return result;
     }
@@ -192,7 +211,7 @@ export default function DispatchMap() {
             label: { fontSize: cfg.provSize + 2, fontWeight: 'bold', color: dark ? '#fff' : '#000' },
             itemStyle: { borderColor: '#1677ff', borderWidth: 2 },
           },
-          regions: buildRegions(cfg.cityAlpha),
+          regions: buildRegions(cfg.cityAlpha, cfg.citySize),
         },
         series: [
           {
@@ -241,7 +260,7 @@ export default function DispatchMap() {
         geo: [{
           label: { show: cfg.provAlpha > 0, fontSize: cfg.provSize },
           emphasis: { label: { fontSize: cfg.provSize + 2 } },
-          regions: buildRegions(cfg.cityAlpha),
+          regions: buildRegions(cfg.cityAlpha, cfg.citySize),
         }],
         series: [
           {
