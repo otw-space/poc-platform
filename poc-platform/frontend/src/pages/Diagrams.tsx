@@ -1,49 +1,10 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
-import { Card, Button, Space, message, Input, Table, Popconfirm, Spin, Select, Tag } from 'antd';
+import { useCallback, useEffect, useState } from 'react';
+import { Card, Button, Space, message, Input, Table, Popconfirm } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, PictureOutlined, SaveOutlined } from '@ant-design/icons';
-import { ReactFlow, Controls, Background, MiniMap, useNodesState, useEdgesState, addEdge, Connection, MarkerType } from '@xyflow/react';
+import { ReactFlow, Controls, Background, MiniMap, useNodesState, useEdgesState, addEdge, MarkerType, type Connection } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import type { Node, Edge, NodeTypes } from '@xyflow/react';
 import { listDiagrams, createDiagram, updateDiagram, deleteDiagram, getDiagram, type Diagram } from '../api/diagrams';
 import dayjs from 'dayjs';
-
-// Custom node types
-const nodeTypes: NodeTypes = {
-  default: DefaultNode,
-  rectangle: RectangleNode,
-  diamond: DiamondNode,
-  circle: CircleNode,
-  parallelogram: ParallelogramNode,
-};
-
-function DefaultNode({ data }: any) {
-  return <div style={{ padding: '10px 20px', border: '2px solid #1677ff', borderRadius: 6, background: '#e6f4ff', fontSize: 14, fontWeight: 500, textAlign: 'center', minWidth: 80 }}>{data.label}</div>;
-}
-function RectangleNode({ data }: any) {
-  return <div style={{ padding: '10px 24px', border: '2px solid #52c41a', background: '#f6ffed', fontSize: 14, fontWeight: 500, textAlign: 'center', minWidth: 80 }}>{data.label}</div>;
-}
-function DiamondNode({ data }: any) {
-  return <div style={{ width: 100, height: 60, background: '#fff7e6', border: '2px solid #fa8c16', transform: 'rotate(45deg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ transform: 'rotate(-45deg)', fontSize: 13, fontWeight: 500, textAlign: 'center' }}>{data.label}</div></div>;
-}
-function CircleNode({ data }: any) {
-  return <div style={{ width: 80, height: 80, borderRadius: '50%', border: '3px solid #722ed1', background: '#f9f0ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 500, textAlign: 'center' }}>{data.label}</div>;
-}
-function ParallelogramNode({ data }: any) {
-  return <div style={{ padding: '10px 20px', border: '2px solid #13c2c2', background: '#e6fffb', transform: 'skewX(-10deg)', fontSize: 14, fontWeight: 500, textAlign: 'center', minWidth: 80 }}><div style={{ transform: 'skewX(10deg)' }}>{data.label}</div></div>;
-}
-
-const nodeOptions = [
-  { label: '矩形(流程)', value: 'default' },
-  { label: '方框(功能)', value: 'rectangle' },
-  { label: '菱形(判断)', value: 'diamond' },
-  { label: '圆形(节点)', value: 'circle' },
-  { label: '平行四边形(数据)', value: 'parallelogram' },
-];
-
-const edgeOptions = [
-  { label: '实线箭头', value: 'solid' },
-  { label: '虚线箭头', value: 'dashed' },
-];
 
 export default function Diagrams() {
   const [diagrams, setDiagrams] = useState<Diagram[]>([]);
@@ -53,9 +14,8 @@ export default function Diagrams() {
   const [saving, setSaving] = useState(false);
   const [newName, setNewName] = useState('');
 
-  const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<any>([]);
-  const [selType, setSelType] = useState('default');
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   const fetch = useCallback(() => {
     setLoading(true);
@@ -68,11 +28,8 @@ export default function Diagrams() {
     const name = newName.trim() || `未命名_${dayjs().format('MMDD_HHmm')}`;
     try {
       const r = await createDiagram({ name, data: '{"nodes":[],"edges":[]}' });
-      setNodes([]);
-      setEdges([]);
-      setEditingId(r.data.id);
-      setEditingName(r.data.name);
-      setNewName('');
+      setNodes([]); setEdges([]);
+      setEditingId(r.data.id); setEditingName(r.data.name); setNewName('');
       message.success('已创建');
       fetch();
     } catch { message.error('创建失败'); }
@@ -82,8 +39,7 @@ export default function Diagrams() {
     if (!editingId) return;
     setSaving(true);
     try {
-      const data = JSON.stringify({ nodes, edges });
-      await updateDiagram(editingId, { name: editingName, data });
+      await updateDiagram(editingId, { name: editingName, data: JSON.stringify({ nodes, edges }) });
       message.success('已保存');
       fetch();
     } catch { message.error('保存失败'); }
@@ -93,16 +49,12 @@ export default function Diagrams() {
   const handleOpen = async (d: Diagram) => {
     try {
       const r = await getDiagram(d.id);
-      setEditingId(d.id);
-      setEditingName(d.name);
       const parsed = JSON.parse(r.data.data || '{}');
-      setNodes(parsed.nodes || []);
-      setEdges(parsed.edges || []);
+      setNodes(parsed.nodes || []); setEdges(parsed.edges || []);
+      setEditingId(d.id); setEditingName(d.name);
     } catch {
-      setNodes([]);
-      setEdges([]);
-      setEditingId(d.id);
-      setEditingName(d.name);
+      setNodes([]); setEdges([]);
+      setEditingId(d.id); setEditingName(d.name);
     }
   };
 
@@ -115,23 +67,11 @@ export default function Diagrams() {
     } catch { message.error('删除失败'); }
   };
 
-  const onConnect = useCallback((connection: Connection) => {
-    const markerEnd = { type: MarkerType.ArrowClosed, width: 16, height: 16 };
-    setEdges(eds => addEdge({ ...connection, markerEnd, animated: false }, eds));
+  const onConnect = useCallback((conn: Connection) => {
+    setEdges(eds => addEdge({ ...conn, markerEnd: { type: MarkerType.ArrowClosed } }, eds));
   }, [setEdges]);
 
-  // Double-click canvas to add a new node
-  const onDoubleClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).classList.contains('react-flow__pane')) {
-      const id = `${Date.now()}`;
-      const bounds = (e.target as HTMLElement).closest('.react-flow__renderer')?.getBoundingClientRect();
-      const x = bounds ? e.clientX - bounds.left - 200 : Math.random() * 400;
-      const y = bounds ? e.clientY - bounds.top - 100 : Math.random() * 200;
-      setNodes(nds => [...nds, { id, type: selType, position: { x, y }, data: { label: '新节点' } }]);
-    }
-  };
-
-  const columns = useMemo(() => [
+  const columns = [
     { title: '名称', dataIndex: 'name', key: 'name', ellipsis: true,
       render: (v: string, r: Diagram) => <a onClick={() => handleOpen(r)}>{v}</a> },
     { title: '更新时间', dataIndex: 'updated_at', key: 'updated_at', width: 140,
@@ -146,7 +86,7 @@ export default function Diagrams() {
         </Space>
       ),
     },
-  ], [handleOpen, handleDelete]);
+  ];
 
   return (
     <div>
@@ -168,20 +108,16 @@ export default function Diagrams() {
       {editingId && (
         <Card
           title={
-            <Space>
-              <Input value={editingName} onChange={e => setEditingName(e.target.value)} style={{ width: 240 }}
-                bordered={false} onPressEnter={handleSave} />
-            </Space>
+            <Input value={editingName} onChange={e => setEditingName(e.target.value)} style={{ width: 240 }}
+              bordered={false} onPressEnter={handleSave} />
           }
           extra={
             <Space>
-              <Select size="small" value={selType} onChange={setSelType}
-                options={nodeOptions} style={{ width: 140 }} placeholder="节点类型" />
               <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleSave}>保存</Button>
               <Button onClick={() => { setEditingId(null); setNodes([]); setEdges([]); }}>关闭</Button>
             </Space>
           }
-          bodyStyle={{ padding: 0 }}
+          styles={{ body: { padding: 0 } }}
         >
           <div style={{ width: '100%', height: 'calc(100vh - 260px)', minHeight: 500 }}>
             <ReactFlow
@@ -190,11 +126,8 @@ export default function Diagrams() {
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
-              onDoubleClick={onDoubleClick}
-              nodeTypes={nodeTypes}
               fitView
               deleteKeyCode={['Backspace', 'Delete']}
-              multiSelectionKeyCode="Shift"
               snapToGrid
               snapGrid={[16, 16]}
             >
@@ -203,8 +136,8 @@ export default function Diagrams() {
               <MiniMap pannable zoomable />
             </ReactFlow>
           </div>
-          <div style={{ padding: '8px 12px', borderTop: '1px solid #f0f0f0', display: 'flex', gap: 16, alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: '#999' }}>双击画布添加节点 | 拖拽节点间圆点连线 | Delete 删除选中 | Shift+点击多选</span>
+          <div style={{ padding: '8px 12px', borderTop: '1px solid #f0f0f0', fontSize: 12, color: '#999' }}>
+            拖拽节点间圆点连线 | Delete 删除选中 | 滚轮缩放 | 拖拽移动画布
           </div>
         </Card>
       )}
