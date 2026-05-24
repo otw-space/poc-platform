@@ -3,6 +3,7 @@ import { Card, Tag, Button, Popover, message, Spin, Empty } from 'antd';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useTheme } from '../../context/ThemeContext';
 import type { PocProject, PocOption } from '../../api/projects';
 
 interface Props {
@@ -38,6 +39,7 @@ function ProjectCard({ project, typeOptions, id }: { project: PocProject; typeOp
 }
 
 export default function ProjectKanbanView({ projects, statusOptions, typeOptions, loading, onStatusChange }: Props) {
+  const { dark } = useTheme();
   const [saving, setSaving] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -66,7 +68,7 @@ export default function ProjectKanbanView({ projects, statusOptions, typeOptions
       <div style={{ display: 'flex', gap: 12, overflow: 'auto', paddingBottom: 8 }}>
         {columns.map(col => (
           <div key={col.id} style={{ flex: 1, minWidth: 200, maxWidth: 280 }}>
-            <div style={{ fontWeight: 600, fontSize: 14, padding: '8px 12px', marginBottom: 8, borderRadius: 6, background: '#f5f5f5' }}>
+            <div style={{ fontWeight: 600, fontSize: 14, padding: '8px 12px', marginBottom: 8, borderRadius: 6, background: dark ? '#1f1f1f' : '#f5f5f5', color: dark ? '#e8e8e8' : undefined }}>
               {col.label} <span style={{ color: '#999', fontWeight: 400 }}>({col.items.length})</span>
             </div>
             <SortableContext items={col.items.map(p => p.id)} strategy={verticalListSortingStrategy}>

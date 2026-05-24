@@ -6,12 +6,14 @@ import { Resizable } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 import * as XLSX from 'xlsx';
 import dayjs from 'dayjs';
+import { useTheme } from '../context/ThemeContext';
 import { useProjectData } from '../hooks/useProjectData';
 import { deleteProject, updateProject, type PocProject, type PocOption } from '../api/projects';
 import ProjectDrawer from '../components/ProjectDrawer';
 import ProjectKanbanView from '../components/views/ProjectKanbanView';
 import ProjectGalleryView from '../components/views/ProjectGalleryView';
 import ProjectCalendarView from '../components/views/ProjectCalendarView';
+import ProjectToolbar, { type ToolbarState } from '../components/views/ProjectToolbar';
 
 function generateXLSX(projects: PocProject[], typeOptions: PocOption[], implOptions: PocOption[], statusOptions: PocOption[]): Blob {
   const getLabel = (opts: PocOption[], id: number) => opts.find(o => o.id === id)?.label || '';
@@ -111,6 +113,58 @@ export default function ProjectList() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { dark } = useTheme();
+
+  // Toolbar state
+  const [toolbar, setToolbar] = useState<ToolbarState>({ search: '', filters: [], filterMode: 'and', sortBy: '', sortOrder: 'desc', groupBy: '' });
+  const updateToolbar = (v: Partial<ToolbarState>) => setToolbar(prev => ({ ...prev, ...v }));
+
+  // Apply client-side filters, sort, group, search
+  const filtered = projects.filter(p => {
+    if (toolbar.search && !p.name.toLowerCase().includes(toolbar.search.toLowerCase())) return false;
+    if (toolbar.filters.length === 0) return true;
+    const fieldToVal = (p: any, field: string) => {
+      if (field === 'status_id') return String(p.status_id);
+      if (field === 'poc_type_id') return String(p.poc_type_id);
+      return String(p[field as keyof typeof p] || '');
+    };
+    const results = toolbar.filters.filter(f => f.value).map(f => fieldToVal(p, f.field) === f.value);
+    return toolbar.filterMode === 'and' ? results.every(Boolean) : results.some(Boolean);
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (!toolbar.sortBy) return 0;
+    const va = String(a[toolbar.sortBy as keyof typeof a] || '');
+    const vb = String(b[toolbar.sortBy as keyof typeof b] || '');
+    return toolbar.sortOrder === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+
+  // Highlight matching text
+  const highlightText = (text: string) => {
+    if (!toolbar.search) return text;
+    const idx = text.toLowerCase().indexOf(toolbar.search.toLowerCase());
+    if (idx === -1) return text;
+    return (
+      <span>
+        {text.slice(0, idx)}<mark style={{ background: '#ffd666', padding: 0 }}>{text.slice(idx, idx + toolbar.search.length)}</mark>{text.slice(idx + toolbar.search.length)}
+      </span>
+    );
+  };
+
+  // Group data
+  const grouped = (() => {
+    if (!toolbar.groupBy) return null;
+    const groups: Record<string, typeof sorted> = {};
+    sorted.forEach(p => {
+      const key = toolbar.groupBy === 'status_id' ? getOptionLabel(statusOptions, p.status_id)
+        : toolbar.groupBy === 'poc_type_id' ? getOptionLabel(typeOptions, p.poc_type_id)
+        : toolbar.groupBy === 'impl_method_id' ? getOptionLabel(implOptions, p.impl_method_id)
+        : String(p[toolbar.groupBy as keyof typeof p] || '未分组');
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(p);
+    });
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  })();
 
   const handleStatusChange = async (projectId: string, statusId: number) => {
     await updateProject(projectId, { status_id: statusId });
@@ -230,7 +284,7 @@ export default function ProjectList() {
           {views.map(v => {
             const icons: Record<string, React.ReactNode> = { table: <TableOutlined />, kanban: <AppstoreOutlined />, gallery: <UnorderedListOutlined />, calendar: <CalendarOutlined /> };
             return (
-              <div key={v.id} style={{ display: 'flex', alignItems: 'center', border: activeViewId === v.id ? '2px solid #1677ff' : '2px solid transparent', borderRadius: 6, padding: '2px 2px 2px 10px', cursor: 'pointer', background: activeViewId === v.id ? '#e6f4ff' : 'transparent' }}
+              <div key={v.id} style={{ display: 'flex', alignItems: 'center', border: activeViewId === v.id ? '2px solid #1677ff' : '2px solid transparent', borderRadius: 6, padding: '2px 2px 2px 10px', cursor: 'pointer', background: activeViewId === v.id ? (dark ? '#1a3a5c' : '#e6f4ff') : 'transparent', color: dark ? '#e8e8e8' : undefined }}
                 onClick={() => setActiveViewId(v.id)}>
                 <span style={{ fontSize: 13, whiteSpace: 'nowrap' }}>{icons[v.type]} {v.name}</span>
                 {views.length > 1 && (
@@ -260,32 +314,9 @@ export default function ProjectList() {
 
       {activeView.type === 'table' && (
         <div>
-          <Space style={{ marginBottom: 16, flexWrap: 'wrap' }}>
-            <Input placeholder="项目名称" prefix={<SearchOutlined />} allowClear style={{ width: 180 }}
-              onChange={(e) => setFilters(f => ({ ...f, name: e.target.value || undefined }))} />
-            <Input placeholder="区域" allowClear style={{ width: 100 }}
-              onChange={(e) => setFilters(f => ({ ...f, region: e.target.value || undefined }))} />
-            <Input placeholder="城市" allowClear style={{ width: 100 }}
-              onChange={(e) => setFilters(f => ({ ...f, city: e.target.value || undefined }))} />
-            <Input placeholder="销售" allowClear style={{ width: 100 }}
-              onChange={(e) => setFilters(f => ({ ...f, sales: e.target.value || undefined }))} />
-            <Select placeholder="状态" allowClear style={{ width: 110 }}
-              options={statusOptions.map(o => ({ label: o.label, value: o.id }))}
-              onChange={(v) => setFilters(f => ({ ...f, status_id: v || undefined }))} />
-            <Select placeholder="PoC类型" allowClear style={{ width: 110 }}
-              options={typeOptions.map(o => ({ label: o.label, value: o.id }))}
-              onChange={(v) => setFilters(f => ({ ...f, poc_type_id: v || undefined }))} />
-            <DatePicker.RangePicker style={{ width: 240 }} placeholder={['开始日期', '结束日期']}
-              onChange={(dates) => {
-                if (dates && dates[0] && dates[1]) {
-                  setFilters(f => ({ ...f, date_from: dates[0]!.format('YYYY-MM-DD'), date_to: dates[1]!.format('YYYY-MM-DD') }));
-                } else {
-                  setFilters(f => { const nf = { ...f }; delete nf.date_from; delete nf.date_to; return nf; });
-                }
-              }} />
-          </Space>
+          <ProjectToolbar value={toolbar} onChange={updateToolbar} statusOptions={statusOptions} typeOptions={typeOptions} />
           <Table
-            rowKey="id" columns={columns} dataSource={projects} loading={loading}
+            rowKey="id" columns={columns} dataSource={sorted} loading={loading}
             scroll={{ x: 'max-content' }} components={{ header: { cell: ResizableTitle } }}
             pagination={{ current: page, total, pageSize: 20, showTotal: t => `共 ${t} 条`, showSizeChanger: false, onChange: setPage }}
           />
@@ -293,18 +324,27 @@ export default function ProjectList() {
       )}
 
       {activeView.type === 'kanban' && (
-        <ProjectKanbanView projects={projects} statusOptions={statusOptions} typeOptions={typeOptions}
-          loading={loading} onStatusChange={handleStatusChange} />
+        <div>
+          <ProjectToolbar value={toolbar} onChange={updateToolbar} statusOptions={statusOptions} typeOptions={typeOptions} />
+          <ProjectKanbanView projects={sorted} statusOptions={statusOptions} typeOptions={typeOptions}
+            loading={loading} onStatusChange={handleStatusChange} />
+        </div>
       )}
 
       {activeView.type === 'gallery' && (
-        <ProjectGalleryView projects={projects} statusOptions={statusOptions} typeOptions={typeOptions}
-          implOptions={implOptions} loading={loading} onSelect={id => { setSelectedProjectId(id); setDrawerOpen(true); }} />
+        <div>
+          <ProjectToolbar value={toolbar} onChange={updateToolbar} statusOptions={statusOptions} typeOptions={typeOptions} showGroup={false} />
+          <ProjectGalleryView projects={sorted} statusOptions={statusOptions} typeOptions={typeOptions}
+            implOptions={implOptions} loading={loading} onSelect={id => { setSelectedProjectId(id); setDrawerOpen(true); }} />
+        </div>
       )}
 
       {activeView.type === 'calendar' && (
-        <ProjectCalendarView projects={projects} statusOptions={statusOptions} typeOptions={typeOptions}
-          loading={loading} onSelect={id => { setSelectedProjectId(id); setDrawerOpen(true); }} />
+        <div>
+          <ProjectToolbar value={toolbar} onChange={updateToolbar} statusOptions={statusOptions} typeOptions={typeOptions} showGroup={false} />
+          <ProjectCalendarView projects={sorted} statusOptions={statusOptions} typeOptions={typeOptions}
+            loading={loading} onSelect={id => { setSelectedProjectId(id); setDrawerOpen(true); }} />
+        </div>
       )}
 
       <ProjectDrawer projectId={selectedProjectId} open={drawerOpen}
