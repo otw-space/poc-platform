@@ -44,6 +44,15 @@ function getCoord(city: string, region: string): [number, number] | null {
 }
 
 // Province color palette — alternating warm/cool tones
+const PROVINCE_NAMES = [
+  '北京市','天津市','河北省','山西省','内蒙古自治区','辽宁省','吉林省','黑龙江省',
+  '上海市','江苏省','浙江省','安徽省','福建省','江西省','山东省',
+  '河南省','湖北省','湖南省','广东省','广西壮族自治区','海南省',
+  '重庆市','四川省','贵州省','云南省','西藏自治区',
+  '陕西省','甘肃省','青海省','宁夏回族自治区','新疆维吾尔自治区',
+  '台湾省','香港特别行政区','澳门特别行政区',
+];
+
 const PROVINCE_COLORS = [
   '#e8f4f8', '#fef9e7', '#eaf7ee', '#fdf2f0', '#f3e8ff',
   '#e6f7ff', '#fff7e6', '#f0fdf4', '#fff1f0', '#f9f0ff',
@@ -150,7 +159,7 @@ export default function DispatchMap() {
       },
       geo: {
         map: 'china',
-        roam: true,
+        roam: 'scale',
         zoom: 1.2,
         center: [104.4, 37.5],
         scaleLimit: { min: 1, max: 10 },
@@ -158,10 +167,8 @@ export default function DispatchMap() {
           show: showProvince,
           fontSize: showDetail ? 9 : 11,
           color: labelColor,
-          formatter: showDetail ? '{b}' : undefined,
         },
         itemStyle: {
-          areaColor: '#e8f4f8',
           borderColor: borderColor,
           borderWidth: 1,
           shadowColor: dark ? 'rgba(0,0,0,0.5)' : 'rgba(167,189,210,0.3)',
@@ -176,13 +183,12 @@ export default function DispatchMap() {
             borderWidth: 1.5,
           },
         },
-        regions: scatterData.map((d, i) => ({
-          name: d.name,
-          itemStyle: {
-            areaColor: PROVINCE_COLORS[i % PROVINCE_COLORS.length],
-          },
-        })),
       },
+      regions: PROVINCE_NAMES.map((name, i) => ({
+        name,
+        itemStyle: { areaColor: PROVINCE_COLORS[i % PROVINCE_COLORS.length] },
+        label: { show: showProvince, color: labelColor },
+      })),
       series: [{
         name: 'projects',
         type: 'scatter',
