@@ -14,7 +14,8 @@ import RecycleBin from './pages/RecycleBin';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 import DispatchMap from './pages/DispatchMap';
-import Diagrams from './pages/Diagrams';
+// Temporarily disabled due to library compatibility
+// import Diagrams from './pages/Diagrams';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -54,7 +55,7 @@ export default function App() {
         <Route path="sop" element={<SopCenter />} />
         <Route path="recycle-bin" element={<RecycleBin />} />
         <Route path="dispatch-map" element={<DispatchMap />} />
-        <Route path="diagrams" element={<Diagrams />} />
+{/*        <Route path="diagrams" element={<Diagrams />} /> */}
         <Route
           path="settings"
           element={
