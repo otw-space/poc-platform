@@ -58,21 +58,19 @@ export default function Diagrams() {
     catch { message.error('删除失败'); }
   };
 
-  // draw.io autosave — fires on every edit, keeps xmlRef current
+  // draw.io autosave — fires on every edit, keeps xmlRef current (don't update state!)
   const handleAutoSave = (e: any) => {
     const xml = e.xml || e.data || '';
     if (xml && xml.includes('<mxfile')) {
       xmlRef.current = xml;
-      setXmlData(xml);
     }
   };
 
-  // draw.io export event — triggered by our manual exportDiagram call
+  // draw.io export event
   const handleExport = (e: any) => {
     const xml = e.data || e.xml || '';
     if (xml && xml.includes('<mxfile')) {
       xmlRef.current = xml;
-      setXmlData(xml);
     }
   };
 
@@ -152,11 +150,6 @@ export default function Diagrams() {
               autosave
               onAutoSave={handleAutoSave}
               onExport={handleExport}
-              onLoad={() => {
-                // Focus iframe to enable keyboard shortcuts
-                const iframe = document.querySelector('iframe[title="draw.io embed"]') as HTMLIFrameElement;
-                iframe?.focus();
-              }}
               urlParameters={{ spin: true, libraries: false, noSaveBtn: true, noExitBtn: true }}
             />
           </div>
