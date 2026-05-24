@@ -7,6 +7,7 @@ import { getOptions, type PocOption } from '../api/options';
 import LogEntryModal from './LogEntryModal';
 import FileUpload from './FileUpload';
 import client from '../api/client';
+import { useTheme } from '../context/ThemeContext';
 import dayjs from 'dayjs';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -30,6 +31,7 @@ interface Props {
 
 export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDelete, onFileChanged }: Props) {
   const [project, setProject] = useState<PocProject | null>(null);
+  const { dark } = useTheme();
   const [typeOptions, setTypeOptions] = useState<PocOption[]>([]);
   const [implOptions, setImplOptions] = useState<PocOption[]>([]);
   const [statusOptions, setStatusOptions] = useState<PocOption[]>([]);
@@ -153,7 +155,7 @@ export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDele
         <h4>{title}</h4>
         {hasFile ? (
           <div>
-            <div style={{ marginBottom: 8, color: 'rgba(0,0,0,0.65)', fontSize: 13 }}>
+            <div style={{ marginBottom: 8, color: dark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.65)', fontSize: 13 }}>
               {fileMeta.original_filename} ({formatFileSize(fileMeta.size)})
             </div>
             <Space>

@@ -8,6 +8,7 @@ import { getOptions, type PocOption } from '../api/options';
 import LogEntryModal from '../components/LogEntryModal';
 import FileUpload from '../components/FileUpload';
 import client from '../api/client';
+import { useTheme } from '../context/ThemeContext';
 import dayjs from 'dayjs';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -22,6 +23,7 @@ function formatFileSize(bytes: number): string {
 
 export default function ProjectDetail() {
   const { id } = useParams();
+  const { dark } = useTheme();
   const navigate = useNavigate();
   const [project, setProject] = useState<PocProject | null>(null);
   const [typeOptions, setTypeOptions] = useState<PocOption[]>([]);
@@ -144,7 +146,7 @@ export default function ProjectDetail() {
       <Card title={title} size="small" style={{ marginBottom: 16 }}>
         {hasFile ? (
           <div>
-            <div style={{ marginBottom: 8, color: 'rgba(0,0,0,0.65)' }}>
+            <div style={{ marginBottom: 8, color: dark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.65)' }}>
               {fileMeta.original_filename} ({formatFileSize(fileMeta.size)})
             </div>
             <Space>
