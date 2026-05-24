@@ -106,9 +106,16 @@ export default function DispatchMap() {
     const borderBase = dark ? 'rgba(255,255,255,' : 'rgba(0,0,0,';
 
     // Province label markers at correct GeoJSON center positions
+    // Manual overrides for provinces where geometric centroid is visually off
+    const centerOverrides: Record<string, [number, number]> = {
+      '青海省': [97.5, 36],
+      '新疆维吾尔自治区': [84, 41],
+      '内蒙古自治区': [113, 43.5],
+      '黑龙江省': [127.5, 48],
+    };
     const provLabelMarkers = Object.entries(provCenters).map(([name, c]) => ({
       name: shortName(name),
-      value: [c[0], c[1]],
+      value: centerOverrides[name] || [c[0], c[1]],
     }));
 
     // City label markers at GeoJSON city centers (extract from the cities list)
