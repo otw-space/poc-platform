@@ -138,6 +138,10 @@ export function importTestCases(file: File, onProgress?: (pct: number) => void, 
   });
 }
 
+export function downloadTestCaseTemplate() {
+  return client.get('/sops/test-cases/template', { responseType: 'blob' });
+}
+
 export function exportTestCases(categoryId?: string | null) {
   const params: Record<string, string> = {};
   if (categoryId) params.category_id = categoryId;

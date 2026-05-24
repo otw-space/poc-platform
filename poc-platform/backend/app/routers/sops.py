@@ -1182,6 +1182,33 @@ def import_test_cases(
         raise HTTPException(status_code=400, detail=f"导入失败: {str(e)}")
 
 
+@router.get("/test-cases/template")
+def download_test_case_template():
+    try:
+        import openpyxl
+    except ImportError:
+        raise HTTPException(status_code=500, detail="openpyxl not installed on server")
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "案例模板"
+    headers = ["标题", "客户端", "模块", "优先级", "前置条件", "测试步骤", "预期结果", "状态", "备注"]
+    ws.append(headers)
+    # Add example row
+    ws.append(["示例：登录功能测试", "客户端名称", "登录模块", "P1", "用户已注册", "1.打开登录页\n2.输入账号密码\n3.点击登录", "成功登录并跳转首页", "就绪", ""])
+
+    from io import BytesIO
+    from fastapi.responses import StreamingResponse
+    from urllib.parse import quote
+    output = BytesIO()
+    wb.save(output); output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote('案例导入模板.xlsx', safe='')}"},
+    )
+
+
 @router.get("/test-cases/export")
 def export_test_cases(
     category_id: str | None = None,

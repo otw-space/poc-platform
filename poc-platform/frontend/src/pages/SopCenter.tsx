@@ -24,7 +24,7 @@ import {
 import type { SopDocument } from '../api/sops';
 import {
   listTestCases, createTestCase, updateTestCase, deleteTestCase,
-  importTestCases, exportTestCases,
+  importTestCases, exportTestCases, downloadTestCaseTemplate,
   listCategories, createCategory, updateCategory, deleteCategory,
 } from '../api/sops';
 import type { TestCase, TestCaseCategory } from '../api/sops';
@@ -470,6 +470,11 @@ function TestCaseTab() {
     listTestCases({ page: 1, page_size: 1 }).then(r => setAllTotal(r.data.total));
   };
 
+  const handleTemplate = async () => {
+    const r = await downloadTestCaseTemplate();
+    downloadBlob(r.data, `案例导入模板.xlsx`);
+  };
+
   const handleExport = async () => {
     const r = await exportTestCases(activeCategory);
     downloadBlob(r.data, `测试用例_${dayjs().format('YYYY-MM-DD')}.xlsx`);
@@ -572,6 +577,7 @@ function TestCaseTab() {
             </Upload>
           )}
           <UploadProgressBar progress={upProgress} uploading={uploading} onCancel={() => { upCtrl?.abort(); setUploading(false); message.info('已取消上传'); }} />
+          <Button onClick={handleTemplate}>下载模板</Button>
           <Button icon={<ExportOutlined />} onClick={handleExport}>导出 Excel</Button>
         </Space>
 
