@@ -12,8 +12,9 @@ export default function Diagrams() {
   const [editingName, setEditingName] = useState('');
   const [newName, setNewName] = useState('');
   const [xmlData, setXmlData] = useState('');
-  const [drawioReady, setDrawioReady] = useState(false);
-  const saveTimer = useRef<any>(null);
+  const drawioRef = useRef<any>(null);
+  const editingIdRef = useRef<string | null>(null);
+  const editingNameRef = useRef('');
 
   const fetch = useCallback(() => {
     setLoading(true);
@@ -26,15 +27,22 @@ export default function Diagrams() {
     try {
       const emptyXml = '<mxfile><diagram name="Page-1" id="1"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/></root></mxGraphModel></diagram></mxfile>';
       const r = await createDiagram({ name, data: emptyXml });
-      setEditingId(r.data.id); setEditingName(r.data.name); setXmlData(emptyXml); setNewName(''); setDrawioReady(false);
+      setEditingId(r.data.id); setEditingName(r.data.name); setXmlData(emptyXml); setNewName('');
+      editingIdRef.current = r.data.id; editingNameRef.current = r.data.name;
       message.success('已创建'); fetch();
     } catch { message.error('创建失败'); }
   };
 
   const handleSave = async () => {
-    if (!editingId) return;
+    if (!editingIdRef.current) return;
     try {
-      await updateDiagram(editingId, { name: editingName, data: xmlData });
+      // Export current diagram XML from draw.io
+      if (drawioRef.current) {
+        drawioRef.current.exportDiagram({ format: 'xmlsvg' });
+      }
+      // Small delay to let export callback fire
+      await new Promise(r => setTimeout(r, 500));
+      await updateDiagram(editingIdRef.current, { name: editingNameRef.current, data: xmlData });
       message.success('已保存'); fetch();
     } catch { message.error('保存失败'); }
   };
@@ -44,7 +52,8 @@ export default function Diagrams() {
       const r = await getDiagram(d.id);
       setXmlData(r.data.data || '');
     } catch { setXmlData(''); }
-    setEditingId(d.id); setEditingName(d.name); setDrawioReady(false);
+    setEditingId(d.id); setEditingName(d.name);
+    editingIdRef.current = d.id; editingNameRef.current = d.name;
   };
 
   const handleDelete = async (id: string) => {
@@ -52,19 +61,13 @@ export default function Diagrams() {
     catch { message.error('删除失败'); }
   };
 
-  // Auto-save on changes (debounced)
+  // Capture exported XML from draw.io
   const handleExport = useCallback((data: any) => {
-    const xml = data?.data || data;
+    const xml = typeof data === 'string' ? data : data?.data || data?.xml || '';
     if (typeof xml === 'string' && xml.includes('<mxfile')) {
       setXmlData(xml);
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(async () => {
-        if (editingId) {
-          try { await updateDiagram(editingId, { name: editingName, data: xml }); fetch(); } catch {}
-        }
-      }, 5000);
     }
-  }, [editingId, editingName, fetch]);
+  }, []);
 
   const columns = [
     { title: '名称', dataIndex: 'name', key: 'name', ellipsis: true,
@@ -113,9 +116,9 @@ export default function Diagrams() {
         >
           <div style={{ width: '100%', height: 'calc(100vh - 260px)', minHeight: 600 }}>
             <DrawIoEmbed
+              ref={drawioRef}
               xml={xmlData}
               onExport={handleExport}
-              onLoad={() => setDrawioReady(true)}
               urlParameters={{ ui: 'min', spin: true, libraries: false, saveAndExit: false, noSaveBtn: true, noExitBtn: true }}
             />
           </div>
