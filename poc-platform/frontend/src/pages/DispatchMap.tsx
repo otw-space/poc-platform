@@ -142,7 +142,7 @@ export default function DispatchMap() {
         label: { color: labelColor, position: labelFixes[name] || undefined },
       }));
       // Cities: transparent fill, border + label appears with zoom
-      const showCityLabel = cityAlpha > 0.2;
+      const showCityLabel = cityAlpha > 0.1;
       result.push(...cities.map(name => ({
         name,
         itemStyle: {
@@ -234,23 +234,8 @@ export default function DispatchMap() {
       const z = (g.zoom as number) || 1.2;
       if (Math.abs(z - zoom.current) < 0.05) return;
       zoom.current = z;
-      const cfg = zCfg(z);
-
-      chart.setOption({
-        geo: [{
-          label: { show: cfg.provAlpha > 0, fontSize: cfg.provSize },
-          emphasis: { label: { fontSize: cfg.provSize + 2 } },
-          regions: buildRegions(cfg.cityAlpha, cfg.citySize),
-        }],
-        series: [
-          {
-            data: cfg.cityAlpha > 0 ? cityLabels : [],
-            itemStyle: { color: `rgba(${dark ? '255,255,255' : '0,0,0'},${cfg.cityAlpha * 0.3})` },
-            label: { show: cfg.cityAlpha > 0, fontSize: cfg.citySize },
-          },
-          { symbolSize: (v: number[]) => Math.min(Math.max(v[2] * cfg.scatterScale, cfg.scatterScale * 2), 48) },
-        ],
-      });
+      // Full replace to avoid merge issues with regions
+      chart.setOption(buildOpt(z), true);
     });
 
     const hr = () => chart.resize();
