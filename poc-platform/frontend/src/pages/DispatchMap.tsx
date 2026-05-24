@@ -120,10 +120,6 @@ export default function DispatchMap() {
       projects: r.projs,
     }));
 
-    const cityLabels = Object.entries(CITY_COORDS)
-      .filter(([n]) => !pc.has(n.replace(/市$/, '')))
-      .map(([n, c]) => ({ name: n.replace(/市$/, ''), value: [c[0], c[1]] }));
-
     // Label position fixes for provinces with bad centroids
     const labelFixes: Record<string, [number, number]> = {
       '甘肃省': [103, 37.5],
@@ -214,23 +210,6 @@ export default function DispatchMap() {
           regions: buildRegions(cfg.cityAlpha, cfg.citySize),
         },
         series: [
-          {
-            name: 'city_labels',
-            type: 'scatter',
-            coordinateSystem: 'geo',
-            data: cfg.cityAlpha > 0 ? cityLabels : [],
-            symbolSize: 2,
-            itemStyle: { color: `rgba(${dark ? '255,255,255' : '0,0,0'},${cfg.cityAlpha * 0.3})` },
-            label: {
-              show: cfg.cityAlpha > 0,
-              formatter: '{b}',
-              position: 'right',
-              fontSize: cfg.citySize,
-              color: `rgba(${dark ? '255,255,255' : '0,0,0'},${cfg.cityAlpha * 0.55})`,
-              distance: 4,
-            },
-            silent: true,
-          },
           {
             name: 'projects',
             type: 'scatter',
