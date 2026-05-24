@@ -1159,7 +1159,7 @@ def import_test_cases(
         if category_name:
             cat = db.query(TestCaseCategory).filter(TestCaseCategory.name == category_name).first()
             if not cat:
-                cat = TestCaseCategory(name=category_name)
+                cat = TestCaseCategory(name=category_name, created_by=current_user.id)
                 db.add(cat)
                 db.flush()
             values["category_id"] = cat.id
