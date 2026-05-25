@@ -17,9 +17,18 @@ interface Props {
   groupOptions: { label: string; value: string }[];
   onGroupByChange: (v: string) => void;
   onStatusChange: (projectId: string, value: string) => Promise<void>;
+  titleField?: string;
+  hiddenColumns?: string[];
 }
 
-function ProjectCard({ project, typeOptions, id }: { project: PocProject; typeOptions: PocOption[]; id: string }) {
+function ProjectCard({ project, typeOptions, titleField, id }: { project: PocProject; typeOptions: PocOption[]; id: string; titleField: string }) {
+  const fieldVal = (p: PocProject, field: string) => {
+    if (field === 'status_id') return '';
+    if (field === 'poc_type_id') return typeOptions.find(o => o.id === p.poc_type_id)?.label || '';
+    if (field === 'impl_method_id') return '';
+    return String(p[field as keyof typeof p] || '');
+  };
+  const title = titleField === 'name' ? project.name : fieldVal(project, titleField) || project.name;
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -30,7 +39,7 @@ function ProjectCard({ project, typeOptions, id }: { project: PocProject; typeOp
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <Card size="small" hoverable style={{ marginBottom: 8 }}>
-        <div style={{ fontWeight: 500, marginBottom: 4, fontSize: 13 }}>{project.name}</div>
+        <div style={{ fontWeight: 500, marginBottom: 4, fontSize: 13 }}>{title}</div>
         <div style={{ fontSize: 12, color: '#999' }}>{project.region} · {project.city} · {project.pm}</div>
         {typeLabel && <Tag color="blue" style={{ fontSize: 11, marginTop: 4 }}>{typeLabel}</Tag>}
       </Card>
@@ -48,7 +57,7 @@ const GROUP_OPTIONS = [
   { label: '项目经理', value: 'pm' },
 ];
 
-export default function ProjectKanbanView({ projects, statusOptions, typeOptions, implOptions, loading, groupBy, onGroupByChange, onStatusChange }: Props) {
+export default function ProjectKanbanView({ projects, statusOptions, typeOptions, implOptions, loading, groupBy, onGroupByChange, onStatusChange, titleField = 'name', hiddenColumns = [] }: Props) {
   const { dark } = useTheme();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -119,7 +128,7 @@ export default function ProjectKanbanView({ projects, statusOptions, typeOptions
               <SortableContext items={col.items.map(p => `${col.id}::${p.id}`)} strategy={verticalListSortingStrategy}>
                 <div style={{ minHeight: 100 }}>
                   {col.items.map(p => (
-                    <ProjectCard key={p.id} id={`${col.id}::${p.id}`} project={p} typeOptions={typeOptions} />
+                    <ProjectCard key={p.id} id={`${col.id}::${p.id}`} project={p} typeOptions={typeOptions} titleField={titleField} />
                   ))}
                 </div>
               </SortableContext>

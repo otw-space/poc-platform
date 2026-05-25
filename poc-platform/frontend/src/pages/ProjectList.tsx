@@ -382,7 +382,8 @@ export default function ProjectList() {
           <ProjectToolbar value={toolbar} onChange={updateToolbar} statusOptions={statusOptions} typeOptions={typeOptions} showGroup={false} locked={activeView.locked} />
           <ProjectKanbanView projects={sorted} statusOptions={statusOptions} typeOptions={typeOptions} implOptions={implOptions}
             loading={loading} groupBy={toolbar.groupBy[0] || 'status_id'}
-            groupOptions={[]} onGroupByChange={v => updateToolbar({ groupBy: [v] })} onStatusChange={handleStatusChange} />
+            groupOptions={[]} onGroupByChange={v => updateToolbar({ groupBy: [v] })} onStatusChange={handleStatusChange}
+            titleField={activeView.config?.titleField || 'name'} hiddenColumns={activeView.config?.hiddenColumns || []} />
         </div>
       )}
 
@@ -390,7 +391,8 @@ export default function ProjectList() {
         <div>
           <ProjectToolbar value={toolbar} onChange={updateToolbar} statusOptions={statusOptions} typeOptions={typeOptions} showGroup={false} locked={activeView.locked} />
           <ProjectGalleryView projects={sorted} statusOptions={statusOptions} typeOptions={typeOptions}
-            implOptions={implOptions} loading={loading} onSelect={id => { setSelectedProjectId(id); setDrawerOpen(true); }} />
+            implOptions={implOptions} loading={loading} onSelect={id => { setSelectedProjectId(id); setDrawerOpen(true); }}
+            titleField={activeView.config?.titleField || 'name'} hiddenColumns={activeView.config?.hiddenColumns || []} />
         </div>
       )}
 
@@ -398,7 +400,8 @@ export default function ProjectList() {
         <div>
           <ProjectToolbar value={toolbar} onChange={updateToolbar} statusOptions={statusOptions} typeOptions={typeOptions} showGroup={false} locked={activeView.locked} />
           <ProjectCalendarView projects={sorted} statusOptions={statusOptions} typeOptions={typeOptions}
-            loading={loading} onSelect={id => { setSelectedProjectId(id); setDrawerOpen(true); }} />
+            loading={loading} onSelect={id => { setSelectedProjectId(id); setDrawerOpen(true); }}
+            titleField={activeView.config?.titleField || 'name'} hiddenColumns={activeView.config?.hiddenColumns || []} />
         </div>
       )}
 

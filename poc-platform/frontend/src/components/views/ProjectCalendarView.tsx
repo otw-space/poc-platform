@@ -10,13 +10,20 @@ interface Props {
   typeOptions: PocOption[];
   loading: boolean;
   onSelect: (id: string) => void;
+  titleField?: string;
+  hiddenColumns?: string[];
 }
 
 const STATUS_COLORS: Record<string, string> = {
   '未开始': 'default', '准备中': 'blue', '进行中': 'processing', '已完成': 'success', '搁置': 'warning',
 };
 
-export default function ProjectCalendarView({ projects, statusOptions, typeOptions, loading, onSelect }: Props) {
+export default function ProjectCalendarView({ projects, statusOptions, typeOptions, loading, onSelect, titleField = 'name' }: Props) {
+  const fieldVal = (p: PocProject, field: string) => {
+    if (field === 'status_id') return getLabel(statusOptions, p.status_id);
+    if (field === 'poc_type_id') return getLabel(typeOptions, p.poc_type_id);
+    return String(p[field as keyof typeof p] || '');
+  };
   const getLabel = (opts: PocOption[], id: number) => opts.find(o => o.id === id)?.label || '';
 
   const dateCellRender = (date: Dayjs) => {
@@ -33,7 +40,7 @@ export default function ProjectCalendarView({ projects, statusOptions, typeOptio
             <li key={p.id} style={{ marginBottom: 2 }}>
               <a onClick={(e) => { e.stopPropagation(); onSelect(p.id); }} style={{ fontSize: 11 }}>
                 <Badge color={isStart ? (color === 'processing' ? '#1677ff' : '#52c41a') : '#ff4d4f'} text={
-                  <span style={{ fontSize: 11 }}>{p.name}</span>
+                  <span style={{ fontSize: 11 }}>{titleField === 'name' ? p.name : fieldVal(p, titleField) || p.name}</span>
                 } />
               </a>
             </li>

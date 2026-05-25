@@ -10,13 +10,22 @@ interface Props {
   implOptions: PocOption[];
   loading: boolean;
   onSelect: (id: string) => void;
+  titleField?: string;
+  hiddenColumns?: string[];
 }
 
 const STATUS_COLORS: Record<string, string> = {
   '未开始': 'default', '准备中': 'blue', '进行中': 'processing', '已完成': 'success', '搁置': 'warning',
 };
 
-export default function ProjectGalleryView({ projects, statusOptions, typeOptions, implOptions, loading, onSelect }: Props) {
+export default function ProjectGalleryView({ projects, statusOptions, typeOptions, implOptions, loading, onSelect, titleField = 'name', hiddenColumns = [] }: Props) {
+  const fieldVal = (p: PocProject, field: string) => {
+    if (field === 'status_id') return getLabel(statusOptions, p.status_id);
+    if (field === 'poc_type_id') return getLabel(typeOptions, p.poc_type_id);
+    if (field === 'impl_method_id') return getLabel(implOptions, p.impl_method_id);
+    return String(p[field as keyof typeof p] || '');
+  };
+  const show = (col: string) => !hiddenColumns.includes(col);
   const getLabel = (opts: PocOption[], id: number) => opts.find(o => o.id === id)?.label || '';
 
   if (loading) return <Spin style={{ display: 'block', margin: '60px auto' }} />;
@@ -40,14 +49,14 @@ export default function ProjectGalleryView({ projects, statusOptions, typeOption
             }
           >
             <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {p.name}
+              {titleField === 'name' ? p.name : fieldVal(p, titleField) || p.name}
             </div>
-            <Tag color={statusColor}>{status}</Tag>
-            <Tag>{getLabel(typeOptions, p.poc_type_id)}</Tag>
+            {show('status_id') && <Tag color={statusColor}>{status}</Tag>}
+            {show('poc_type_id') && <Tag>{getLabel(typeOptions, p.poc_type_id)}</Tag>}
             <div style={{ marginTop: 8, fontSize: 12, color: '#888' }}>
-              <div><EnvironmentOutlined style={{ marginRight: 4 }} />{p.region} · {p.city}</div>
-              <div><ClockCircleOutlined style={{ marginRight: 4 }} />{p.start_date} ~ {p.end_date}</div>
-              <div>{p.pm} · {p.sales}</div>
+              {show('region') && <div><EnvironmentOutlined style={{ marginRight: 4 }} />{p.region} · {p.city}</div>}
+              {show('start_date') && <div><ClockCircleOutlined style={{ marginRight: 4 }} />{p.start_date} ~ {p.end_date}</div>}
+              {(show('pm') || show('sales')) && <div>{show('pm') ? p.pm : ''}{show('pm') && show('sales') ? ' · ' : ''}{show('sales') ? p.sales : ''}</div>}
             </div>
           </Card>
         );
