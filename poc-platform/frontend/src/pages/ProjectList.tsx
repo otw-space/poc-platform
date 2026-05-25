@@ -303,7 +303,7 @@ export default function ProjectList() {
                   { key: 'rename', label: '重命名', onClick: () => { setRenameId(v.id); setRenameValue(v.name); } },
                   { key: 'lock', label: v.locked ? '解锁' : '锁定', icon: v.locked ? <></> : <></>, onClick: () => updateView(v.id, { locked: !v.locked }) },
                   { type: 'divider' },
-                  { key: 'delete', label: '删除', danger: true, disabled: v.locked, onClick: () => removeView(v.id) },
+                  { key: 'delete', label: '删除', danger: true, disabled: v.locked, onClick: () => { Modal.confirm({ title: '确认删除此视图？', onOk: () => removeView(v.id) }); } },
                 ] }}>
                   <Button size="small" type="text" icon={<MoreOutlined />} style={{ minWidth: 24, padding: 0, color: '#999' }}
                     onClick={e => e.stopPropagation()} />
@@ -332,7 +332,7 @@ export default function ProjectList() {
 
       {activeView.type === 'table' && (
         <div>
-          <ProjectToolbar value={toolbar} onChange={updateToolbar} statusOptions={statusOptions} typeOptions={typeOptions} />
+          <ProjectToolbar value={toolbar} onChange={updateToolbar} statusOptions={statusOptions} typeOptions={typeOptions} locked={activeView.locked} />
           {grouped ? (
             grouped.map((g: any) => {
               const isLeaf = !Array.isArray(g.items[0]?.items);
@@ -370,7 +370,7 @@ export default function ProjectList() {
 
       {activeView.type === 'kanban' && (
         <div>
-          <ProjectToolbar value={toolbar} onChange={updateToolbar} statusOptions={statusOptions} typeOptions={typeOptions} showGroup={false} />
+          <ProjectToolbar value={toolbar} onChange={updateToolbar} statusOptions={statusOptions} typeOptions={typeOptions} showGroup={false} locked={activeView.locked} />
           <ProjectKanbanView projects={sorted} statusOptions={statusOptions} typeOptions={typeOptions} implOptions={implOptions}
             loading={loading} groupBy={toolbar.groupBy[0] || 'status_id'}
             groupOptions={[]} onGroupByChange={v => updateToolbar({ groupBy: [v] })} onStatusChange={handleStatusChange} />
@@ -379,7 +379,7 @@ export default function ProjectList() {
 
       {activeView.type === 'gallery' && (
         <div>
-          <ProjectToolbar value={toolbar} onChange={updateToolbar} statusOptions={statusOptions} typeOptions={typeOptions} showGroup={false} />
+          <ProjectToolbar value={toolbar} onChange={updateToolbar} statusOptions={statusOptions} typeOptions={typeOptions} showGroup={false} locked={activeView.locked} />
           <ProjectGalleryView projects={sorted} statusOptions={statusOptions} typeOptions={typeOptions}
             implOptions={implOptions} loading={loading} onSelect={id => { setSelectedProjectId(id); setDrawerOpen(true); }} />
         </div>
@@ -387,7 +387,7 @@ export default function ProjectList() {
 
       {activeView.type === 'calendar' && (
         <div>
-          <ProjectToolbar value={toolbar} onChange={updateToolbar} statusOptions={statusOptions} typeOptions={typeOptions} showGroup={false} />
+          <ProjectToolbar value={toolbar} onChange={updateToolbar} statusOptions={statusOptions} typeOptions={typeOptions} showGroup={false} locked={activeView.locked} />
           <ProjectCalendarView projects={sorted} statusOptions={statusOptions} typeOptions={typeOptions}
             loading={loading} onSelect={id => { setSelectedProjectId(id); setDrawerOpen(true); }} />
         </div>

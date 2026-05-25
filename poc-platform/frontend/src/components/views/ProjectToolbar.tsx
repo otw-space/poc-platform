@@ -19,6 +19,7 @@ interface Props {
   statusOptions: PocOption[];
   typeOptions: PocOption[];
   showGroup?: boolean;
+  locked?: boolean;
 }
 
 const SEARCH_FIELDS = [
@@ -58,7 +59,7 @@ const GROUP_FIELDS = [
   { label: '项目经理', value: 'pm' },
 ];
 
-export default function ProjectToolbar({ value, onChange, statusOptions, typeOptions, showGroup = true }: Props) {
+export default function ProjectToolbar({ value, onChange, statusOptions, typeOptions, showGroup = true, locked }: Props) {
   const [filterOpen, setFilterOpen] = useState(false);
 
   const addFilter = () => {
@@ -91,7 +92,7 @@ export default function ProjectToolbar({ value, onChange, statusOptions, typeOpt
       </Space.Compact>
 
       {/* Sort */}
-      <Select size="small" placeholder="排序" allowClear style={{ width: 130 }}
+      <Select size="small" placeholder="排序" allowClear style={{ width: 130 }} disabled={locked}
         value={value.sortBy ? `${value.sortBy}-${value.sortOrder}` : undefined}
         onChange={v => {
           if (!v) { onChange({ sortBy: '', sortOrder: 'desc' }); return; }
@@ -105,7 +106,7 @@ export default function ProjectToolbar({ value, onChange, statusOptions, typeOpt
 
       {/* Group (multi-select) */}
       {showGroup && (
-        <Select size="small" mode="multiple" placeholder="分组" allowClear style={{ minWidth: 120, maxWidth: 240 }}
+        <Select size="small" mode="multiple" placeholder="分组" allowClear style={{ minWidth: 120, maxWidth: 240 }} disabled={locked}
           value={value.groupBy} onChange={v => onChange({ groupBy: v })}
           options={GROUP_FIELDS}
           maxTagCount={2} />
@@ -114,6 +115,7 @@ export default function ProjectToolbar({ value, onChange, statusOptions, typeOpt
       {/* Filter button + modal */}
       <Button size="small" icon={<FilterOutlined />}
         type={value.filters.length > 0 ? 'primary' : 'default'}
+        disabled={locked}
         onClick={() => setFilterOpen(true)}>
         筛选{value.filters.length > 0 ? ` (${value.filters.length})` : ''}
       </Button>
