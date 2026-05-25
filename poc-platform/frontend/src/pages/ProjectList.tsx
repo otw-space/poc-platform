@@ -180,12 +180,14 @@ export default function ProjectList() {
   };
   const grouped = toolbar.groupBy.length > 0 ? buildGroups(sorted, 0) : null;
 
-  // Filter columns based on view config
-  const hiddenCols = activeView.config?.hiddenColumns || [];
-  const visibleColumns = columns.filter(c => !hiddenCols.includes((c as any).key || (c as any).dataIndex));
+  // Filter columns based on view config (columns defined below)
+  const visibleColumns = (cols: any[]) => {
+    const hidden = activeView.config?.hiddenColumns || [];
+    return cols.filter(c => !hidden.includes((c as any).key || (c as any).dataIndex));
+  };
 
-  const handleStatusChange = async (projectId: string, statusId: number) => {
-    await updateProject(projectId, { status_id: statusId });
+  const handleStatusChange = async (projectId: string, statusId: string | number) => {
+    await updateProject(projectId, { status_id: Number(statusId) });
     fetchProjects();
   };
 
@@ -349,7 +351,7 @@ export default function ProjectList() {
                     {g.key} <span style={{ color: '#999', fontWeight: 400, fontSize: 12 }}>({g.count} 个项目)</span>
                   </div>
                   {isLeaf ? (
-                    <Table rowKey="id" columns={visibleColumns} dataSource={g.items} loading={loading}
+                    <Table rowKey="id" columns={visibleColumns(columns)} dataSource={g.items} loading={loading}
                       scroll={{ x: 'max-content' }} pagination={false} size="small" showHeader={true} />
                   ) : (
                     g.items.map((sg: any) => (
@@ -357,7 +359,7 @@ export default function ProjectList() {
                         <div style={{ fontWeight: 500, fontSize: 13, padding: '6px 12px', background: dark ? '#252525' : '#fafafa', borderLeft: '3px solid #1677ff' }}>
                           {sg.key} <span style={{ color: '#999', fontWeight: 400, fontSize: 11 }}>({sg.count} 个项目)</span>
                         </div>
-                        <Table rowKey="id" columns={visibleColumns} dataSource={sg.items} loading={loading}
+                        <Table rowKey="id" columns={visibleColumns(columns)} dataSource={sg.items} loading={loading}
                           scroll={{ x: 'max-content' }} pagination={false} size="small" showHeader={false} />
                       </div>
                     ))
@@ -367,7 +369,7 @@ export default function ProjectList() {
             })
           ) : (
             <Table
-              rowKey="id" columns={visibleColumns} dataSource={sorted} loading={loading}
+              rowKey="id" columns={visibleColumns(columns)} dataSource={sorted} loading={loading}
               scroll={{ x: 'max-content' }} components={{ header: { cell: ResizableTitle } }}
               pagination={{ current: page, total, pageSize: 20, showTotal: t => `共 ${t} 条`, showSizeChanger: false, onChange: setPage }}
             />
