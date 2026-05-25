@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Input, Select, Space, Tag, Popconfirm, message, Card, DatePicker, Popover, Dropdown, Spin } from 'antd';
-import { PlusOutlined, SearchOutlined, DownloadOutlined, AppstoreOutlined, UnorderedListOutlined, TableOutlined, CalendarOutlined } from '@ant-design/icons';
+import { Table, Button, Input, Select, Space, Tag, Popconfirm, message, Card, DatePicker, Popover, Dropdown, Spin, Modal } from 'antd';
+import { PlusOutlined, SearchOutlined, DownloadOutlined, AppstoreOutlined, UnorderedListOutlined, TableOutlined, CalendarOutlined, MoreOutlined } from '@ant-design/icons';
 import { Resizable } from 'react-resizable';
 import 'react-resizable/css/styles.css';
 import * as XLSX from 'xlsx';
@@ -85,12 +85,14 @@ export default function ProjectList() {
     statusOptions, typeOptions, implOptions, getOptionLabel,
   } = useProjectData();
   // View management — stored in localStorage
-  type ViewConfig = { id: string; name: string; type: 'table' | 'kanban' | 'gallery' | 'calendar' };
+  type ViewConfig = { id: string; name: string; type: 'table' | 'kanban' | 'gallery' | 'calendar'; locked?: boolean };
   const [views, setViews] = useState<ViewConfig[]>(() => {
     try { const saved = JSON.parse(localStorage.getItem('project_views') || 'null'); if (saved?.length) return saved; } catch {}
     return [{ id: 'default', name: '表格视图', type: 'table' }];
   });
   const [activeViewId, setActiveViewId] = useState(views[0].id);
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
   const activeView = views.find(v => v.id === activeViewId) || views[0];
 
   useEffect(() => { localStorage.setItem('project_views', JSON.stringify(views)); }, [views]);
@@ -102,9 +104,14 @@ export default function ProjectList() {
     setActiveViewId(newView.id);
   };
 
+  const updateView = (id: string, updates: Partial<ViewConfig>) => {
+    setViews(prev => prev.map(v => v.id === id ? { ...v, ...updates } : v));
+  };
+
   const removeView = (id: string) => {
-    if (views.length <= 1) return;
-    setViews(prev => prev.filter(v => v.id !== id));
+    const v = views.find(vv => vv.id === id);
+    if (views.length <= 1 || v?.locked) return;
+    setViews(prev => prev.filter(vv => vv.id !== id));
     if (activeViewId === id) setActiveViewId(views[0].id === id ? views[1]?.id || 'default' : views[0].id);
   };
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => ({
@@ -291,10 +298,16 @@ export default function ProjectList() {
             return (
               <div key={v.id} style={{ display: 'flex', alignItems: 'center', border: activeViewId === v.id ? '2px solid #1677ff' : '2px solid transparent', borderRadius: 6, padding: '2px 2px 2px 10px', cursor: 'pointer', background: activeViewId === v.id ? (dark ? '#1a3a5c' : '#e6f4ff') : 'transparent', color: dark ? '#e8e8e8' : undefined }}
                 onClick={() => setActiveViewId(v.id)}>
-                <span style={{ fontSize: 13, whiteSpace: 'nowrap' }}>{icons[v.type]} {v.name}</span>
-                {views.length > 1 && (
-                  <Button size="small" type="text" style={{ minWidth: 20, padding: 0, color: '#999' }} onClick={e => { e.stopPropagation(); removeView(v.id); }}>×</Button>
-                )}
+                <span style={{ fontSize: 13, whiteSpace: 'nowrap' }}>{icons[v.type]} {v.name}{v.locked ? ' 🔒' : ''}</span>
+                <Dropdown trigger={['click']} menu={{ items: [
+                  { key: 'rename', label: '重命名', onClick: () => { setRenameId(v.id); setRenameValue(v.name); } },
+                  { key: 'lock', label: v.locked ? '解锁' : '锁定', icon: v.locked ? <></> : <></>, onClick: () => updateView(v.id, { locked: !v.locked }) },
+                  { type: 'divider' },
+                  { key: 'delete', label: '删除', danger: true, disabled: v.locked, onClick: () => removeView(v.id) },
+                ] }}>
+                  <Button size="small" type="text" icon={<MoreOutlined />} style={{ minWidth: 24, padding: 0, color: '#999' }}
+                    onClick={e => e.stopPropagation()} />
+                </Dropdown>
               </div>
             );
           })}
@@ -380,6 +393,10 @@ export default function ProjectList() {
         </div>
       )}
 
+      <Modal title="重命名视图" open={!!renameId} onOk={() => { if (renameId) { updateView(renameId, { name: renameValue }); setRenameId(null); } }}
+        onCancel={() => setRenameId(null)}>
+        <Input value={renameValue} onChange={e => setRenameValue(e.target.value)} onPressEnter={() => { if (renameId) { updateView(renameId, { name: renameValue }); setRenameId(null); } }} />
+      </Modal>
       <ProjectDrawer projectId={selectedProjectId} open={drawerOpen}
         onClose={() => { setDrawerOpen(false); setSelectedProjectId(null); }}
         onEdit={id => navigate(`/projects/${id}/edit`)}
