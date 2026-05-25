@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Button, Input, Select, Space, Tag, Popconfirm, message, Card, DatePicker, Popover, Dropdown, Spin, Modal } from 'antd';
+import { Table, Button, Input, Select, Space, Tag, Popconfirm, message, Card, DatePicker, Popover, Dropdown, Spin, Modal, App } from 'antd';
 import { PlusOutlined, SearchOutlined, DownloadOutlined, AppstoreOutlined, UnorderedListOutlined, TableOutlined, CalendarOutlined, MoreOutlined } from '@ant-design/icons';
 import { Resizable } from 'react-resizable';
 import 'react-resizable/css/styles.css';
@@ -122,6 +122,7 @@ export default function ProjectList() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { dark } = useTheme();
+  const { modal } = App.useApp();
 
   // Toolbar state
   const [toolbar, setToolbar] = useState<ToolbarState>({ searchField: 'name', search: '', filters: [], filterMode: 'and', sortBy: '', sortOrder: 'desc', groupBy: [] });
@@ -303,7 +304,7 @@ export default function ProjectList() {
                   { key: 'rename', label: '重命名', onClick: () => { setRenameId(v.id); setRenameValue(v.name); } },
                   { key: 'lock', label: v.locked ? '解锁' : '锁定', icon: v.locked ? <></> : <></>, onClick: () => updateView(v.id, { locked: !v.locked }) },
                   { type: 'divider' },
-                  { key: 'delete', label: '删除', danger: true, disabled: v.locked, onClick: () => { Modal.confirm({ title: '确认删除此视图？', onOk: () => removeView(v.id) }); } },
+                  { key: 'delete', label: '删除', danger: true, disabled: v.locked, onClick: () => { modal.confirm({ title: '确认删除此视图？', onOk: () => removeView(v.id) }); } },
                 ] }}>
                   <Button size="small" type="text" icon={<MoreOutlined />} style={{ minWidth: 24, padding: 0, color: '#999' }}
                     onClick={e => e.stopPropagation()} />
