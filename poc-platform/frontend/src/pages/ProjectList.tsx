@@ -85,7 +85,7 @@ export default function ProjectList() {
     statusOptions, typeOptions, implOptions, getOptionLabel,
   } = useProjectData();
   // View management — stored in localStorage
-  type ViewConfig = { id: string; name: string; type: 'table' | 'kanban' | 'gallery' | 'calendar'; locked?: boolean };
+  type ViewConfig = { id: string; name: string; type: 'table' | 'kanban' | 'gallery' | 'calendar'; locked?: boolean; config?: { hiddenColumns?: string[]; titleField?: string } };
   const [views, setViews] = useState<ViewConfig[]>(() => {
     try { const saved = JSON.parse(localStorage.getItem('project_views') || 'null'); if (saved?.length) return saved; } catch {}
     return [{ id: 'default', name: '表格视图', type: 'table' }];
@@ -93,6 +93,7 @@ export default function ProjectList() {
   const [activeViewId, setActiveViewId] = useState(views[0].id);
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [configViewId, setConfigViewId] = useState<string | null>(null);
   const activeView = views.find(v => v.id === activeViewId) || views[0];
 
   useEffect(() => { localStorage.setItem('project_views', JSON.stringify(views)); }, [views]);
@@ -178,6 +179,10 @@ export default function ProjectList() {
     }));
   };
   const grouped = toolbar.groupBy.length > 0 ? buildGroups(sorted, 0) : null;
+
+  // Filter columns based on view config
+  const hiddenCols = activeView.config?.hiddenColumns || [];
+  const visibleColumns = columns.filter(c => !hiddenCols.includes((c as any).key || (c as any).dataIndex));
 
   const handleStatusChange = async (projectId: string, statusId: number) => {
     await updateProject(projectId, { status_id: statusId });
@@ -301,8 +306,9 @@ export default function ProjectList() {
                 onClick={() => setActiveViewId(v.id)}>
                 <span style={{ fontSize: 13, whiteSpace: 'nowrap' }}>{icons[v.type]} {v.name}{v.locked ? ' 🔒' : ''}</span>
                 <Dropdown trigger={['click']} menu={{ items: [
+                  { key: 'config', label: '配置', onClick: () => setConfigViewId(v.id) },
                   { key: 'rename', label: '重命名', onClick: () => { setRenameId(v.id); setRenameValue(v.name); } },
-                  { key: 'lock', label: v.locked ? '解锁' : '锁定', icon: v.locked ? <></> : <></>, onClick: () => updateView(v.id, { locked: !v.locked }) },
+                  { key: 'lock', label: v.locked ? '解锁' : '锁定', onClick: () => updateView(v.id, { locked: !v.locked }) },
                   { type: 'divider' },
                   { key: 'delete', label: '删除', danger: true, disabled: v.locked, onClick: () => { modal.confirm({ title: '确认删除此视图？', onOk: () => removeView(v.id) }); } },
                 ] }}>
@@ -343,7 +349,7 @@ export default function ProjectList() {
                     {g.key} <span style={{ color: '#999', fontWeight: 400, fontSize: 12 }}>({g.count} 个项目)</span>
                   </div>
                   {isLeaf ? (
-                    <Table rowKey="id" columns={columns} dataSource={g.items} loading={loading}
+                    <Table rowKey="id" columns={visibleColumns} dataSource={g.items} loading={loading}
                       scroll={{ x: 'max-content' }} pagination={false} size="small" showHeader={true} />
                   ) : (
                     g.items.map((sg: any) => (
@@ -351,7 +357,7 @@ export default function ProjectList() {
                         <div style={{ fontWeight: 500, fontSize: 13, padding: '6px 12px', background: dark ? '#252525' : '#fafafa', borderLeft: '3px solid #1677ff' }}>
                           {sg.key} <span style={{ color: '#999', fontWeight: 400, fontSize: 11 }}>({sg.count} 个项目)</span>
                         </div>
-                        <Table rowKey="id" columns={columns} dataSource={sg.items} loading={loading}
+                        <Table rowKey="id" columns={visibleColumns} dataSource={sg.items} loading={loading}
                           scroll={{ x: 'max-content' }} pagination={false} size="small" showHeader={false} />
                       </div>
                     ))
@@ -361,7 +367,7 @@ export default function ProjectList() {
             })
           ) : (
             <Table
-              rowKey="id" columns={columns} dataSource={sorted} loading={loading}
+              rowKey="id" columns={visibleColumns} dataSource={sorted} loading={loading}
               scroll={{ x: 'max-content' }} components={{ header: { cell: ResizableTitle } }}
               pagination={{ current: page, total, pageSize: 20, showTotal: t => `共 ${t} 条`, showSizeChanger: false, onChange: setPage }}
             />
@@ -397,6 +403,48 @@ export default function ProjectList() {
       <Modal title="重命名视图" open={!!renameId} onOk={() => { if (renameId) { updateView(renameId, { name: renameValue }); setRenameId(null); } }}
         onCancel={() => setRenameId(null)}>
         <Input value={renameValue} onChange={e => setRenameValue(e.target.value)} onPressEnter={() => { if (renameId) { updateView(renameId, { name: renameValue }); setRenameId(null); } }} />
+      </Modal>
+
+      {/* View config modal */}
+      <Modal title="视图配置" open={!!configViewId} onCancel={() => setConfigViewId(null)} footer={null} width={500}>
+        {configViewId && (() => {
+          const cv = views.find(v => v.id === configViewId);
+          if (!cv) return null;
+          const hidden = cv.config?.hiddenColumns || [];
+          const titleField = cv.config?.titleField || 'name';
+          const toggleCol = (col: string) => {
+            const newHidden = hidden.includes(col) ? hidden.filter(c => c !== col) : [...hidden, col];
+            updateView(configViewId, { config: { ...cv.config, hiddenColumns: newHidden } });
+          };
+          const colLabels: Record<string, string> = {
+            name: '项目名称', region: '区域', city: '城市', sales: '销售', pm: '项目经理',
+            start_date: '开始日期', end_date: '完成日期', duration_days: '工期',
+            poc_type_id: 'PoC类型', impl_method_id: '实施方式', status_id: '状态', actions: '操作',
+          };
+          return (
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>字段可见性</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {Object.entries(colLabels).map(([key, label]) => (
+                  <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px', background: dark ? '#1a1a1a' : '#f9f9f9', borderRadius: 4 }}>
+                    <span style={{ fontSize: 13 }}>{label}</span>
+                    <Button size="small" type="text"
+                      icon={<span style={{ fontSize: 16, opacity: hidden.includes(key) ? 0.2 : 1 }}>👁</span>}
+                      onClick={() => toggleCol(key)} />
+                  </div>
+                ))}
+              </div>
+              {cv.type !== 'table' && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 8 }}>卡片标题字段</div>
+                  <Select size="small" value={titleField} style={{ width: 200 }}
+                    onChange={v => updateView(configViewId, { config: { ...cv.config, titleField: v } })}
+                    options={Object.entries(colLabels).filter(([k]) => k !== 'actions').map(([k, v]) => ({ label: v, value: k }))} />
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </Modal>
       <ProjectDrawer projectId={selectedProjectId} open={drawerOpen}
         onClose={() => { setDrawerOpen(false); setSelectedProjectId(null); }}
