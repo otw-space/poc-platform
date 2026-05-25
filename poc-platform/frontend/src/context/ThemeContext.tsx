@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { ConfigProvider, theme } from 'antd';
+import { ConfigProvider, App, theme } from 'antd';
 
 interface ThemeCtx {
   dark: boolean;
@@ -27,7 +27,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         }}
         modal={dark ? { styles: { content: { background: '#1f1f1f' }, header: { background: 'transparent' } } } : undefined}
       >
-        {children}
+        <App>
+          {children}
+        </App>
       </ConfigProvider>
     </ThemeContext.Provider>
   );
