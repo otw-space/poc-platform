@@ -308,8 +308,8 @@ export default function ProjectList() {
                 onClick={() => setActiveViewId(v.id)}>
                 <span style={{ fontSize: 13, whiteSpace: 'nowrap' }}>{icons[v.type]} {v.name}{v.locked ? ' 🔒' : ''}</span>
                 <Dropdown trigger={['click']} menu={{ items: [
-                  { key: 'config', label: '配置', onClick: () => setConfigViewId(v.id) },
-                  { key: 'rename', label: '重命名', onClick: () => { setRenameId(v.id); setRenameValue(v.name); } },
+                  { key: 'config', label: '配置', disabled: v.locked, onClick: () => setConfigViewId(v.id) },
+                  { key: 'rename', label: '重命名', disabled: v.locked, onClick: () => { setRenameId(v.id); setRenameValue(v.name); } },
                   { key: 'lock', label: v.locked ? '解锁' : '锁定', onClick: () => updateView(v.id, { locked: !v.locked }) },
                   { type: 'divider' },
                   { key: 'delete', label: '删除', danger: true, disabled: v.locked, onClick: () => { modal.confirm({ title: '确认删除此视图？', onOk: () => removeView(v.id) }); } },
