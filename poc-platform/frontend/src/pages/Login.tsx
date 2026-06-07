@@ -4,11 +4,13 @@ import { Card, Form, Input, Button, message, Typography } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { login } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { setUser } = useAuth();
+  const { token } = useTheme();
 
   const onFinish = async (values: { username: string; password: string }) => {
     setLoading(true);
@@ -26,7 +28,7 @@ export default function Login() {
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f5f5f5' }}>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: token.colorBgLayout }}>
       <Card style={{ width: 400 }}>
         <Typography.Title level={3} style={{ textAlign: 'center', marginBottom: 32 }}>
           PoC 项目管理平台

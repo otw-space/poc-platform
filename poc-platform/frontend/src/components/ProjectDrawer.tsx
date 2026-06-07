@@ -31,7 +31,7 @@ interface Props {
 
 export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDelete, onFileChanged }: Props) {
   const [project, setProject] = useState<PocProject | null>(null);
-  const { dark } = useTheme();
+  const { dark, token } = useTheme();
   const [typeOptions, setTypeOptions] = useState<PocOption[]>([]);
   const [implOptions, setImplOptions] = useState<PocOption[]>([]);
   const [statusOptions, setStatusOptions] = useState<PocOption[]>([]);
@@ -151,11 +151,11 @@ export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDele
     const hasFile = fileMeta && fileMeta.original_filename;
 
     return (
-      <div style={{ marginBottom: 16, padding: 16, border: '1px solid #f0f0f0', borderRadius: 8 }}>
+      <div style={{ marginBottom: 16, padding: 16, border: `1px solid ${token.colorBorderSecondary}`, borderRadius: 8 }}>
         <h4>{title}</h4>
         {hasFile ? (
           <div>
-            <div style={{ marginBottom: 8, color: dark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.65)', fontSize: 13 }}>
+            <div style={{ marginBottom: 8, color: token.colorTextSecondary, fontSize: 13 }}>
               {fileMeta.original_filename} ({formatFileSize(fileMeta.size)})
             </div>
             <Space>
@@ -257,7 +257,7 @@ export default function ProjectDrawer({ projectId, open, onClose, onEdit, onDele
           ) : (
             <Timeline items={logs.map((log) => ({
               children: (
-                <div style={{ marginBottom: 8, padding: 12, border: '1px solid #f0f0f0', borderRadius: 6 }}>
+                <div style={{ marginBottom: 8, padding: 12, border: `1px solid ${token.colorBorderSecondary}`, borderRadius: 6 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <strong>{log.log_date}</strong>
                     <Space>

@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState, useRef } from 'react';
 import { Card, Button, Space, Input, Table, Popconfirm, message } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, PictureOutlined, CopyOutlined } from '@ant-design/icons';
 import { DrawIoEmbed } from 'react-drawio';
+import { useTheme } from '../context/ThemeContext';
 import { listDiagrams, createDiagram, updateDiagram, deleteDiagram, copyDiagram, getDiagram, type Diagram } from '../api/diagrams';
 import dayjs from 'dayjs';
 
 export default function Diagrams() {
+  const { token } = useTheme();
   const [diagrams, setDiagrams] = useState<Diagram[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -106,7 +108,7 @@ export default function Diagrams() {
           <a onClick={() => handleEdit(r)}><EditOutlined /></a>
           <a onClick={() => handleCopy(r.id)}><CopyOutlined /></a>
           <Popconfirm title="确认删除？" onConfirm={() => handleDelete(r.id)}>
-            <a style={{ color: '#ff4d4f' }}><DeleteOutlined /></a>
+            <a style={{ color: token.colorError }}><DeleteOutlined /></a>
           </Popconfirm>
         </Space>
       ),

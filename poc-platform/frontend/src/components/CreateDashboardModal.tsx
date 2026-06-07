@@ -20,7 +20,7 @@ interface Props {
 
 export default function CreateDashboardModal({ open, onClose, onCreated, existingDashboards }: Props) {
   const [name, setName] = useState('');
-  const { dark } = useTheme();
+  const { dark, token } = useTheme();
   const [isPublic, setIsPublic] = useState(false);
   const [selectedDashboardId, setSelectedDashboardId] = useState<string | null>(null);
   const [charts, setCharts] = useState<ChartConfig[]>([
@@ -104,7 +104,7 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
       open={open}
       onCancel={handleCancel}
       width={680}
-      styles={dark ? { content: { background: '#1f1f1f' }, body: { background: '#141414' }, header: { background: 'transparent' } } : undefined}
+      styles={dark ? { content: { background: token.colorBgContainer }, body: { background: token.colorBgLayout }, header: { background: 'transparent' } } : undefined}
       footer={[
         <Button key="cancel" onClick={handleCancel}>取消</Button>,
         <Button key="create" type="primary" loading={saving} onClick={handleCreate}>创建并查看</Button>,
@@ -129,7 +129,7 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
           </Space>
         </Space>
         {existingMatch && newName && (
-          <div style={{ marginTop: 6, fontSize: 12, color: '#1677ff' }}>
+          <div style={{ marginTop: 6, fontSize: 12, color: token.colorPrimary }}>
             已匹配已有仪表盘「{existingMatch.name}」，图表将自动添加到其中
           </div>
         )}
@@ -141,9 +141,9 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
           style={{
             marginBottom: 12,
             padding: 12,
-            border: dark ? '1px solid #333' : '1px solid #f0f0f0',
+            border: `1px solid ${token.colorBorderSecondary}`,
             borderRadius: 8,
-            background: dark ? '#1a1a1a' : '#fafafa',
+            background: token.colorFillQuaternary,
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -246,13 +246,13 @@ export default function CreateDashboardModal({ open, onClose, onCreated, existin
             </Form.Item>
           </div>
           <div style={{ marginTop: 8 }}>
-            <div style={{ fontSize: 13, color: '#666', marginBottom: 4 }}>筛选条件（可选）</div>
+            <div style={{ fontSize: 13, color: token.colorTextSecondary, marginBottom: 4 }}>筛选条件（可选）</div>
             <ChartFilterBuilder
               filters={chart.filters || []}
               onChange={(f) => updateChart(chart.id, { filters: f })}
             />
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: '#666' }}>组合模式：</span>
+              <span style={{ fontSize: 13, color: token.colorTextSecondary }}>组合模式：</span>
               <Select
                 size="small"
                 value={chart.filterMode || 'and'}

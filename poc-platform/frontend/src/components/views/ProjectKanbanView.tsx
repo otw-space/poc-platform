@@ -22,6 +22,7 @@ interface Props {
 }
 
 function ProjectCard({ project, typeOptions, titleField, id }: { project: PocProject; typeOptions: PocOption[]; id: string; titleField: string }) {
+  const { token } = useTheme();
   const fieldVal = (p: PocProject, field: string) => {
     if (field === 'status_id') return '';
     if (field === 'poc_type_id') return typeOptions.find(o => o.id === p.poc_type_id)?.label || '';
@@ -40,7 +41,7 @@ function ProjectCard({ project, typeOptions, titleField, id }: { project: PocPro
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <Card size="small" hoverable style={{ marginBottom: 8 }}>
         <div style={{ fontWeight: 500, marginBottom: 4, fontSize: 13 }}>{title}</div>
-        <div style={{ fontSize: 12, color: '#999' }}>{project.region} · {project.city} · {project.pm}</div>
+        <div style={{ fontSize: 12, color: token.colorTextTertiary }}>{project.region} · {project.city} · {project.pm}</div>
         {typeLabel && <Tag color="blue" style={{ fontSize: 11, marginTop: 4 }}>{typeLabel}</Tag>}
       </Card>
     </div>
@@ -58,7 +59,7 @@ const GROUP_OPTIONS = [
 ];
 
 export default function ProjectKanbanView({ projects, statusOptions, typeOptions, implOptions, loading, groupBy, onGroupByChange, onStatusChange, titleField = 'name', hiddenColumns = [] }: Props) {
-  const { dark } = useTheme();
+  const { dark, token } = useTheme();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   // Build columns based on groupBy field
@@ -114,7 +115,7 @@ export default function ProjectKanbanView({ projects, statusOptions, typeOptions
   return (
     <div>
       <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 12, color: '#999' }}>分组字段：</span>
+        <span style={{ fontSize: 12, color: token.colorTextTertiary }}>分组字段：</span>
         <Select size="small" value={groupBy} onChange={onGroupByChange}
           options={GROUP_OPTIONS} style={{ width: 120 }} />
       </div>
@@ -122,8 +123,8 @@ export default function ProjectKanbanView({ projects, statusOptions, typeOptions
         <div style={{ display: 'flex', gap: 12, overflow: 'auto', paddingBottom: 8 }}>
           {columns.map(col => (
             <div key={col.id} style={{ flex: 1, minWidth: 200, maxWidth: 280 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, padding: '8px 12px', marginBottom: 8, borderRadius: 6, background: dark ? '#1f1f1f' : '#f5f5f5', color: dark ? '#e8e8e8' : undefined }}>
-                {col.label} <span style={{ color: dark ? '#888' : '#999', fontWeight: 400 }}>({col.items.length})</span>
+              <div style={{ fontWeight: 600, fontSize: 14, padding: '8px 12px', marginBottom: 8, borderRadius: 6, background: token.colorFillQuaternary, color: token.colorText }}>
+                {col.label} <span style={{ color: token.colorTextTertiary, fontWeight: 400 }}>({col.items.length})</span>
               </div>
               <SortableContext items={col.items.map(p => `${col.id}::${p.id}`)} strategy={verticalListSortingStrategy}>
                 <div style={{ minHeight: 100 }}>

@@ -33,7 +33,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
   const [projectModalFilters, setProjectModalFilters] = useState<{ field: string; op: string; value: any }[]>([]);
   const [projectModalTitle, setProjectModalTitle] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
-  const { dark } = useTheme();
+  const { dark, token } = useTheme();
   const chartTheme = dark ? 'dark' : 'classic';
 
   const filtersKey = JSON.stringify({ f: config.filters, g: config.group_field, s: config.stackMode, t: config.type });
@@ -181,7 +181,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
             precision={isCount ? 0 : 1}
             prefix={prefix}
             suffix={isCount ? '' : '天'}
-            valueStyle={{ fontSize: 48, fontWeight: 700, color: isCount ? '#1677ff' : '#52c41a' }}
+            valueStyle={{ fontSize: 48, fontWeight: 700, color: isCount ? token.colorPrimary : token.colorSuccess }}
           />
         </div>
       );
@@ -310,14 +310,14 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
           </Form.Item>
         )}
       </div>
-      <div style={{ marginTop: 8, borderTop: '1px solid #f0f0f0', paddingTop: 8 }}>
-        <div style={{ fontSize: 12, color: '#999', marginBottom: 4 }}>筛选条件（可选）</div>
+      <div style={{ marginTop: 8, borderTop: `1px solid ${token.colorBorderSecondary}`, paddingTop: 8 }}>
+        <div style={{ fontSize: 12, color: token.colorTextTertiary, marginBottom: 4 }}>筛选条件（可选）</div>
         <ChartFilterBuilder
           filters={config.filters || []}
           onChange={(f) => onUpdate?.(config.id, { filters: f })}
         />
         <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 12, color: '#999' }}>组合模式</span>
+          <span style={{ fontSize: 12, color: token.colorTextTertiary }}>组合模式</span>
           <Select size="small" value={config.filterMode || 'and'}
             onChange={(v) => onUpdate?.(config.id, { filterMode: v })}
             options={[
@@ -332,7 +332,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
   const menuBtnStyle: React.CSSProperties = {
     display: 'block', width: '100%', padding: '8px 16px', border: 'none', background: 'none',
     cursor: 'pointer', textAlign: 'left', fontSize: 14, lineHeight: '22px', borderRadius: 0,
-    color: dark ? '#e8e8e8' : undefined,
+    color: dark ? token.colorText : undefined,
   };
 
   return (
@@ -342,7 +342,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
         title={
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>编辑图表</span>
-            <button type="button" onClick={doFinishEdit} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1677ff', fontSize: 14 }}>
+            <button type="button" onClick={doFinishEdit} style={{ background: 'none', border: 'none', cursor: 'pointer', color: token.colorPrimary, fontSize: 14 }}>
               <CheckOutlined /> 完成
             </button>
           </div>
@@ -352,7 +352,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
         onOpenChange={(open) => { if (!open) doFinishEdit(); }}
         placement="bottomLeft"
         overlayStyle={{ maxWidth: '90vw' }}
-        styles={dark ? { body: { background: '#1f1f1f' } } : undefined}
+        styles={dark ? { body: { background: token.colorBgContainer } } : undefined}
       >
         <div style={{ flex: 1 }}>
           <Card
@@ -367,10 +367,10 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
                 {menuOpen && (
                   <div style={{
                     position: 'absolute', top: '100%', right: 0, zIndex: 1050,
-                    background: dark ? '#1f1f1f' : '#fff', borderRadius: 8,
+                    background: token.colorBgElevated, borderRadius: 8,
                     boxShadow: dark ? '0 6px 16px rgba(0,0,0,0.4)' : '0 6px 16px rgba(0,0,0,0.12)',
                     minWidth: 140, padding: '4px 0',
-                    border: dark ? '1px solid #333' : '1px solid #f0f0f0',
+                    border: `1px solid ${token.colorBorderSecondary}`,
                   }}>
                     <button type="button" style={menuBtnStyle} onClick={doRefresh}>
                       <ReloadOutlined style={{ marginRight: 8 }} />刷新数据
@@ -381,7 +381,7 @@ export default function ChartCard({ config, dashboardId, dashboards, isEditing, 
                     <button type="button" style={menuBtnStyle} onClick={doEdit}>
                       <EditOutlined style={{ marginRight: 8 }} />编辑
                     </button>
-                    <button type="button" style={{ ...menuBtnStyle, color: '#ff4d4f' }} onClick={doDelete}>
+                    <button type="button" style={{ ...menuBtnStyle, color: token.colorError }} onClick={doDelete}>
                       <DeleteOutlined style={{ marginRight: 8 }} />删除
                     </button>
                   </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Input, Select, Button, Space, Tag, Modal, Radio } from 'antd';
 import { SearchOutlined, FilterOutlined, SortAscendingOutlined, GroupOutlined, PlusOutlined, CloseOutlined } from '@ant-design/icons';
+import { useTheme } from '../../context/ThemeContext';
 import type { PocOption } from '../../api/options';
 
 export interface ToolbarState {
@@ -60,6 +61,7 @@ const GROUP_FIELDS = [
 ];
 
 export default function ProjectToolbar({ value, onChange, statusOptions, typeOptions, showGroup = true, locked }: Props) {
+  const { token } = useTheme();
   const [filterOpen, setFilterOpen] = useState(false);
 
   const addFilter = () => {
@@ -121,7 +123,7 @@ export default function ProjectToolbar({ value, onChange, statusOptions, typeOpt
       </Button>
       <Modal title="筛选条件" open={filterOpen} onCancel={() => setFilterOpen(false)}
         onOk={() => setFilterOpen(false)} width={640} destroyOnClose>
-        {value.filters.length === 0 && <div style={{ color: '#999', textAlign: 'center', padding: 20 }}>暂无筛选条件，点击下方按钮添加</div>}
+        {value.filters.length === 0 && <div style={{ color: token.colorTextTertiary, textAlign: 'center', padding: 20 }}>暂无筛选条件，点击下方按钮添加</div>}
         {value.filters.map((f, i) => {
           const vals = getFieldVals(f.field);
           const hasVals = vals.length > 0;

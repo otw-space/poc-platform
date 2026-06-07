@@ -122,7 +122,7 @@ export default function ProjectList() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { dark } = useTheme();
+  const { dark, token } = useTheme();
   const { modal } = App.useApp();
 
   // Toolbar state
@@ -279,7 +279,7 @@ export default function ProjectList() {
           <a onClick={() => { setSelectedProjectId(record.id); setDrawerOpen(true); }}>查看</a>
           <a onClick={() => navigate(`/projects/${record.id}/edit`)}>编辑</a>
           <Popconfirm title="确认删除？" onConfirm={() => handleDelete(record.id)}>
-            <a style={{ color: '#ff4d4f' }}>删除</a>
+            <a style={{ color: token.colorError }}>删除</a>
           </Popconfirm>
         </Space>
       ),
@@ -304,7 +304,7 @@ export default function ProjectList() {
           {views.map(v => {
             const icons: Record<string, React.ReactNode> = { table: <TableOutlined />, kanban: <AppstoreOutlined />, gallery: <UnorderedListOutlined />, calendar: <CalendarOutlined /> };
             return (
-              <div key={v.id} style={{ display: 'flex', alignItems: 'center', border: activeViewId === v.id ? '2px solid #1677ff' : '2px solid transparent', borderRadius: 6, padding: '2px 2px 2px 10px', cursor: 'pointer', background: activeViewId === v.id ? (dark ? '#1a3a5c' : '#e6f4ff') : 'transparent', color: dark ? '#e8e8e8' : undefined }}
+              <div key={v.id} style={{ display: 'flex', alignItems: 'center', border: activeViewId === v.id ? `2px solid ${token.colorPrimary}` : '2px solid transparent', borderRadius: 6, padding: '2px 2px 2px 10px', cursor: 'pointer', background: activeViewId === v.id ? token.colorPrimaryBg : 'transparent', color: dark ? token.colorText : undefined }}
                 onClick={() => setActiveViewId(v.id)}>
                 <span style={{ fontSize: 13, whiteSpace: 'nowrap' }}>{icons[v.type]} {v.name}{v.locked ? ' 🔒' : ''}</span>
                 <Dropdown trigger={['click']} menu={{ items: [
@@ -314,7 +314,7 @@ export default function ProjectList() {
                   { type: 'divider' },
                   { key: 'delete', label: '删除', danger: true, disabled: v.locked, onClick: () => { modal.confirm({ title: '确认删除此视图？', onOk: () => removeView(v.id) }); } },
                 ] }}>
-                  <Button size="small" type="text" icon={<MoreOutlined />} style={{ minWidth: 24, padding: 0, color: '#999' }}
+                  <Button size="small" type="text" icon={<MoreOutlined />} style={{ minWidth: 24, padding: 0, color: token.colorTextTertiary }}
                     onClick={e => e.stopPropagation()} />
                 </Dropdown>
               </div>
@@ -347,8 +347,8 @@ export default function ProjectList() {
               const isLeaf = !Array.isArray(g.items[0]?.items);
               return (
                 <div key={g.key} style={{ marginBottom: 16 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, padding: '8px 12px', background: dark ? '#1f1f1f' : '#f5f5f5', borderRadius: '6px 6px 0 0', borderBottom: '2px solid #1677ff' }}>
-                    {g.key} <span style={{ color: '#999', fontWeight: 400, fontSize: 12 }}>({g.count} 个项目)</span>
+                  <div style={{ fontWeight: 600, fontSize: 14, padding: '8px 12px', background: token.colorFillQuaternary, borderRadius: '6px 6px 0 0', borderBottom: `2px solid ${token.colorPrimary}` }}>
+                    {g.key} <span style={{ color: token.colorTextTertiary, fontWeight: 400, fontSize: 12 }}>({g.count} 个项目)</span>
                   </div>
                   {isLeaf ? (
                     <Table rowKey="id" columns={visibleColumns(columns)} dataSource={g.items} loading={loading}
@@ -356,8 +356,8 @@ export default function ProjectList() {
                   ) : (
                     g.items.map((sg: any) => (
                       <div key={sg.key} style={{ marginTop: 8 }}>
-                        <div style={{ fontWeight: 500, fontSize: 13, padding: '6px 12px', background: dark ? '#252525' : '#fafafa', borderLeft: '3px solid #1677ff' }}>
-                          {sg.key} <span style={{ color: '#999', fontWeight: 400, fontSize: 11 }}>({sg.count} 个项目)</span>
+                        <div style={{ fontWeight: 500, fontSize: 13, padding: '6px 12px', background: token.colorFillTertiary, borderLeft: `3px solid ${token.colorPrimary}` }}>
+                          {sg.key} <span style={{ color: token.colorTextTertiary, fontWeight: 400, fontSize: 11 }}>({sg.count} 个项目)</span>
                         </div>
                         <Table rowKey="id" columns={visibleColumns(columns)} dataSource={sg.items} loading={loading}
                           scroll={{ x: 'max-content' }} pagination={false} size="small" showHeader={false} />
@@ -431,7 +431,7 @@ export default function ProjectList() {
               <div style={{ fontWeight: 600, marginBottom: 8 }}>字段可见性</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {Object.entries(colLabels).map(([key, label]) => (
-                  <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px', background: dark ? '#1a1a1a' : '#f9f9f9', borderRadius: 4 }}>
+                  <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px', background: token.colorFillQuaternary, borderRadius: 4 }}>
                     <span style={{ fontSize: 13 }}>{label}</span>
                     <Button size="small" type="text"
                       icon={<span style={{ fontSize: 16, opacity: hidden.includes(key) ? 0.2 : 1 }}>👁</span>}

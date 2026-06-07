@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout as AntLayout, Menu, Button, theme, Dropdown } from 'antd';
+import { Layout as AntLayout, Menu, Button, Dropdown } from 'antd';
 import {
   HomeOutlined,
   ProjectOutlined,
@@ -22,23 +22,22 @@ const { Sider, Content, Header } = AntLayout;
 
 export default function Layout() {
   const { user, setUser, hasPermission } = useAuth();
-  const { dark, toggle: toggleTheme } = useTheme();
+  const { dark, toggle: toggleTheme, token } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const { token } = theme.useToken();
   const [collapsed, setCollapsed] = useState(false);
 
   // Lock body-level scroll and sync body background with theme
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    document.body.style.background = dark ? '#141414' : '#fff';
-    // CSS variables for theme-aware inline styles
+    document.body.style.background = token.colorBgLayout;
+    // CSS variables for components that still use them (e.g. SopCenter)
     const root = document.documentElement;
-    root.style.setProperty('--active-bg', dark ? 'rgba(23,125,220,0.25)' : '#e6f4ff');
-    root.style.setProperty('--border-color', dark ? 'rgba(255,255,255,0.06)' : '#fafafa');
+    root.style.setProperty('--active-bg', token.colorPrimaryBg);
+    root.style.setProperty('--border-color', token.colorBorderSecondary);
     return () => { document.body.style.overflow = prev; };
-  }, [dark]);
+  }, [token]);
 
   const menuItems = [
     ...(hasPermission('project', 'view') ? [{ key: '/', icon: <HomeOutlined />, label: '数据概览' }] : []),
@@ -60,7 +59,7 @@ export default function Layout() {
   };
 
   return (
-    <AntLayout style={{ height: '100vh', overflow: 'hidden', background: dark ? '#141414' : undefined }}>
+    <AntLayout style={{ height: '100vh', overflow: 'hidden', background: token.colorBgLayout }}>
       {/* Top Header Bar — fixed, never scrolls */}
       <Header style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -69,7 +68,7 @@ export default function Layout() {
         borderBottom: `1px solid ${token.colorBorderSecondary}`,
         flexShrink: 0,
       }}>
-        <div style={{ fontWeight: 700, fontSize: 16, whiteSpace: 'nowrap' }}>
+        <div style={{ fontWeight: 700, fontSize: 16, whiteSpace: 'nowrap', color: token.colorText }}>
           PoC 管理平台
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

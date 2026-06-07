@@ -8,7 +8,7 @@ import { useTheme } from '../context/ThemeContext';
 import dayjs from 'dayjs';
 
 export default function DashboardHome() {
-  const { dark } = useTheme();
+  const { dark, token } = useTheme();
   const chartTheme = dark ? 'dark' : 'classic';
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, inProgress: 0, thisMonth: 0, avgDuration: 0 });
@@ -58,15 +58,15 @@ export default function DashboardHome() {
       <h2 style={{ marginBottom: 24 }}>数据概览</h2>
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}><Card><Statistic title="项目总数" value={stats.total} prefix={<ProjectOutlined />} /></Card></Col>
-        <Col span={6}><Card><Statistic title="进行中" value={stats.inProgress} prefix={<PlayCircleOutlined />} valueStyle={{ color: '#1677ff' }} /></Card></Col>
-        <Col span={6}><Card><Statistic title="本月新增" value={stats.thisMonth} prefix={<PlusCircleOutlined />} valueStyle={{ color: '#52c41a' }} /></Card></Col>
+        <Col span={6}><Card><Statistic title="进行中" value={stats.inProgress} prefix={<PlayCircleOutlined />} valueStyle={{ color: token.colorPrimary }} /></Card></Col>
+        <Col span={6}><Card><Statistic title="本月新增" value={stats.thisMonth} prefix={<PlusCircleOutlined />} valueStyle={{ color: token.colorSuccess }} /></Card></Col>
         <Col span={6}><Card><Statistic title="平均工期(天)" value={stats.avgDuration} prefix={<ClockCircleOutlined />} /></Card></Col>
       </Row>
       <Row gutter={16}>
         <Col span={12}>
           <Card title="项目状态分布">
             <Pie theme={chartTheme} data={statusData} angleField="y" colorField="x" radius={0.8} height={300} autoFit
-              scale={{ color: { range: ['#1677FF', '#52C41A', '#FA8C16', '#F5222D', '#722ED1'] } }}
+              scale={{ color: { range: [token.colorPrimary, token.colorSuccess, token.colorWarning, token.colorError, '#722ED1'] } }}
               label={{ text: 'y', position: 'outside', style: { fontWeight: 500 } }}
               tooltip={{ title: (d: any) => d.x, items: [(d: any) => ({ name: '项目数量', value: String(d.y) })] }} />
           </Card>
@@ -74,7 +74,7 @@ export default function DashboardHome() {
         <Col span={12}>
           <Card title="区域分布">
             <Column theme={chartTheme} data={regionData} xField="x" yField="y" height={300} autoFit
-              scale={{ color: { range: ['#1677FF', '#4096FF', '#69B1FF', '#91CAFF', '#BAE7FF'] } }}
+              scale={{ color: { range: [token.colorPrimary, token.colorPrimaryHover, token.colorPrimaryBorder, token.colorPrimaryBorderHover, token.colorPrimaryBgHover] } }}
               legend={false}
               tooltip={(d: any) => ({ name: '项目数量', value: String(d.y) })} />
           </Card>

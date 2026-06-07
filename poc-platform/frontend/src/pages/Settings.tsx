@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Tabs, Table, Button, Input, Space, Popconfirm, message, Modal, Select, Tag } from 'antd';
 import { PlusOutlined, DeleteOutlined, ClearOutlined, EditOutlined } from '@ant-design/icons';
+import { useTheme } from '../context/ThemeContext';
 import { getUsers, createUser, updateUser, deleteUser, resetPassword, toggleActive } from '../api/users';
 import type { User } from '../api/auth';
 import { getRoles, createRole, updateRole, deleteRole } from '../api/roles';
@@ -49,6 +50,7 @@ class ErrorBoundary extends React.Component<{ name: string; children: React.Reac
 }
 
 function UsersManager() {
+  const { token } = useTheme();
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
@@ -131,7 +133,7 @@ function UsersManager() {
           <a onClick={() => handleResetPwd(r.id)}>重置密码</a>
           <a onClick={() => handleToggle(r.id)}>{r.is_active ? '禁用' : '启用'}</a>
           <Popconfirm title="确认删除此用户？" onConfirm={() => handleDelete(r.id)}>
-            <a style={{ color: '#ff4d4f' }}>删除</a>
+            <a style={{ color: token.colorError }}>删除</a>
           </Popconfirm>
         </Space>
       ),
@@ -194,6 +196,7 @@ const ACTIONS = [
 ];
 
 function RoleManager() {
+  const { token } = useTheme();
   const [roles, setRoles] = useState<Role[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
@@ -276,7 +279,7 @@ function RoleManager() {
           <Space>
             <a onClick={() => openEdit(r)}>编辑</a>
             <Popconfirm title="确认删除此角色？关联用户将失去角色。" onConfirm={() => handleDelete(r.id)}>
-              <a style={{ color: '#ff4d4f' }}>删除</a>
+              <a style={{ color: token.colorError }}>删除</a>
             </Popconfirm>
           </Space>
         );
@@ -314,9 +317,9 @@ function RoleManager() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  <th style={{ padding: 8, borderBottom: '1px solid #f0f0f0', textAlign: 'left' }}>模块</th>
+                  <th style={{ padding: 8, borderBottom: `1px solid ${token.colorBorderSecondary}`, textAlign: 'left' }}>模块</th>
                   {ACTIONS.map(a => (
-                    <th key={a.key} style={{ padding: 8, borderBottom: '1px solid #f0f0f0', textAlign: 'center' }}>{a.label}</th>
+                    <th key={a.key} style={{ padding: 8, borderBottom: `1px solid ${token.colorBorderSecondary}`, textAlign: 'center' }}>{a.label}</th>
                   ))}
                 </tr>
               </thead>
@@ -353,6 +356,7 @@ interface AuditLog {
 }
 
 function AuditLogs({ refreshKey }: { refreshKey?: number }) {
+  const { token } = useTheme();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -428,7 +432,7 @@ function AuditLogs({ refreshKey }: { refreshKey?: number }) {
         <div>
           <Tag color={actionColors[r.action] || 'default'}>{actionLabels[r.action] || r.action}</Tag>
           <span>{r.target_name}</span>
-          {r.details && <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>{r.details}</div>}
+          {r.details && <div style={{ fontSize: 12, color: token.colorTextSecondary, marginTop: 2 }}>{r.details}</div>}
         </div>
       ),
     },

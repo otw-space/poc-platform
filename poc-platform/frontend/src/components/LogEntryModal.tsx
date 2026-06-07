@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Modal, Form, DatePicker, Button, Space, message } from 'antd';
 import MDEditor from '@uiw/react-md-editor';
 import dayjs from 'dayjs';
+import { useTheme } from '../context/ThemeContext';
 import type { ProjectLog, ProjectLogCreate, ProjectLogUpdate } from '../api/projects';
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function LogEntryModal({ open, onClose, onSubmit, initialValues, onPush, webhookUrl }: Props) {
+  const { token } = useTheme();
   const [logDate, setLogDate] = useState<dayjs.Dayjs>(dayjs());
   const [progress, setProgress] = useState('');
   const [issues, setIssues] = useState('');
@@ -86,7 +88,7 @@ export default function LogEntryModal({ open, onClose, onSubmit, initialValues, 
           <DatePicker value={logDate} onChange={(d) => setLogDate(d || dayjs())} style={{ width: '100%' }} />
         </Form.Item>
         <div style={editorStyle}>
-          <div style={{ marginBottom: 4, fontSize: 14, color: 'rgba(0,0,0,0.88)' }}>进度</div>
+          <div style={{ marginBottom: 4, fontSize: 14, color: token.colorText }}>进度</div>
           <MDEditor
             value={progress}
             onChange={(v) => setProgress(v || '')}
@@ -96,7 +98,7 @@ export default function LogEntryModal({ open, onClose, onSubmit, initialValues, 
           />
         </div>
         <div style={editorStyle}>
-          <div style={{ marginBottom: 4, fontSize: 14, color: 'rgba(0,0,0,0.88)' }}>问题</div>
+          <div style={{ marginBottom: 4, fontSize: 14, color: token.colorText }}>问题</div>
           <MDEditor
             value={issues}
             onChange={(v) => setIssues(v || '')}
@@ -106,7 +108,7 @@ export default function LogEntryModal({ open, onClose, onSubmit, initialValues, 
           />
         </div>
         <div style={{ marginBottom: 12 }}>
-          <div style={{ marginBottom: 4, fontSize: 14, color: 'rgba(0,0,0,0.88)' }}>计划</div>
+          <div style={{ marginBottom: 4, fontSize: 14, color: token.colorText }}>计划</div>
           <MDEditor
             value={plan}
             onChange={(v) => setPlan(v || '')}

@@ -1,5 +1,6 @@
 import { Card, Tag, Spin, Empty } from 'antd';
 import { ProjectOutlined, EnvironmentOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { useTheme } from '../../context/ThemeContext';
 import type { PocProject } from '../../api/projects';
 import type { PocOption } from '../../api/options';
 
@@ -19,6 +20,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function ProjectGalleryView({ projects, statusOptions, typeOptions, implOptions, loading, onSelect, titleField = 'name', hiddenColumns = [] }: Props) {
+  const { token } = useTheme();
   const fieldVal = (p: PocProject, field: string) => {
     if (field === 'status_id') return getLabel(statusOptions, p.status_id);
     if (field === 'poc_type_id') return getLabel(typeOptions, p.poc_type_id);
@@ -43,8 +45,8 @@ export default function ProjectGalleryView({ projects, statusOptions, typeOption
             size="small"
             onClick={() => onSelect(p.id)}
             cover={
-              <div style={{ height: 80, background: `linear-gradient(135deg, ${statusColor === 'processing' ? '#1677ff' : statusColor === 'success' ? '#52c41a' : statusColor === 'warning' ? '#fa8c16' : '#d9d9d9'}22 0%, ${statusColor === 'processing' ? '#1677ff' : statusColor === 'success' ? '#52c41a' : statusColor === 'warning' ? '#fa8c16' : '#d9d9d9'}08 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ProjectOutlined style={{ fontSize: 32, opacity: 0.3, color: statusColor === 'processing' ? '#1677ff' : statusColor === 'success' ? '#52c41a' : '#666' }} />
+              <div style={{ height: 80, background: `linear-gradient(135deg, ${statusColor === 'processing' ? token.colorPrimary : statusColor === 'success' ? token.colorSuccess : statusColor === 'warning' ? token.colorWarning : token.colorFill}22 0%, ${statusColor === 'processing' ? token.colorPrimary : statusColor === 'success' ? token.colorSuccess : statusColor === 'warning' ? token.colorWarning : token.colorFill}08 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ProjectOutlined style={{ fontSize: 32, opacity: 0.3, color: statusColor === 'processing' ? token.colorPrimary : statusColor === 'success' ? token.colorSuccess : token.colorTextTertiary }} />
               </div>
             }
           >
@@ -53,7 +55,7 @@ export default function ProjectGalleryView({ projects, statusOptions, typeOption
             </div>
             {show('status_id') && <Tag color={statusColor}>{status}</Tag>}
             {show('poc_type_id') && <Tag>{getLabel(typeOptions, p.poc_type_id)}</Tag>}
-            <div style={{ marginTop: 8, fontSize: 12, color: '#888' }}>
+            <div style={{ marginTop: 8, fontSize: 12, color: token.colorTextTertiary }}>
               {show('region') && <div><EnvironmentOutlined style={{ marginRight: 4 }} />{p.region} · {p.city}</div>}
               {show('start_date') && <div><ClockCircleOutlined style={{ marginRight: 4 }} />{p.start_date} ~ {p.end_date}</div>}
               {(show('pm') || show('sales')) && <div>{show('pm') ? p.pm : ''}{show('pm') && show('sales') ? ' · ' : ''}{show('sales') ? p.sales : ''}</div>}

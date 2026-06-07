@@ -56,7 +56,7 @@ export default function DispatchMap() {
   const projs = useRef<any[]>([]);
   const mapInfo = useRef<{ provinces: string[]; cities: string[]; provCenters: Record<string, [number, number]> }>({ provinces: [], cities: [], provCenters: {} });
   const zoom = useRef(1.2);
-  const { dark } = useTheme();
+  const { dark, token } = useTheme();
 
   useEffect(() => {
     (async () => {
@@ -101,10 +101,10 @@ export default function DispatchMap() {
     ci.current = chart;
 
     const { provinces, cities, provCenters } = mapInfo.current;
-    const labelColor = dark ? '#e8f0ff' : 'rgba(0,0,0,0.7)';
-    const cityLabelColor = dark ? '#1a1a2e' : 'rgba(0,0,0,0.6)';
+    const labelColor = dark ? token.colorTextSecondary : 'rgba(0,0,0,0.7)';
+    const cityLabelColor = dark ? token.colorTextTertiary : 'rgba(0,0,0,0.6)';
     const labelShadow = dark ? '0 0 4px rgba(0,0,0,0.8)' : 'none';
-    const scatterRed = dark ? '#ff6b6b' : '#e53e3e';
+    const scatterRed = token.colorError;
 
     // Province label markers at correct GeoJSON center positions
     // Manual overrides for provinces where geometric centroid is visually off
@@ -151,7 +151,7 @@ export default function DispatchMap() {
         name,
         itemStyle: {
           areaColor: 'transparent',
-          borderColor: dark ? '#3a4a6a' : `rgba(0,0,0,${0.05 + cityAlpha * 0.25})`,
+          borderColor: dark ? token.colorBorder : `rgba(0,0,0,${0.05 + cityAlpha * 0.25})`,
           borderWidth: 0.4,
         },
         label: {
@@ -176,12 +176,12 @@ export default function DispatchMap() {
     function buildOpt(z: number) {
       const cfg = zCfg(z);
       return {
-        backgroundColor: dark ? '#1a1a2e' : '#f8faff',
+        backgroundColor: dark ? token.colorBgLayout : '#f8faff',
         tooltip: {
           trigger: 'item',
-          backgroundColor: dark ? '#2a2a2a' : '#fff',
-          borderColor: dark ? '#444' : '#ddd',
-          textStyle: { color: dark ? '#ddd' : '#333' },
+          backgroundColor: dark ? token.colorBgElevated : '#fff',
+          borderColor: dark ? token.colorBorder : '#ddd',
+          textStyle: { color: dark ? token.colorText : '#333' },
           formatter: (p: any) => {
             if (p.seriesName === 'projects') {
               const l = (p.data?.projects || []).slice(0, 8).join('<br/>');
@@ -202,12 +202,12 @@ export default function DispatchMap() {
           },
           itemStyle: {
             areaColor: '#e8f0f8',
-            borderColor: dark ? '#3a4a6a' : '#b0c8e0',
+            borderColor: dark ? token.colorBorder : '#b0c8e0',
             borderWidth: 0.7,
           },
           emphasis: {
-            label: { fontSize: cfg.provSize + 2, fontWeight: 'bold', color: dark ? '#fff' : '#000' },
-            itemStyle: { borderColor: '#1677ff', borderWidth: 2 },
+            label: { fontSize: cfg.provSize + 2, fontWeight: 'bold', color: token.colorText },
+            itemStyle: { borderColor: token.colorPrimary, borderWidth: 2 },
           },
           regions: buildRegions(cfg.cityAlpha, cfg.citySize),
         },

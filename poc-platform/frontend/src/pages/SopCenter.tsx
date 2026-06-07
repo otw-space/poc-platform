@@ -33,7 +33,7 @@ import {
 } from '../api/sops';
 import type { ScriptFile } from '../api/sops';
 const PRIORITY_COLORS: Record<string, string> = { P0: 'red', P1: 'orange', P2: 'blue', P3: 'default' };
-const STATUS_COLORS: Record<string, string> = { draft: 'default', ready: 'green', deprecated: '#999' };
+const STATUS_COLORS: Record<string, string> = { draft: 'default', ready: 'green', deprecated: 'default' };
 const STATUS_LABELS: Record<string, string> = { draft: '草稿', ready: '就绪', deprecated: '废弃' };
 
 function formatSize(bytes: number) {
@@ -54,6 +54,7 @@ function downloadBlob(data: Blob, filename: string) {
 // ── Markdown Editor Tab (SOP / Plan) ──
 
 function EditorTab({ category, title }: { category: string; title: string }) {
+  const { token } = useTheme();
   const [docs, setDocs] = useState<SopDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -169,7 +170,7 @@ function EditorTab({ category, title }: { category: string; title: string }) {
 
   return (
     <div style={{ display: 'flex', gap: 16, height: 'calc(100vh - 200px)' }}>
-      <div style={{ width: 240, borderRight: '1px solid #f0f0f0', overflow: 'auto', flexShrink: 0 }}>
+      <div style={{ width: 240, borderRight: `1px solid ${token.colorBorderSecondary}`, overflow: 'auto', flexShrink: 0 }}>
         <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <strong>{title}</strong>
           <Button size="small" icon={<PlusOutlined />} onClick={() => setCreateModalOpen(true)} />
@@ -187,7 +188,7 @@ function EditorTab({ category, title }: { category: string; title: string }) {
             <div style={{ fontWeight: 500, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {d.name}
             </div>
-            <div style={{ fontSize: 12, color: '#999' }}>{dayjs(d.updated_at).format('MM-DD HH:mm')}</div>
+            <div style={{ fontSize: 12, color: token.colorTextTertiary }}>{dayjs(d.updated_at).format('MM-DD HH:mm')}</div>
           </div>
         ))}
         {docs.length === 0 && <Empty description="暂无文档" style={{ marginTop: 40 }} />}
@@ -208,7 +209,7 @@ function EditorTab({ category, title }: { category: string; title: string }) {
                 <Space size={4}>
                   <span style={{ fontWeight: 600, fontSize: 16 }}>{selected.name}</span>
                   <Button type="text" size="small" icon={<EditOutlined />}
-                    style={{ color: '#999', fontSize: 12 }}
+                    style={{ color: token.colorTextTertiary, fontSize: 12 }}
                     onClick={() => { setEditName(selected.name); setEditing(true); }} />
                 </Space>
               )}
@@ -259,6 +260,7 @@ function EditorTab({ category, title }: { category: string; title: string }) {
 // ── Report Tab (table layout like scripts, upload only, PPT→PDF preview) ──
 
 function ReportTab() {
+  const { token } = useTheme();
   const [docs, setDocs] = useState<SopDocument[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -324,7 +326,7 @@ function ReportTab() {
       title: '文件', key: 'file', width: 220,
       render: (_: any, r: SopDocument) => r.file_json ? (
         <span style={{ fontSize: 13 }}>{r.file_json.original_filename} ({formatSize(r.file_json.size)})</span>
-      ) : <span style={{ color: '#999' }}>未上传</span>,
+      ) : <span style={{ color: token.colorTextTertiary }}>未上传</span>,
     },
     {
       title: '更新时间', dataIndex: 'updated_at', key: 'updated_at', width: 160,
@@ -391,6 +393,7 @@ function ReportTab() {
 // ── Test Case Tab ──
 
 function TestCaseTab() {
+  const { token } = useTheme();
   const [cases, setCases] = useState<TestCase[]>([]);
   const [loading, setLoading] = useState(false);
   const [total, setTotal] = useState(0);
@@ -503,7 +506,7 @@ function TestCaseTab() {
     { title: '客户端', key: 'category', width: 100,
       render: (_: any, r: TestCase) => {
         const cat = categories.find(c => c.id === r.category_id);
-        return cat ? <Tag color="blue">{cat.name}</Tag> : <span style={{color:'#999'}}>-</span>;
+        return cat ? <Tag color="blue">{cat.name}</Tag> : <span style={{color: token.colorTextTertiary}}>-</span>;
       },
     },
     { title: '模块', dataIndex: 'module', key: 'module', width: 100 },
@@ -529,7 +532,7 @@ function TestCaseTab() {
             setModalOpen(true);
           }}>编辑</a>
           <Popconfirm title="确认删除？" onConfirm={async () => { await deleteTestCase(record.id); setTrigger(t => t + 1); refreshCats(); listTestCases({ page: 1, page_size: 1 }).then(r => setAllTotal(r.data.total)); message.success('已删除'); }}>
-            <a style={{ color: '#ff4d4f' }}>删除</a>
+            <a style={{ color: token.colorError }}>删除</a>
           </Popconfirm>
         </Space>
       ),
@@ -539,7 +542,7 @@ function TestCaseTab() {
   return (
     <div style={{ display: 'flex', gap: 16, height: 'calc(100vh - 200px)' }}>
       {/* Category sidebar */}
-      <div style={{ width: 180, borderRight: '1px solid #f0f0f0', overflow: 'auto', flexShrink: 0 }}>
+      <div style={{ width: 180, borderRight: `1px solid ${token.colorBorderSecondary}`, overflow: 'auto', flexShrink: 0 }}>
         <div style={{ padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <strong>客户端</strong>
           <Button size="small" icon={<PlusOutlined />} onClick={() => { setCatEditId(null); setCatName(''); setCatModalOpen(true); }} />

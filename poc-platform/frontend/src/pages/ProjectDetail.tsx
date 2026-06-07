@@ -23,7 +23,7 @@ function formatFileSize(bytes: number): string {
 
 export default function ProjectDetail() {
   const { id } = useParams();
-  const { dark } = useTheme();
+  const { dark, token } = useTheme();
   const navigate = useNavigate();
   const [project, setProject] = useState<PocProject | null>(null);
   const [typeOptions, setTypeOptions] = useState<PocOption[]>([]);
@@ -146,7 +146,7 @@ export default function ProjectDetail() {
       <Card title={title} size="small" style={{ marginBottom: 16 }}>
         {hasFile ? (
           <div>
-            <div style={{ marginBottom: 8, color: dark ? 'rgba(255,255,255,0.85)' : 'rgba(0,0,0,0.65)' }}>
+            <div style={{ marginBottom: 8, color: token.colorTextSecondary }}>
               {fileMeta.original_filename} ({formatFileSize(fileMeta.size)})
             </div>
             <Space>
